@@ -22,27 +22,33 @@ static const u8 base32f[256] = {
 */
 size_t base32_from(u8 *dst, u8 *dmask, const char *src)
 {
-	int i, j, k = -1, l;
-	u8 mask = 0;
+	int i, j, k = -1, l, sk = 0;
+	u8 mask = 0, cmask = 0;
 	for (i = 0;;i += 5) {
 		j = i/5;
 		l = i%8;
 		if (!src[j]) {
-			if (!l) // workaround: if l==0 mask misses some upper bits
-				mask = 0xFF;
 			if (k >= 0)
-				dst[k] &= mask;
-			//printf("dst[k]:%02X mask:%02X l:%d\n", dst[k], (unsigned int)(mask & 0xFF), l);
-			*dmask = mask;
+				dst[k] &= cmask;
+			//printf("dst[k]:%02X mask:%02X l:%d\n", dst[k], (cmask & 0xFF), l);
+			*dmask = cmask;
 			return (size_t)(k + 1);
 		}
 		k = i/8;
+		if (k != sk)
+			cmask = 0;
+		sk = k;
 		mask = (0x1F << 3) >> l;
+		cmask |= mask;
+		//printf("1:m[%02X] cm[%02X]\n",mask,cmask);
 		dst[k] &= ~mask;
 		dst[k] |= (base32f[(u8)src[j]] << 3) >> l;
 		if (((0x1F << 8) >> (l+5-8)) & 0xFF) {
-			mask = ((0x1F << 8) >> (l+5-8)) & 0xFF;
 			++k;
+			sk = k;
+			mask = ((0x1F << 8) >> (l+5-8)) & 0xFF;
+			cmask = mask;
+			//printf("2:m[%02X] cm[%02X]\n",mask,cmask);
 			dst[k] &= ~mask;
 			dst[k] |= ((base32f[(u8)src[j]] << 8) >> (l+5-8)) & 0xFF;
 		}

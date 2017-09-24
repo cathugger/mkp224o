@@ -21,6 +21,42 @@ struct texttestcase {
 	{"foobar", "mzxw6ytboi", "foobar"},
 };
 
+/*
+r:0, mask:FF
+ -- 
+r:2, mask:C0
+f -- f
+r:3, mask:F0
+fo -- fo
+r:4, mask:80
+foo -- foo
+r:5, mask:E0
+foob -- foob
+r:5, mask:FF
+fooba -- fooba
+r:7, mask:C0
+foobar -- foobar
+*/
+
+/*
+struct masktestcase {
+	const char *src;
+	u8 mask;
+} tests1[] = {
+	{"", 0x00},
+	{"a", 0x00},
+	{"ab", 0x00},
+	{"abc", 0x00},
+	{"abcd", 0x00},
+	{"abcde", 0x00},
+	{"abcdef", 0x00},
+	{"abcdefg", 0x00},
+	{"abcdefgh", 0x00},
+	{"abcdefghi", 0x00},
+	{"abcdefghij", 0x00},
+};
+*/
+
 int main()
 {
 	char buf[1024], buf2[1024], mask;
@@ -30,6 +66,9 @@ int main()
 		assert(strcmp(buf, tests0[i].out) == 0);
 		r = base32_from((u8 *)buf2, (u8 *)&mask, buf);
 		buf2[r] = 0;
+		if (r > 0) {
+			assert((buf2[r-1] & ~mask) == 0);
+		}
 		//fprintf(stderr, "r:%d, mask:%02X\n", (int)r, ((unsigned int)mask) & 0xFF);
 		//assert(r == strlen(buf2));
 		//assert(r == strlen(tests0[i].rev));

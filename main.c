@@ -75,6 +75,7 @@ static void filters_add(const char *filter)
 	size_t ret;
 
 	ret = base32_from(buf,&bf.mask,filter);
+	//printf("--m:%02X\n", bf.mask);
 	if (!ret)
 		return;
 	bf.f = malloc(ret);
@@ -113,13 +114,15 @@ static void loadfilterfile(const char *fname)
 static void printfilters()
 {
 	fprintf(stderr, "current filters:\n");
+#if 0
 	for (size_t i = 0; i < VEC_LENGTH(filters); ++i) {
 		fprintf(stderr, "\t%s\n", VEC_BUF(filters, i).str);
 	}
+#endif
 	for (size_t i = 0; i < VEC_LENGTH(bfilters); ++i) {
 		char buf[256];
-		base32_to(buf, VEC_BUF(bfilters, i).f, VEC_BUF(bfilters, i).len);
-		fprintf(stderr, "\t%s\n", buf);
+		base32_to(buf,VEC_BUF(bfilters,i).f,VEC_BUF(bfilters,i).len);
+		fprintf(stderr, "\t%s [%02X]\n",buf,VEC_BUF(bfilters,i).mask);
 	}
 }
 
