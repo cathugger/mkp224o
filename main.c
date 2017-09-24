@@ -52,20 +52,35 @@ struct strfilter {
 	size_t len;
 } ;
 
+struct binfilter {
+	u8 *f;
+	size_t len; // real len minus one
+	u8 mask;
+} ;
+
 VEC_STRUCT(filtervec, struct strfilter) filters;
+
+VEC_STRUCT(bfiltervec, struct binfilter) bfilters;
 
 static void filters_init()
 {
 	VEC_INIT(filters);
+	VEC_INIT(bfilters);
 }
 
 static void filters_add(const char *filter)
 {
-	struct strfilter sf;
-	sf.len = strlen(filter);
-	sf.str = malloc(sf.len + 1);
-	memcpy(sf.str, filter, sf.len + 1);
-	VEC_ADD(filters, sf)
+	u8 buf[256];
+	struct binfilter bf;
+	size_t ret;
+
+	ret = base32_from(buf,&bf.mask,filter);
+	if (!ret)
+		return;
+	bf.f = malloc(ret);
+	bf.len = ret - 1;
+	memcpy(bf.f,buf,ret);
+	VEC_ADD(bfilters,bf);
 }
 
 static void filters_clean()
@@ -74,6 +89,11 @@ static void filters_clean()
 		free(VEC_BUF(filters, i).str);
 	}
 	VEC_FREE(filters);
+
+	for (size_t i = 0; i < VEC_LENGTH(bfilters); ++i) {
+		free(VEC_BUF(bfilters, i).f);
+	}
+	VEC_FREE(bfilters);
 }
 
 static void loadfilterfile(const char *fname)
@@ -95,6 +115,11 @@ static void printfilters()
 	fprintf(stderr, "current filters:\n");
 	for (size_t i = 0; i < VEC_LENGTH(filters); ++i) {
 		fprintf(stderr, "\t%s\n", VEC_BUF(filters, i).str);
+	}
+	for (size_t i = 0; i < VEC_LENGTH(bfilters); ++i) {
+		char buf[256];
+		base32_to(buf, VEC_BUF(bfilters, i).f, VEC_BUF(bfilters, i).len);
+		fprintf(stderr, "\t%s\n", buf);
 	}
 }
 
@@ -151,40 +176,43 @@ static void addseed(u8 *seed)
 
 static void *dowork(void *task)
 {
-	u8 pubonion[pkprefixlen + PUBONION_LEN];
+	u8 pubonion[pkprefixlen + PUBLIC_LEN + 32];
+	u8 * const pk = &pubonion[pkprefixlen];
 	u8 secret[skprefixlen + SECRET_LEN];
+	u8 * const sk = &secret[skprefixlen];
 	u8 seed[SEED_LEN];
 	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
 	size_t i;
 	char *sname;
 
-	memcpy(secret, skprefix, skprefixlen);
-	memcpy(pubonion, pkprefix, pkprefixlen);
+	memcpy(secret,skprefix,skprefixlen);
+	memcpy(pubonion,pkprefix,pkprefixlen);
 	pubonion[pkprefixlen + PUBLIC_LEN + 2] = 0x03; // version
-	memcpy(hashsrc, checksumstr, checksumstrlen);
+	memcpy(hashsrc,checksumstr,checksumstrlen);
 	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
 
 	sname = alloca(workdirlen + ONIONLEN + 63 + 1);
 	if (workdir)
-		memcpy(sname, workdir, workdirlen);
+		memcpy(sname,workdir,workdirlen);
 
 initseed:
-	randombytes(seed, sizeof(seed));
+	randombytes(seed,sizeof(seed));
 
 again:
 	if (endwork)
 		goto end;
 
-	// TODO technically we could manipulate secret/public keys directly
-	ed25519_ref10_seckey_expand(&secret[skprefixlen], seed);
-	ed25519_ref10_pubkey(&pubonion[pkprefixlen], &secret[skprefixlen]);
-	// we could actually avoid this by using more specialised filters
-	base32_to(&sname[direndpos], &pubonion[pkprefixlen], PUBLIC_LEN);
-	for (i = 0;i < VEC_LENGTH(filters);++i) {
-		if (strncmp(&sname[direndpos], VEC_BUF(filters, i).str, VEC_BUF(filters, i).len) == 0) {
+	ed25519_ref10_seckey_expand(sk,seed);
+	ed25519_ref10_pubkey(pk,sk);
+	for (i = 0;i < VEC_LENGTH(bfilters);++i) {
+		size_t l = VEC_BUF(bfilters,i).len;
+		if (memcmp(pk,VEC_BUF(bfilters,i).f,l) == 0 &&
+			(pk[l] & VEC_BUF(bfilters,i).mask) == VEC_BUF(bfilters,i).f[l])
+		{
 			memcpy(&hashsrc[checksumstrlen], &pubonion[pkprefixlen], PUBLIC_LEN);
 			FIPS202_SHA3_256(hashsrc, sizeof(hashsrc), &pubonion[pkprefixlen + PUBLIC_LEN]);
-			strcpy(base32_to(&sname[direndpos], &pubonion[pkprefixlen], PUBONION_LEN), ".onion");
+			pubonion[pkprefixlen + PUBLIC_LEN + 2] = 0x03; // version
+			strcpy(base32_to(&sname[direndpos], pk, PUBONION_LEN), ".onion");
 			onionready(sname, secret, pubonion);
 			goto initseed;
 		}
@@ -235,7 +263,8 @@ static void addu64toscalar32(u8 *dst, u64 v)
 
 static void *dofastwork(void *task)
 {
-	u8 pubonion[pkprefixlen + PUBONION_LEN];
+	u8 pubonion[pkprefixlen + PUBLIC_LEN + 32];
+	u8 * const pk = &pubonion[pkprefixlen];
 	u8 secret[skprefixlen + SECRET_LEN];
 	u8 * const sk = &secret[skprefixlen];
 	u8 seed[SEED_LEN];
@@ -256,11 +285,11 @@ static void *dofastwork(void *task)
 		memcpy(sname, workdir, workdirlen);
 
 initseed:
-	randombytes(seed, sizeof(seed));
-	ed25519_ref10_seckey_expand(&secret[skprefixlen], seed);
+	randombytes(seed,sizeof(seed));
+	ed25519_ref10_seckey_expand(sk,seed);
 	
 	ge_scalarmult_base(&ge_public,sk);
-	ge_p3_tobytes(&pubonion[pkprefixlen],&ge_public);
+	ge_p3_tobytes(pk,&ge_public);
 	
 	for (counter = 0;counter < U64_MAX-8;counter += 8) {
 		ge_p1p1 sum;
@@ -268,10 +297,11 @@ initseed:
 		if (endwork)
 			goto end;
 		
-		// we could actually avoid this by using more specialised filters
-		base32_to(&sname[direndpos], &pubonion[pkprefixlen], PUBLIC_LEN);
-		for (i = 0;i < VEC_LENGTH(filters);++i) {
-			if (strncmp(&sname[direndpos], VEC_BUF(filters, i).str, VEC_BUF(filters, i).len) == 0) {
+		for (i = 0;i < VEC_LENGTH(bfilters);++i) {
+			size_t l = VEC_BUF(bfilters,i).len;
+			if (memcmp(pk,VEC_BUF(bfilters,i).f,l) == 0 &&
+				(pk[l] & VEC_BUF(bfilters,i).mask) == VEC_BUF(bfilters,i).f[l])
+			{
 				// found!
 				// update secret key with counter
 				addu64toscalar32(sk, counter);
@@ -285,20 +315,20 @@ initseed:
 				else goto initseed;
 				
 				// calc checksum
-				memcpy(&hashsrc[checksumstrlen], &pubonion[pkprefixlen], PUBLIC_LEN);
-				FIPS202_SHA3_256(hashsrc, sizeof(hashsrc), &pubonion[pkprefixlen + PUBLIC_LEN]);
+				memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
+				FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
 				// full name
-				strcpy(base32_to(&sname[direndpos], &pubonion[pkprefixlen], PUBONION_LEN), ".onion");
-				onionready(sname, secret, pubonion);
+				strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
+				onionready(sname,secret,pubonion);
 				// don't reuse same seed
 				goto initseed;
 			}
 		}
 
 		// next
-		ge_add(&sum, &ge_public, &ge_eightpoint);
-		ge_p1p1_to_p3(&ge_public, &sum);
-		ge_p3_tobytes(&pubonion[pkprefixlen],&ge_public);
+		ge_add(&sum, &ge_public,&ge_eightpoint);
+		ge_p1p1_to_p3(&ge_public,&sum);
+		ge_p3_tobytes(pk,&ge_public);
 	}
 	goto initseed;
 

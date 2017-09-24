@@ -1,6 +1,7 @@
 
 CC= gcc
 CFLAGS= -O3 -march=native -Wall
+#CFLAGS= -O0 -g3 -fsanitize=address
 MV= mv
 
 ED25519OBJ= $(patsubst %.c,%.o,$(wildcard ed25519/ref10/*.c))
@@ -74,6 +75,8 @@ ed25519/ref10/sc_reduce.o: ed25519/ref10/crypto_uint64.h
 ed25519/ref10/ge_msub.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_msub.o: ed25519/ref10/crypto_int32.h ed25519/ref10/ge_msub.h
 ed25519/ref10/fe_copy.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
+ed25519/ref10/fe_isnegative.o: ed25519/ref10/fe.h
+ed25519/ref10/fe_isnegative.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_tobytes.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/ge_p3_tobytes.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_p3_tobytes.o: ed25519/ref10/crypto_int32.h
@@ -87,14 +90,10 @@ ed25519/ref10/ge_p1p1_to_p3.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_p1p1_to_p3.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/ge_p3_to_p2.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_p3_to_p2.o: ed25519/ref10/crypto_int32.h
-ed25519/ref10/fe_1.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/ge_sub.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_sub.o: ed25519/ref10/crypto_int32.h ed25519/ref10/ge_sub.h
 ed25519/ref10/ge_madd.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_madd.o: ed25519/ref10/crypto_int32.h ed25519/ref10/ge_madd.h
-ed25519/ref10/sc_muladd.o: ed25519/ref10/sc.h ed25519/ref10/crypto_int64.h
-ed25519/ref10/sc_muladd.o: ed25519/ref10/crypto_uint32.h
-ed25519/ref10/sc_muladd.o: ed25519/ref10/crypto_uint64.h
 ed25519/ref10/fe_frombytes.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_frombytes.o: ed25519/ref10/crypto_int64.h
 ed25519/ref10/fe_frombytes.o: ed25519/ref10/crypto_uint64.h
@@ -106,12 +105,13 @@ ed25519/ref10/fe_neg.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/ge_p2_dbl.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_p2_dbl.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/ge_p2_dbl.o: ed25519/ref10/ge_p2_dbl.h
-ed25519/ref10/fe_cmov.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
+ed25519/ref10/fe_1.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/sign.o: ed25519/ref10/crypto_sign.h
 ed25519/ref10/sign.o: ed25519/ref10/ed25519_ref10.h
 ed25519/ref10/sign.o: ed25519/ref10/crypto_hash_sha512.h ed25519/ref10/ge.h
 ed25519/ref10/sign.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/sign.o: ed25519/ref10/sc.h
+ed25519/ref10/fe_cmov.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/open.o: ed25519/ref10/crypto_sign.h
 ed25519/ref10/open.o: ed25519/ref10/ed25519_ref10.h
 ed25519/ref10/open.o: ed25519/ref10/crypto_hash_sha512.h
@@ -120,10 +120,9 @@ ed25519/ref10/open.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/open.o: ed25519/ref10/sc.h
 ed25519/ref10/ge_add.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_add.o: ed25519/ref10/crypto_int32.h ed25519/ref10/ge_add.h
+ed25519/ref10/fe_sub.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_pow22523.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_pow22523.o: ed25519/ref10/pow22523.h
-ed25519/ref10/ge_p1p1_to_p2.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
-ed25519/ref10/ge_p1p1_to_p2.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_sq2.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_sq2.o: ed25519/ref10/crypto_int64.h
 ed25519/ref10/fe_mul.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
@@ -138,7 +137,8 @@ ed25519/ref10/keypair.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/keypair.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_isnonzero.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_isnonzero.o: ed25519/ref10/crypto_verify_32.h
-ed25519/ref10/fe_sub.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
+ed25519/ref10/ge_p1p1_to_p2.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
+ed25519/ref10/ge_p1p1_to_p2.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_sq.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_sq.o: ed25519/ref10/crypto_int64.h
 ed25519/ref10/fe_add.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
@@ -147,10 +147,11 @@ ed25519/ref10/ge_p3_to_cached.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/ge_p3_to_cached.o: ed25519/ref10/d2.h
 ed25519/ref10/ge_tobytes.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_tobytes.o: ed25519/ref10/crypto_int32.h
+ed25519/ref10/sc_muladd.o: ed25519/ref10/sc.h ed25519/ref10/crypto_int64.h
+ed25519/ref10/sc_muladd.o: ed25519/ref10/crypto_uint32.h
+ed25519/ref10/sc_muladd.o: ed25519/ref10/crypto_uint64.h
 ed25519/ref10/ge_p3_dbl.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_p3_dbl.o: ed25519/ref10/crypto_int32.h
-ed25519/ref10/fe_isnegative.o: ed25519/ref10/fe.h
-ed25519/ref10/fe_isnegative.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/ge_frombytes.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_frombytes.o: ed25519/ref10/crypto_int32.h ed25519/ref10/d.h
 ed25519/ref10/ge_frombytes.o: ed25519/ref10/sqrtm1.h
@@ -174,6 +175,8 @@ ed25519/ref10/sc_reduce.o: ed25519/ref10/crypto_uint64.h
 ed25519/ref10/ge_msub.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_msub.o: ed25519/ref10/crypto_int32.h ed25519/ref10/ge_msub.h
 ed25519/ref10/fe_copy.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
+ed25519/ref10/fe_isnegative.o: ed25519/ref10/fe.h
+ed25519/ref10/fe_isnegative.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_tobytes.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/ge_p3_tobytes.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_p3_tobytes.o: ed25519/ref10/crypto_int32.h
@@ -187,14 +190,10 @@ ed25519/ref10/ge_p1p1_to_p3.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_p1p1_to_p3.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/ge_p3_to_p2.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_p3_to_p2.o: ed25519/ref10/crypto_int32.h
-ed25519/ref10/fe_1.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/ge_sub.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_sub.o: ed25519/ref10/crypto_int32.h ed25519/ref10/ge_sub.h
 ed25519/ref10/ge_madd.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_madd.o: ed25519/ref10/crypto_int32.h ed25519/ref10/ge_madd.h
-ed25519/ref10/sc_muladd.o: ed25519/ref10/sc.h ed25519/ref10/crypto_int64.h
-ed25519/ref10/sc_muladd.o: ed25519/ref10/crypto_uint32.h
-ed25519/ref10/sc_muladd.o: ed25519/ref10/crypto_uint64.h
 ed25519/ref10/fe_frombytes.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_frombytes.o: ed25519/ref10/crypto_int64.h
 ed25519/ref10/fe_frombytes.o: ed25519/ref10/crypto_uint64.h
@@ -206,12 +205,13 @@ ed25519/ref10/fe_neg.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/ge_p2_dbl.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_p2_dbl.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/ge_p2_dbl.o: ed25519/ref10/ge_p2_dbl.h
-ed25519/ref10/fe_cmov.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
+ed25519/ref10/fe_1.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/sign.o: ed25519/ref10/crypto_sign.h
 ed25519/ref10/sign.o: ed25519/ref10/ed25519_ref10.h
 ed25519/ref10/sign.o: ed25519/ref10/crypto_hash_sha512.h ed25519/ref10/ge.h
 ed25519/ref10/sign.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/sign.o: ed25519/ref10/sc.h
+ed25519/ref10/fe_cmov.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/open.o: ed25519/ref10/crypto_sign.h
 ed25519/ref10/open.o: ed25519/ref10/ed25519_ref10.h
 ed25519/ref10/open.o: ed25519/ref10/crypto_hash_sha512.h
@@ -220,10 +220,9 @@ ed25519/ref10/open.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/open.o: ed25519/ref10/sc.h
 ed25519/ref10/ge_add.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_add.o: ed25519/ref10/crypto_int32.h ed25519/ref10/ge_add.h
+ed25519/ref10/fe_sub.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_pow22523.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_pow22523.o: ed25519/ref10/pow22523.h
-ed25519/ref10/ge_p1p1_to_p2.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
-ed25519/ref10/ge_p1p1_to_p2.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_sq2.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_sq2.o: ed25519/ref10/crypto_int64.h
 ed25519/ref10/fe_mul.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
@@ -238,7 +237,8 @@ ed25519/ref10/keypair.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/keypair.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_isnonzero.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_isnonzero.o: ed25519/ref10/crypto_verify_32.h
-ed25519/ref10/fe_sub.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
+ed25519/ref10/ge_p1p1_to_p2.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
+ed25519/ref10/ge_p1p1_to_p2.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_sq.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_sq.o: ed25519/ref10/crypto_int64.h
 ed25519/ref10/fe_add.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
@@ -247,10 +247,11 @@ ed25519/ref10/ge_p3_to_cached.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/ge_p3_to_cached.o: ed25519/ref10/d2.h
 ed25519/ref10/ge_tobytes.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_tobytes.o: ed25519/ref10/crypto_int32.h
+ed25519/ref10/sc_muladd.o: ed25519/ref10/sc.h ed25519/ref10/crypto_int64.h
+ed25519/ref10/sc_muladd.o: ed25519/ref10/crypto_uint32.h
+ed25519/ref10/sc_muladd.o: ed25519/ref10/crypto_uint64.h
 ed25519/ref10/ge_p3_dbl.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_p3_dbl.o: ed25519/ref10/crypto_int32.h
-ed25519/ref10/fe_isnegative.o: ed25519/ref10/fe.h
-ed25519/ref10/fe_isnegative.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/ge_frombytes.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_frombytes.o: ed25519/ref10/crypto_int32.h ed25519/ref10/d.h
 ed25519/ref10/ge_frombytes.o: ed25519/ref10/sqrtm1.h
