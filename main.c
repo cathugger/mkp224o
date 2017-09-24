@@ -47,24 +47,16 @@ static pthread_mutex_t fout_mutex;
 static volatile int endwork = 0;
 static volatile size_t keysgenerated = 0;
 
-struct strfilter {
-	char *str;
-	size_t len;
-} ;
-
 struct binfilter {
 	u8 *f;
 	size_t len; // real len minus one
 	u8 mask;
 } ;
 
-VEC_STRUCT(filtervec, struct strfilter) filters;
-
 VEC_STRUCT(bfiltervec, struct binfilter) bfilters;
 
 static void filters_init()
 {
-	VEC_INIT(filters);
 	VEC_INIT(bfilters);
 }
 
@@ -86,11 +78,6 @@ static void filters_add(const char *filter)
 
 static void filters_clean()
 {
-	for (size_t i = 0; i < VEC_LENGTH(filters); ++i) {
-		free(VEC_BUF(filters, i).str);
-	}
-	VEC_FREE(filters);
-
 	for (size_t i = 0; i < VEC_LENGTH(bfilters); ++i) {
 		free(VEC_BUF(bfilters, i).f);
 	}
@@ -114,15 +101,19 @@ static void loadfilterfile(const char *fname)
 static void printfilters()
 {
 	fprintf(stderr, "current filters:\n");
-#if 0
-	for (size_t i = 0; i < VEC_LENGTH(filters); ++i) {
-		fprintf(stderr, "\t%s\n", VEC_BUF(filters, i).str);
-	}
-#endif
 	for (size_t i = 0; i < VEC_LENGTH(bfilters); ++i) {
-		char buf[256];
-		base32_to(buf,VEC_BUF(bfilters,i).f,VEC_BUF(bfilters,i).len);
-		fprintf(stderr, "\t%s [%02X]\n",buf,VEC_BUF(bfilters,i).mask);
+		char buf0[256],buf1[256];
+		u8 bufx[128];
+		size_t len = VEC_BUF(bfilters,i).len + 1;
+		base32_to(buf0,VEC_BUF(bfilters,i).f,len);
+		memcpy(bufx,VEC_BUF(bfilters,i).f,len);
+		bufx[len - 1] |= ~VEC_BUF(bfilters,i).mask;
+		base32_to(buf1,bufx,len);
+		char *a = buf0,*b = buf1;
+		while (*a && *a == *b)
+			++a, ++b;
+		*a = 0;
+		fprintf(stderr, "\t%s\n",buf0);
 	}
 }
 
