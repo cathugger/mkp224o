@@ -1,7 +1,8 @@
 
 CC= gcc
-CFLAGS= -O3 -march=native -Wall
-#CFLAGS= -O0 -g3 -fsanitize=address
+CSTD= -std=c99 -Wall -D_POSIX_C_SOURCE=200112L
+CFLAGS= $(CSTD) -O3 -march=native
+#CFLAGS= $(CSTD) -O0 -g3 -fsanitize=address
 MV= mv
 
 ED25519OBJ= $(patsubst %.c,%.o,$(wildcard ed25519/ref10/*.c))
@@ -61,7 +62,7 @@ clean:
 	$(RM) $(EXE)
 
 depend:
-	makedepend -Y -- $(CFLAGS) -- $(MAINOBJ:.o=.c) $(TEST_BASE16OBJ:.o=.c) $(TEST_BASE32OBJ:.o=.c) $(TEST_ED25519OBJ:.o=.c)
+	makedepend -Y -- $(CSTD) -- $(MAINOBJ:.o=.c) $(TEST_BASE16OBJ:.o=.c) $(TEST_BASE32OBJ:.o=.c) $(TEST_ED25519OBJ:.o=.c)
 
 # DO NOT DELETE THIS LINE
 

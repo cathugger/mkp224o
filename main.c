@@ -2,7 +2,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <assert.h>
+#include <time.h>
 #include <pthread.h>
+#include <signal.h>
 #include <sodium/randombytes.h>
 #include "ed25519/ref10/ed25519_ref10.h"
 #include "ed25519/ref10/ge.h"
@@ -41,11 +44,22 @@ static size_t direndpos;     // end of dir before .onion within string
 static size_t printstartpos; // where to start printing from
 static size_t printlen;      // precalculated, related to printstartpos
 
-static FILE *fout;
 static pthread_mutex_t fout_mutex;
-
-static volatile int endwork = 0;
+static FILE *fout;
+static size_t numneedgenerate = 0;
+static pthread_mutex_t keysgenerated_mutex;
 static volatile size_t keysgenerated = 0;
+static volatile int endwork = 0;
+
+static void termhandler(int sig)
+{
+	switch (sig) {
+	case SIGTERM:
+	case SIGINT:
+		endwork = 1;
+		break;
+	}
+}
 
 struct binfilter {
 	u8 *f;
@@ -62,17 +76,25 @@ static void filters_init()
 
 static void filters_add(const char *filter)
 {
-	u8 buf[256];
 	struct binfilter bf;
-	size_t ret;
+	size_t ret, ret2;
 
-	ret = base32_from(buf,&bf.mask,filter);
-	//printf("--m:%02X\n", bf.mask);
+	if (!base32_valid(filter,&ret)) {
+		fprintf(stderr, "filter \"%s\" is invalid\n", filter);
+		return;
+	}
+	ret = BASE32_FROM_LEN(ret);
 	if (!ret)
 		return;
+	if (ret > PUBLIC_LEN) {
+		fprintf(stderr, "filter \"%s\" is too long\n", filter);
+		return;
+	}
 	bf.f = malloc(ret);
+	ret2 = base32_from(bf.f,&bf.mask,filter);
+	assert(ret == ret2);
+	//printf("--m:%02X\n", bf.mask);
 	bf.len = ret - 1;
-	memcpy(bf.f,buf,ret);
 	VEC_ADD(bfilters,bf);
 }
 
@@ -100,8 +122,13 @@ static void loadfilterfile(const char *fname)
 
 static void printfilters()
 {
-	fprintf(stderr, "current filters:\n");
-	for (size_t i = 0; i < VEC_LENGTH(bfilters); ++i) {
+	size_t i,l = VEC_LENGTH(bfilters);
+	if (l)
+		fprintf(stderr, "filters:\n");
+	else
+		fprintf(stderr, "no filters defined\n");
+
+	for (i = 0;i < l;++i) {
 		char buf0[256],buf1[256];
 		u8 bufx[128];
 		size_t len = VEC_BUF(bfilters,i).len + 1;
@@ -122,9 +149,37 @@ static void onionready(char *sname, const u8 *secret, const u8 *pubonion)
 {
 	FILE *fh;
 
-	if (mkdir(sname, 0700) != 0)
+	if (endwork)
 		return;
-	
+
+	if (numneedgenerate) {
+		pthread_mutex_lock(&keysgenerated_mutex);
+		if (keysgenerated >= numneedgenerate) {
+			pthread_mutex_unlock(&keysgenerated_mutex);
+			return;
+		}
+	}
+
+	if (mkdir(sname, 0700) != 0) {
+		if (numneedgenerate)
+			pthread_mutex_unlock(&keysgenerated_mutex);
+		return;
+	}
+
+	if (numneedgenerate) {
+		++keysgenerated;
+		if (keysgenerated >= numneedgenerate)
+			endwork = 1;
+		pthread_mutex_unlock(&keysgenerated_mutex);
+	}
+
+	strcpy(&sname[onionendpos], "/hs_ed25519_secret_key");
+	fh = fopen(sname, "wb");
+	if (fh) {
+		fwrite(secret, skprefixlen + SECRET_LEN, 1, fh);
+		fclose(fh);
+	}
+
 	strcpy(&sname[onionendpos], "/hostname");
 	fh = fopen(sname, "w");
 	if (fh) {
@@ -140,21 +195,13 @@ static void onionready(char *sname, const u8 *secret, const u8 *pubonion)
 		fclose(fh);
 	}
 
-	strcpy(&sname[onionendpos], "/hs_ed25519_secret_key");
-	fh = fopen(sname, "wb");
-	if (fh) {
-		fwrite(secret, skprefixlen + SECRET_LEN, 1, fh);
-		fclose(fh);
-	}
-
 	sname[onionendpos] = '\n';
-	pthread_mutex_lock(&fout_mutex);
 	if (fout) {
+		pthread_mutex_lock(&fout_mutex);
 		fwrite(&sname[printstartpos], printlen, 1, fout);
 		fflush(fout);
+		pthread_mutex_unlock(&fout_mutex);
 	}
-	++keysgenerated;
-	pthread_mutex_unlock(&fout_mutex);
 }
 
 // little endian inc
@@ -185,7 +232,7 @@ static void *dowork(void *task)
 	memcpy(hashsrc,checksumstr,checksumstrlen);
 	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
 
-	sname = alloca(workdirlen + ONIONLEN + 63 + 1);
+	sname = malloc(workdirlen + ONIONLEN + 63 + 1);
 	if (workdir)
 		memcpy(sname,workdir,workdirlen);
 
@@ -215,6 +262,7 @@ again:
 	goto again;
 
 end:
+	free(sname);
 	return 0;
 }
 
@@ -274,7 +322,7 @@ static void *dofastwork(void *task)
 	memcpy(hashsrc, checksumstr, checksumstrlen);
 	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
 
-	sname = alloca(workdirlen + ONIONLEN + 63 + 1);
+	sname = malloc(workdirlen + ONIONLEN + 63 + 1);
 	if (workdir)
 		memcpy(sname, workdir, workdirlen);
 
@@ -327,6 +375,7 @@ initseed:
 	goto initseed;
 
 end:
+	free(sname);
 	return 0;
 }
 
@@ -392,6 +441,7 @@ int main(int argc, char **argv)
 	filters_init();
 	
 	fout = stdout;
+	pthread_mutex_init(&keysgenerated_mutex, 0);
 	pthread_mutex_init(&fout_mutex, 0);
 
 	const char *progname = argv[0];
@@ -467,6 +517,14 @@ int main(int argc, char **argv)
 					exit(1);
 				}
 			}
+			else if (*arg == 'n') {
+				if (argc--)
+					numneedgenerate = (size_t)atoll(*argv++);
+				else {
+					fprintf(stderr, "additional argument required\n");
+					exit(1);
+				}
+			}
 			else if (*arg == 'z')
 				fastkeygen = 1;
 			else {
@@ -478,7 +536,7 @@ int main(int argc, char **argv)
 		}
 		else filters_add(arg);
 	}
-	
+
 	if (outfile)
 		fout = fopen(outfile, "w");
 
@@ -487,10 +545,10 @@ int main(int argc, char **argv)
 
 	if (workdir)
 		mkdir(workdir, 0700);
-	
+
 	direndpos = workdirlen;
 	onionendpos = workdirlen + ONIONLEN;
-	
+
 	if (!dirnameflag) {
 		printstartpos = direndpos;
 		printlen = ONIONLEN + 1;
@@ -498,15 +556,18 @@ int main(int argc, char **argv)
 		printstartpos = 0;
 		printlen = onionendpos + 1;
 	}
-	
+
 	if (numthreads <= 0) {
 		// TODO: autodetect
 		numthreads = 1;
 	}
-	
+
+	signal(SIGTERM, termhandler);
+	signal(SIGINT, termhandler);
+
 	VEC_INIT(threads);
 	VEC_ADDN(threads, pthread_t, numthreads);
-	
+
 	for (size_t i = 0; i < VEC_LENGTH(threads); ++i) {
 		tret = pthread_create(&VEC_BUF(threads, i), 0, fastkeygen ? dofastwork : dowork, 0);
 		if (tret) {
@@ -514,14 +575,30 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 	}
+
+	struct timespec ts;
+	memset(&ts,0,sizeof(ts));
+	ts.tv_nsec = 100000000;
+	while (!endwork) {
+		if (numneedgenerate && keysgenerated >= numneedgenerate) {
+			endwork = 1;
+			break;
+		}
+		nanosleep(&ts,0);
+	}
+
 	fprintf(stderr, "waiting for threads to finish...\n");
 	for (size_t i = 0; i < VEC_LENGTH(threads); ++i) {
 		pthread_join(VEC_BUF(threads, i), 0);
 	}
 	fprintf(stderr, "done, quitting\n");
 
+	pthread_mutex_destroy(&keysgenerated_mutex);
 	pthread_mutex_destroy(&fout_mutex);
 	filters_clean();
-	
+
+	if (outfile)
+		fclose(fout);
+
 	return 0;
 }

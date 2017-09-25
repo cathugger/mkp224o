@@ -23,7 +23,7 @@ static const char base32t[32] = {
 // masks:
 // 0xFF 0x7F 0x3F 0x1F 0x0F 0x07 0x03 0x01
 //  255  127  63    31   15   7     3    1
-char *base32_to(char *dst, const u8 *src, size_t slen)
+char *base32_to(char *dst,const u8 *src,size_t slen)
 {
 	//printf("slen = %d\n", slen);
 	//printhex(base32t, 32);
