@@ -62,7 +62,7 @@ static void termhandler(int sig)
 }
 
 struct binfilter {
-	u8 *f;
+	u8 f[PUBLIC_LEN];
 	size_t len; // real len minus one
 	u8 mask;
 } ;
@@ -90,7 +90,6 @@ static void filters_add(const char *filter)
 		fprintf(stderr, "filter \"%s\" is too long\n", filter);
 		return;
 	}
-	bf.f = malloc(ret);
 	ret2 = base32_from(bf.f,&bf.mask,filter);
 	assert(ret == ret2);
 	//printf("--m:%02X\n", bf.mask);
@@ -100,10 +99,12 @@ static void filters_add(const char *filter)
 
 static void filters_clean()
 {
-	for (size_t i = 0; i < VEC_LENGTH(bfilters); ++i) {
-		free(VEC_BUF(bfilters, i).f);
-	}
 	VEC_FREE(bfilters);
+}
+
+static size_t filters_count()
+{
+	return VEC_LENGTH(bfilters);
 }
 
 static void loadfilterfile(const char *fname)
@@ -542,6 +543,9 @@ int main(int argc, char **argv)
 
 	if (!quietflag)
 		printfilters();
+
+	if (!filters_count())
+		return 0;
 
 	if (workdir)
 		mkdir(workdir, 0700);
