@@ -13,7 +13,7 @@ USAGE:
 Generator needs one of more filters to work.
 It makes directory with secret/public keys and hostname
 for each discovered service. By default root is current
-directory, but that can be overriden with -d switch.
+directory, but that can be overridden with -d switch.
 Use -h switch to obtain all avaiable options.
 
 ACKNOWLEDGEMENTS & LEGAL:
