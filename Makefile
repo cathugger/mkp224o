@@ -5,29 +5,29 @@ CFLAGS= $(CSTD) -O3 -march=native
 #CFLAGS= $(CSTD) -O0 -g3 -fsanitize=address
 MV= mv
 
-ED25519OBJ= $(patsubst %.c,%.o,$(wildcard ed25519/ref10/*.c))
+ED25519OBJ= $(patsubst %.c,%.c.o,$(wildcard ed25519/ref10/*.c))
 
 MAINOBJ= \
-	main.o \
-	base32_to.o \
-	base32_from.o \
+	main.c.o \
+	base32_to.c.o \
+	base32_from.c.o \
 	$(ED25519OBJ) \
-	keccak.o
+	keccak.c.o
 
 TEST_BASE32OBJ= \
-	test_base32.o \
-	base32_to.o \
-	base32_from.o
+	test_base32.c.o \
+	base32_to.c.o \
+	base32_from.c.o
 
 TEST_BASE16OBJ= \
-	test_base16.o \
-	base16_to.o \
-	base16_from.o
+	test_base16.c.o \
+	base16_to.c.o \
+	base16_from.c.o
 
 TEST_ED25519OBJ= \
-	test_ed25519.o \
-	base16_to.o \
-	base16_from.o \
+	test_ed25519.c.o \
+	base16_to.c.o \
+	base16_from.c.o \
 	$(ED25519OBJ)
 
 MAINLIB= -lsodium -lpthread
@@ -51,7 +51,7 @@ test_base16: $(TEST_BASE16OBJ)
 test_ed25519: $(TEST_ED25519OBJ)
 	$(CC) $(CFLAGS) -o $@.tmp $^ $(TEST_ED25519LIB) && $(MV) $@.tmp $@
 
-%.o: %.c
+%.c.o: %.c
 	$(CC) $(CFLAGS) -c -o $@.tmp $< && $(MV) $@.tmp $@
 
 clean:
@@ -62,7 +62,7 @@ clean:
 	$(RM) $(EXE)
 
 depend:
-	makedepend -Y -- $(CSTD) -- $(MAINOBJ:.o=.c) $(TEST_BASE16OBJ:.o=.c) $(TEST_BASE32OBJ:.o=.c) $(TEST_ED25519OBJ:.o=.c)
+	makedepend -Y -- $(CSTD) -- $(MAINOBJ:.c.o=.c) $(TEST_BASE16OBJ:.c.o=.c) $(TEST_BASE32OBJ:.c.o=.c) $(TEST_ED25519OBJ:.c.o=.c)
 
 # DO NOT DELETE THIS LINE
 
