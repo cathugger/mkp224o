@@ -37,7 +37,14 @@ TEST_ED25519OBJ= \
 	base16_from.c.o \
 	$(ED25519OBJ)
 
-ALLO= $(sort $(MAINOBJ) $(TEST_BASE32OBJ) $(TEST_ED25519OBJ) $(ED25519_ref10) $(ED25519_amd64_51_30k) $(ED25519_amd64_64_24k))
+ALLO= $(sort \
+	$(MAINOBJ) \
+	$(TEST_BASE32OBJ) \
+	$(TEST_BASE16OBJ) \
+	$(TEST_ED25519OBJ) \
+	$(ED25519_ref10) \
+	$(ED25519_amd64_51_30k) \
+	$(ED25519_amd64_64_24k))
 ALLC= $(patsubst %.c.o,%.c,$(filter %.c.o %.c,$(ALLO)))
 CLEANO= $(filter %.o,$(ALLO))
 
@@ -348,6 +355,7 @@ main.c.o: ed25519/amd64-51-30k/ed25519.h ed25519/amd64-51-30k/ge25519.h
 main.c.o: ed25519/amd64-51-30k/fe25519.h ed25519/amd64-51-30k/sc25519.h
 main.c.o: ed25519/amd64-64-24k/ed25519.h ed25519/amd64-64-24k/ge25519.h
 main.c.o: types.h vec.h base32.h keccak.h
+test_base16.c.o: types.h base16.h
 test_base32.c.o: types.h base32.h
 test_ed25519.c.o: types.h base16.h ed25519/ed25519.h ed25519/ref10/ed25519.h
 test_ed25519.c.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
