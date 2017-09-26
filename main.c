@@ -7,8 +7,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <sodium/randombytes.h>
-#include "ed25519/ref10/ed25519_ref10.h"
-#include "ed25519/ref10/ge.h"
+#include "ed25519/ed25519.h"
 
 #include <sys/stat.h>
 
@@ -244,8 +243,8 @@ again:
 	if (endwork)
 		goto end;
 
-	ed25519_ref10_seckey_expand(sk,seed);
-	ed25519_ref10_pubkey(pk,sk);
+	ed25519_seckey_expand(sk,seed);
+	ed25519_pubkey(pk,sk);
 	for (i = 0;i < VEC_LENGTH(bfilters);++i) {
 		size_t l = VEC_BUF(bfilters,i).len;
 		if (memcmp(pk,VEC_BUF(bfilters,i).f,l) == 0 &&
@@ -329,7 +328,7 @@ static void *dofastwork(void *task)
 
 initseed:
 	randombytes(seed,sizeof(seed));
-	ed25519_ref10_seckey_expand(sk,seed);
+	ed25519_seckey_expand(sk,seed);
 	
 	ge_scalarmult_base(&ge_public,sk);
 	ge_p3_tobytes(pk,&ge_public);

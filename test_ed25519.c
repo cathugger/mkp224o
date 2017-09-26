@@ -5,8 +5,7 @@
 #include <stdio.h>
 #include "types.h"
 #include "base16.h"
-#include <sodium/crypto_sign_ed25519.h>
-#include "ed25519/ref10/ed25519_ref10.h"
+#include "ed25519/ed25519.h"
 
 struct pktest {
 	const char *seed;
@@ -50,13 +49,13 @@ int main()
 		base16_from(secretbuf1, &mask, test0[i].secret);
 		base16_from(publicbuf1, &mask, test0[i].public);
 		ed25519_ref10_seckey_expand(secretbuf2, seedbuf);
-		WARNF(memcmp(secretbuf1, secretbuf2, crypto_sign_ed25519_SECRETKEYBYTES) == 0) {
+		WARNF(memcmp(secretbuf1, secretbuf2, SECRETKEYBYTES) == 0) {
 			base16_to(str1, secretbuf1, sizeof(secretbuf1));
 			base16_to(str2, secretbuf2, sizeof(secretbuf2));
 			fprintf(stderr, "expected: %s got %s\n", str1, str2);
 		}
 		ed25519_ref10_pubkey(publicbuf2, secretbuf1);
-		WARNF(memcmp(publicbuf1, publicbuf2, crypto_sign_ed25519_PUBLICKEYBYTES) == 0) {
+		WARNF(memcmp(publicbuf1, publicbuf2, PUBLICKEYBYTES) == 0) {
 			base16_to(str1, publicbuf1, sizeof(publicbuf1));
 			base16_to(str2, publicbuf2, sizeof(publicbuf2));
 			fprintf(stderr, "expected: %s got %s\n", str1, str2);
