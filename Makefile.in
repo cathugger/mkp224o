@@ -77,7 +77,6 @@ test_ed25519: $(TEST_ED25519OBJ)
 	$(CC) $(ASFLAGS) -c -o $@.tmp $< && $(MV) $@.tmp $@
 
 clean:
-	$(RM) $(MAINOBJ)
 	$(RM) $(CLEANO)
 	$(RM) $(EXE)
 
