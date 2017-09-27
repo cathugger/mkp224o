@@ -287,8 +287,15 @@ static void addseed(u8 *seed)
 
 static void *dowork(void *task)
 {
-	u8 pubonion[pkprefixlen + PUBLIC_LEN + 32];
-	u8 * const pk = &pubonion[pkprefixlen];
+	union pubonionunion {
+		u8 raw[pkprefixlen + PUBLIC_LEN + 32];
+		struct {
+			u64 prefix[4];
+			u64 key[4];
+			u64 hash[4];
+		} ;
+	} pubonion;
+	u8 * const pk = &pubonion.raw[pkprefixlen];
 	u8 secret[skprefixlen + SECRET_LEN];
 	u8 * const sk = &secret[skprefixlen];
 	u8 seed[SEED_LEN];
@@ -297,8 +304,8 @@ static void *dowork(void *task)
 	char *sname;
 
 	memcpy(secret,skprefix,skprefixlen);
-	memcpy(pubonion,pkprefix,pkprefixlen);
-	pubonion[pkprefixlen + PUBLIC_LEN + 2] = 0x03; // version
+	memcpy(pubonion.raw,pkprefix,pkprefixlen);
+	pubonion.raw[pkprefixlen + PUBLIC_LEN + 2] = 0x03; // version
 	memcpy(hashsrc,checksumstr,checksumstrlen);
 	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
 
@@ -317,11 +324,11 @@ again:
 	ed25519_pubkey(pk,sk);
 	FILTERFOR(i) {
 		if (unlikely(MATCHFILTER(i,pk))) {
-			memcpy(&hashsrc[checksumstrlen], &pubonion[pkprefixlen], PUBLIC_LEN);
-			FIPS202_SHA3_256(hashsrc, sizeof(hashsrc), &pubonion[pkprefixlen + PUBLIC_LEN]);
-			pubonion[pkprefixlen + PUBLIC_LEN + 2] = 0x03; // version
-			strcpy(base32_to(&sname[direndpos], pk, PUBONION_LEN), ".onion");
-			onionready(sname, secret, pubonion);
+			memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
+			FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
+			pk[PUBLIC_LEN + 2] = 0x03; // version
+			strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN), ".onion");
+			onionready(sname, secret, pubonion.raw);
 			goto initseed;
 		}
 	}
@@ -348,8 +355,15 @@ static void addu64toscalar32(u8 *dst, u64 v)
 
 static void *dofastwork(void *task)
 {
-	u8 pubonion[pkprefixlen + PUBLIC_LEN + 32];
-	u8 * const pk = &pubonion[pkprefixlen];
+	union pubonionunion {
+		u8 raw[pkprefixlen + PUBLIC_LEN + 32];
+		struct {
+			u64 prefix[4];
+			u64 key[4];
+			u64 hash[4];
+		} ;
+	} pubonion;
+	u8 * const pk = &pubonion.raw[pkprefixlen];
 	u8 secret[skprefixlen + SECRET_LEN];
 	u8 * const sk = &secret[skprefixlen];
 	u8 seed[SEED_LEN];
@@ -360,8 +374,8 @@ static void *dofastwork(void *task)
 	char *sname;
 
 	memcpy(secret, skprefix, skprefixlen);
-	memcpy(pubonion, pkprefix, pkprefixlen);
-	pubonion[pkprefixlen + PUBLIC_LEN + 2] = 0x03; // version
+	memcpy(pubonion.raw, pkprefix, pkprefixlen);
+	pubonion.raw[pkprefixlen + PUBLIC_LEN + 2] = 0x03; // version
 	memcpy(hashsrc, checksumstr, checksumstrlen);
 	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
 
@@ -401,7 +415,7 @@ initseed:
 				FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
 				// full name
 				strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
-				onionready(sname,secret,pubonion);
+				onionready(sname,secret,pubonion.raw);
 				// don't reuse same seed
 				goto initseed;
 			}
