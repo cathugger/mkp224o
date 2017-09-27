@@ -8,6 +8,8 @@ libsodium, GNU autoconf, GNU make, UNIX-like platform (currently tested in Linux
 
 BUILDING:
 `./autogen.sh && ./configure && make` (gmake in *BSD platforms).
+See `./configure --help` for additional options
+which can contribute to better performance.
 
 USAGE:
 Generator needs one of more filters to work.
