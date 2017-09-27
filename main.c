@@ -6,14 +6,14 @@
 #include <time.h>
 #include <pthread.h>
 #include <signal.h>
-#include <sodium/randombytes.h>
-#include "ed25519/ed25519.h"
-
 #include <sys/stat.h>
+#include <sodium/randombytes.h>
 
 #include "types.h"
+#include "likely.h"
 #include "vec.h"
 #include "base32.h"
+#include "ed25519/ed25519.h"
 #include "keccak.h"
 
 // additional leading zero is added by C
@@ -310,13 +310,13 @@ initseed:
 	randombytes(seed,sizeof(seed));
 
 again:
-	if (endwork)
+	if (unlikely(endwork))
 		goto end;
 
 	ed25519_seckey_expand(sk,seed);
 	ed25519_pubkey(pk,sk);
 	FILTERFOR(i) {
-		if (MATCHFILTER(i,pk)) {
+		if (unlikely(MATCHFILTER(i,pk))) {
 			memcpy(&hashsrc[checksumstrlen], &pubonion[pkprefixlen], PUBLIC_LEN);
 			FIPS202_SHA3_256(hashsrc, sizeof(hashsrc), &pubonion[pkprefixlen + PUBLIC_LEN]);
 			pubonion[pkprefixlen + PUBLIC_LEN + 2] = 0x03; // version
@@ -379,11 +379,11 @@ initseed:
 	for (counter = 0;counter < U64_MAX-8;counter += 8) {
 		ge_p1p1 sum;
 		
-		if (endwork)
+		if (unlikely(endwork))
 			goto end;
 		
 		FILTERFOR(i) {
-			if (MATCHFILTER(i,pk)) {
+			if (unlikely(MATCHFILTER(i,pk))) {
 				// found!
 				// update secret key with counter
 				addu64toscalar32(sk,counter);

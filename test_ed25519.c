@@ -48,13 +48,13 @@ int main()
 		base16_from(seedbuf, &mask, test0[i].seed);
 		base16_from(secretbuf1, &mask, test0[i].secret);
 		base16_from(publicbuf1, &mask, test0[i].public);
-		ed25519_ref10_seckey_expand(secretbuf2, seedbuf);
+		ed25519_seckey_expand(secretbuf2, seedbuf);
 		WARNF(memcmp(secretbuf1, secretbuf2, SECRETKEYBYTES) == 0) {
 			base16_to(str1, secretbuf1, sizeof(secretbuf1));
 			base16_to(str2, secretbuf2, sizeof(secretbuf2));
 			fprintf(stderr, "expected: %s got %s\n", str1, str2);
 		}
-		ed25519_ref10_pubkey(publicbuf2, secretbuf1);
+		ed25519_pubkey(publicbuf2, secretbuf1);
 		WARNF(memcmp(publicbuf1, publicbuf2, PUBLICKEYBYTES) == 0) {
 			base16_to(str1, publicbuf1, sizeof(publicbuf1));
 			base16_to(str2, publicbuf2, sizeof(publicbuf2));

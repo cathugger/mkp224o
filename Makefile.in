@@ -1,8 +1,9 @@
 
 CC= @CC@
-CSTD= -std=c99 -Wall -D_POSIX_C_SOURCE=200112L -no-pie
+CSTD= -std=c99 -Wall -D_POSIX_C_SOURCE=200112L
 CFLAGS= $(CSTD) @CFLAGS@ -DED25519_@ED25519IMPL@ @FILTERDEF@
-ASFLAGS= -no-pie
+ASFLAGS=
+LDFLAGS= -no-pie
 MV= mv
 
 ED25519_ref10= $(patsubst %.c,%.c.o,$(wildcard ed25519/ref10/*.c))
@@ -58,16 +59,16 @@ default: mkp224o
 all: $(EXE)
 
 mkp224o: $(MAINOBJ)
-	$(CC) $(CFLAGS) -o $@.tmp $^ $(MAINLIB) && $(MV) $@.tmp $@
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@.tmp $^ $(MAINLIB) && $(MV) $@.tmp $@
 
 test_base32: $(TEST_BASE32OBJ)
-	$(CC) $(CFLAGS) -o $@.tmp $^ && $(MV) $@.tmp $@
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@.tmp $^ && $(MV) $@.tmp $@
 
 test_base16: $(TEST_BASE16OBJ)
-	$(CC) $(CFLAGS) -o $@.tmp $^ && $(MV) $@.tmp $@
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@.tmp $^ && $(MV) $@.tmp $@
 
 test_ed25519: $(TEST_ED25519OBJ)
-	$(CC) $(CFLAGS) -o $@.tmp $^ $(TEST_ED25519LIB) && $(MV) $@.tmp $@
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@.tmp $^ $(TEST_ED25519LIB) && $(MV) $@.tmp $@
 
 %.c.o: %.c
 	$(CC) $(CFLAGS) -c -o $@.tmp $< && $(MV) $@.tmp $@
@@ -349,12 +350,12 @@ ed25519/ref10/sign.c.o: ed25519/amd64-51-30k/crypto_hash_sha512.h
 ed25519/ref10/sign.c.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/sign.c.o: ed25519/ref10/crypto_int32.h ed25519/ref10/sc.h
 keccak.c.o: types.h keccak.h
-main.c.o: ed25519/ed25519.h ed25519/ref10/ed25519.h ed25519/ref10/ge.h
-main.c.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
-main.c.o: ed25519/amd64-51-30k/ed25519.h ed25519/amd64-51-30k/ge25519.h
-main.c.o: ed25519/amd64-51-30k/fe25519.h ed25519/amd64-51-30k/sc25519.h
-main.c.o: ed25519/amd64-64-24k/ed25519.h ed25519/amd64-64-24k/ge25519.h
-main.c.o: types.h vec.h base32.h keccak.h
+main.c.o: types.h likely.h vec.h base32.h ed25519/ed25519.h
+main.c.o: ed25519/ref10/ed25519.h ed25519/ref10/ge.h ed25519/ref10/fe.h
+main.c.o: ed25519/ref10/crypto_int32.h ed25519/amd64-51-30k/ed25519.h
+main.c.o: ed25519/amd64-51-30k/ge25519.h ed25519/amd64-51-30k/fe25519.h
+main.c.o: ed25519/amd64-51-30k/sc25519.h ed25519/amd64-64-24k/ed25519.h
+main.c.o: ed25519/amd64-64-24k/ge25519.h keccak.h
 test_base16.c.o: types.h base16.h
 test_base32.c.o: types.h base32.h
 test_ed25519.c.o: types.h base16.h ed25519/ed25519.h ed25519/ref10/ed25519.h
