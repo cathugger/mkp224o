@@ -4,5 +4,6 @@
 #define crypto_sign_seckey_expand ed25519_amd64_51_30k_seckey_expand
 #define crypto_sign_pubkey ed25519_amd64_51_30k_pubkey
 #define crypto_sign_open ed25519_amd64_51_30k_open
+#define crypto_sign_open_batch ed25519_amd64_51_30k_open_batch
 
 #include "ed25519.h"

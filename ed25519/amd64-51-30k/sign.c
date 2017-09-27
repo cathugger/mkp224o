@@ -10,24 +10,18 @@ int crypto_sign(
     )
 {
   unsigned char pk[32];
-  unsigned char az[64];
   unsigned char nonce[64];
   unsigned char hram[64];
   sc25519 sck, scs, scsk;
   ge25519 ger;
 
-  memmove(pk,sk + 32,32);
+  /* sk: 32-byte scalar a, 32-byte randomizer z */
+  crypto_sign_pubkey(pk,sk);
   /* pk: 32-byte public key A */
-
-  crypto_hash_sha512(az,sk,32);
-  az[0] &= 248;
-  az[31] &= 127;
-  az[31] |= 64;
-  /* az: 32-byte scalar a, 32-byte randomizer z */
 
   *smlen = mlen + 64;
   memmove(sm + 64,m,mlen);
-  memmove(sm + 32,az + 32,32);
+  memmove(sm + 32,sk + 32,32);
   /* sm: 32-byte uninit, 32-byte z, mlen-byte m */
 
   crypto_hash_sha512(nonce, sm+32, mlen+32);
@@ -45,7 +39,7 @@ int crypto_sign(
   /* hram: 64-byte H(R,A,m) */
 
   sc25519_from64bytes(&scs, hram);
-  sc25519_from32bytes(&scsk, az);
+  sc25519_from32bytes(&scsk, sk);
   sc25519_mul(&scs, &scs, &scsk);
   sc25519_add(&scs, &scs, &sck);
   /* scs: S = nonce + H(R,A,m)a */

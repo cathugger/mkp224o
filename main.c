@@ -266,30 +266,6 @@ end:
 	return 0;
 }
 
-/* The basepoint multiplied by 8. */
-static const ge_cached ge_eightpoint = {
-  /* YplusX */
-  {
-    48496028, -16430416, 15164263, 11885335, 60784617, -4866353, 46481863,
-    -2771805, 9708580, 2387263
-  },
-  /* YmunusX */
-  {
-    -10173472, -5540046, 21277639, 4080693, 1932823, -14916249, -9515873,
-    -21787995, -36575460, 29827857
-  },
-  /* Z */
-  {
-    25143927, -10256223, -3515585, 5715072, 19432778, -14905909, 22462083,
-    -8862871, 13226552, 743677
-  },
-  /* T2d */
-  {
-    -784818, -8208065, -28479270, 5551579, 15746872, 4911053, 19117091,
-    11267669, -24569594, 14624995
-  }
-};
-
 static void addu64toscalar32(u8 *dst, u64 v)
 {
 	int i;
@@ -437,9 +413,9 @@ int main(int argc, char **argv)
 	int fastkeygen = 0;
 	struct threadvec threads;
 	int tret;
-	
+
 	filters_init();
-	
+
 	fout = stdout;
 	pthread_mutex_init(&keysgenerated_mutex, 0);
 	pthread_mutex_init(&fout_mutex, 0);

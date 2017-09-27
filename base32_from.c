@@ -59,7 +59,8 @@ size_t base32_from(u8 *dst,u8 *dmask,const char *src)
 		if (!src[j]) {
 			if (k != (size_t)-1)
 				dst[k] &= cmask;
-			*dmask = cmask;
+			if (dmask)
+				*dmask = cmask;
 			return k + 1;
 		}
 		l = i%8;
