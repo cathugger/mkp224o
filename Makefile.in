@@ -1,7 +1,7 @@
 
 CC= @CC@
 CSTD= -std=c99 -Wall -D_POSIX_C_SOURCE=200112L -no-pie
-CFLAGS= $(CSTD) @CFLAGS@ -DED25519_@ED25519IMPL@
+CFLAGS= $(CSTD) @CFLAGS@ -DED25519_@ED25519IMPL@ @FILTERDEF@
 ASFLAGS= -no-pie
 MV= mv
 
@@ -48,7 +48,7 @@ ALLO= $(sort \
 ALLC= $(patsubst %.c.o,%.c,$(filter %.c.o %.c,$(ALLO)))
 CLEANO= $(filter %.o,$(ALLO))
 
-MAINLIB= -lsodium -lpthread
+MAINLIB= -lpthread -lsodium
 TEST_ED25519LIB= -lsodium
 
 EXE= mkp224o test_base32 test_base16 test_ed25519

@@ -66,17 +66,34 @@ struct binfilter {
 	u8 mask;
 } ;
 
-VEC_STRUCT(bfiltervec, struct binfilter) bfilters;
+#ifdef INTFILTER
+struct intfilter {
+	u64 f,m;
+} ;
+VEC_STRUCT(ifiltervec,struct intfilter) ifilters;
+#else
+VEC_STRUCT(bfiltervec,struct binfilter) bfilters;
+#endif
 
 static void filters_init()
 {
+#ifdef INTFILTER
+	VEC_INIT(ifilters);
+#else
 	VEC_INIT(bfilters);
+#endif
 }
 
 static void filters_add(const char *filter)
 {
 	struct binfilter bf;
 	size_t ret, ret2;
+#ifdef INTFILTER
+	union intconv {
+		u64 i;
+		u8 b[8];
+	} fc,mc;
+#endif
 
 	if (!base32_valid(filter,&ret)) {
 		fprintf(stderr, "filter \"%s\" is invalid\n", filter);
@@ -85,7 +102,12 @@ static void filters_add(const char *filter)
 	ret = BASE32_FROM_LEN(ret);
 	if (!ret)
 		return;
-	if (ret > PUBLIC_LEN) {
+#ifdef INTFILTER
+	if (ret > 8)
+#else
+	if (ret > PUBLIC_LEN)
+#endif
+	{
 		fprintf(stderr, "filter \"%s\" is too long\n", filter);
 		return;
 	}
@@ -93,18 +115,51 @@ static void filters_add(const char *filter)
 	assert(ret == ret2);
 	//printf("--m:%02X\n", bf.mask);
 	bf.len = ret - 1;
+#ifdef INTFILTER
+	mc.i = 0;
+	for (size_t i = 0;i < bf.len;++i)
+		mc.b[i] = 0xFF;
+	mc.b[bf.len] = bf.mask;
+	memcpy(fc.b,bf.f,8);
+	fc.i &= mc.i;
+	struct intfilter ifltr = {fc.i,mc.i};
+	VEC_ADD(ifilters,ifltr);
+#else
 	VEC_ADD(bfilters,bf);
+#endif
 }
 
 static void filters_clean()
 {
+#ifdef INTFILTER
+	VEC_FREE(ifilters);
+#else
 	VEC_FREE(bfilters);
+#endif
 }
 
 static size_t filters_count()
 {
+#ifdef INTFILTER
+	return VEC_LENGTH(ifilters);
+#else
 	return VEC_LENGTH(bfilters);
+#endif
 }
+
+#ifdef INTFILTER
+
+#define FILTERFOR(it) for (it = 0;it < VEC_LENGTH(ifilters);++it)
+#define MATCHFILTER(it,pk) ((*(u64 *)(pk) & VEC_BUF(ifilters,it).m) == VEC_BUF(ifilters,it).f)
+
+#else
+
+#define FILTERFOR(it) for (it = 0;it < VEC_LENGTH(bfilters);++it)
+#define MATCHFILTER(it,pk) ( \
+	memcmp(pk,VEC_BUF(bfilters,it).f,VEC_BUF(bfilters,it).len) == 0 && \
+	(pk[VEC_BUF(bfilters,it).len] & VEC_BUF(bfilters,it).mask) == VEC_BUF(bfilters,it).f[VEC_BUF(bfilters,it).len])
+
+#endif
 
 static void loadfilterfile(const char *fname)
 {
@@ -122,7 +177,12 @@ static void loadfilterfile(const char *fname)
 
 static void printfilters()
 {
-	size_t i,l = VEC_LENGTH(bfilters);
+	size_t i,l;
+#ifdef INTFILTER
+	l = VEC_LENGTH(ifilters);
+#else
+	l = VEC_LENGTH(bfilters);
+#endif
 	if (l)
 		fprintf(stderr, "filters:\n");
 	else
@@ -131,10 +191,20 @@ static void printfilters()
 	for (i = 0;i < l;++i) {
 		char buf0[256],buf1[256];
 		u8 bufx[128];
+#ifdef INTFILTER
+		size_t len = 0;
+		u8 *imraw = (u8 *)&VEC_BUF(ifilters,i).m;
+		while (len < 8 && imraw[len] != 0x00) ++len;
+		u8 mask = imraw[len-1];
+		u8 *ifraw = (u8 *)&VEC_BUF(ifilters,i).f;
+#else
 		size_t len = VEC_BUF(bfilters,i).len + 1;
-		base32_to(buf0,VEC_BUF(bfilters,i).f,len);
-		memcpy(bufx,VEC_BUF(bfilters,i).f,len);
-		bufx[len - 1] |= ~VEC_BUF(bfilters,i).mask;
+		u8 mask = VEC_BUF(bfilters,i).mask;
+		u8 *ifraw = VEC_BUF(bfilters,i).f;
+#endif
+		base32_to(buf0,ifraw,len);
+		memcpy(bufx,ifraw,len);
+		bufx[len - 1] |= ~mask;
 		base32_to(buf1,bufx,len);
 		char *a = buf0,*b = buf1;
 		while (*a && *a == *b)
@@ -245,11 +315,8 @@ again:
 
 	ed25519_seckey_expand(sk,seed);
 	ed25519_pubkey(pk,sk);
-	for (i = 0;i < VEC_LENGTH(bfilters);++i) {
-		size_t l = VEC_BUF(bfilters,i).len;
-		if (memcmp(pk,VEC_BUF(bfilters,i).f,l) == 0 &&
-			(pk[l] & VEC_BUF(bfilters,i).mask) == VEC_BUF(bfilters,i).f[l])
-		{
+	FILTERFOR(i) {
+		if (MATCHFILTER(i,pk)) {
 			memcpy(&hashsrc[checksumstrlen], &pubonion[pkprefixlen], PUBLIC_LEN);
 			FIPS202_SHA3_256(hashsrc, sizeof(hashsrc), &pubonion[pkprefixlen + PUBLIC_LEN]);
 			pubonion[pkprefixlen + PUBLIC_LEN + 2] = 0x03; // version
@@ -315,14 +382,11 @@ initseed:
 		if (endwork)
 			goto end;
 		
-		for (i = 0;i < VEC_LENGTH(bfilters);++i) {
-			size_t l = VEC_BUF(bfilters,i).len;
-			if (memcmp(pk,VEC_BUF(bfilters,i).f,l) == 0 &&
-				(pk[l] & VEC_BUF(bfilters,i).mask) == VEC_BUF(bfilters,i).f[l])
-			{
+		FILTERFOR(i) {
+			if (MATCHFILTER(i,pk)) {
 				// found!
 				// update secret key with counter
-				addu64toscalar32(sk, counter);
+				addu64toscalar32(sk,counter);
 				// sanity check
 				if (((sk[0] & 248) == sk[0]) && (((sk[31] & 63) | 64) == sk[31])) {
 					/* These operations should be a no-op. */
