@@ -305,7 +305,7 @@ static void *dowork(void *task)
 
 	memcpy(secret,skprefix,skprefixlen);
 	memcpy(pubonion.raw,pkprefix,pkprefixlen);
-	pubonion.raw[pkprefixlen + PUBLIC_LEN + 2] = 0x03; // version
+	// write version later as it will be overwritten by hash
 	memcpy(hashsrc,checksumstr,checksumstrlen);
 	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
 
@@ -324,9 +324,12 @@ again:
 	ed25519_pubkey(pk,sk);
 	FILTERFOR(i) {
 		if (unlikely(MATCHFILTER(i,pk))) {
+			// calc checksum
 			memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
 			FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
-			pk[PUBLIC_LEN + 2] = 0x03; // version
+			// version byte
+			pk[PUBLIC_LEN + 2] = 0x03;
+			// base32
 			strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN), ".onion");
 			onionready(sname, secret, pubonion.raw);
 			goto initseed;
@@ -375,7 +378,7 @@ static void *dofastwork(void *task)
 
 	memcpy(secret, skprefix, skprefixlen);
 	memcpy(pubonion.raw, pkprefix, pkprefixlen);
-	pubonion.raw[pkprefixlen + PUBLIC_LEN + 2] = 0x03; // version
+	// write version later as it will be overwritten by hash
 	memcpy(hashsrc, checksumstr, checksumstrlen);
 	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
 
@@ -413,6 +416,8 @@ initseed:
 				// calc checksum
 				memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
 				FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
+				// version byte
+				pk[PUBLIC_LEN + 2] = 0x03;
 				// full name
 				strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
 				onionready(sname,secret,pubonion.raw);
