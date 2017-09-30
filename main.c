@@ -548,8 +548,8 @@ int main(int argc,char **argv)
 	struct statsvec stats;
 	struct tstatsvec tstats;
 	u64 reportdelay = 0;
-#endif
 	int realtimestats = 0;
+#endif
 	int tret;
 
 	filters_init();
@@ -662,8 +662,14 @@ int main(int argc,char **argv)
 				exit(1);
 #endif
 			}
-			else if (*arg == 'R')
+			else if (*arg == 'R') {
+#ifdef STATISTICS
 				realtimestats = 1;
+#else
+				fprintf(stderr,"statistics support not compiled in\n");
+				exit(1);
+#endif
+			}
 			else {
 				fprintf(stderr, "unrecognised argument: -%c\n", *arg);
 				exit(1);
