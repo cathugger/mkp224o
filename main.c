@@ -60,6 +60,8 @@ static void termhandler(int sig)
 	}
 }
 
+// filters stuff
+
 struct binfilter {
 	u8 f[PUBLIC_LEN];
 	size_t len; // real len minus one
@@ -164,13 +166,15 @@ static size_t filters_count()
 static void loadfilterfile(const char *fname)
 {
 	char buf[128];
-	FILE *f = fopen(fname, "r");
-	while(fgets(buf, sizeof(buf), f)) {
-		char *p = buf;
-		while(*p++)
-			if(*p == '\n')
+	FILE *f = fopen(fname,"r");
+	while (fgets(buf,sizeof(buf),f)) {
+		for (char *p = buf;*p;++p) {
+			if(*p == '\n') {
 				*p = 0;
-		if (*buf && *buf != '#' && memcmp(buf, "//", 2) != 0)
+				break;
+			}
+		}
+		if (*buf && *buf != '#' && memcmp(buf,"//",2) != 0)
 			filters_add(buf);
 	}
 }
@@ -214,6 +218,29 @@ static void printfilters()
 	}
 }
 
+// statistics, if enabled
+#ifdef STATISTICS
+struct statstruct {
+	union {
+		u32 numcalc;
+		size_t align_numcalc;
+	} ;
+	union {
+		u32 numsuccess;
+		size_t align_numsuccess;
+	} ;
+} ;
+VEC_STRUCT(statsvec,struct statstruct);
+
+struct tstatstruct {
+	u64 numcalc;
+	u64 numsuccess;
+	u32 oldnumcalc;
+	u32 oldnumsuccess;
+} ;
+VEC_STRUCT(tstatsvec,struct tstatstruct);
+#endif
+
 
 static void onionready(char *sname, const u8 *secret, const u8 *pubonion)
 {
@@ -225,12 +252,13 @@ static void onionready(char *sname, const u8 *secret, const u8 *pubonion)
 	if (numneedgenerate) {
 		pthread_mutex_lock(&keysgenerated_mutex);
 		if (keysgenerated >= numneedgenerate) {
+			endwork = 1;
 			pthread_mutex_unlock(&keysgenerated_mutex);
 			return;
 		}
 	}
 
-	if (mkdir(sname, 0700) != 0) {
+	if (mkdir(sname,0700) != 0) {
 		if (numneedgenerate)
 			pthread_mutex_unlock(&keysgenerated_mutex);
 		return;
@@ -265,8 +293,8 @@ static void onionready(char *sname, const u8 *secret, const u8 *pubonion)
 		fclose(fh);
 	}
 
-	sname[onionendpos] = '\n';
 	if (fout) {
+		sname[onionendpos] = '\n';
 		pthread_mutex_lock(&fout_mutex);
 		fwrite(&sname[printstartpos], printlen, 1, fout);
 		fflush(fout);
@@ -278,7 +306,7 @@ static void onionready(char *sname, const u8 *secret, const u8 *pubonion)
 static void addseed(u8 *seed)
 {
 	register unsigned int c = 1;
-	for (size_t i = 0; i < SEED_LEN; ++i) {
+	for (size_t i = 0;i < SEED_LEN;++i) {
 		c = (unsigned int)seed[i] + c; seed[i] = c & 0xFF; c >>= 8;
 		// unsure if needed
 		if (!c) break;
@@ -302,6 +330,9 @@ static void *dowork(void *task)
 	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
 	size_t i;
 	char *sname;
+#ifdef STATISTICS
+	struct statstruct *st = (struct statstruct *)task;
+#endif
 
 	memcpy(secret,skprefix,skprefixlen);
 	memcpy(pubonion.raw,pkprefix,pkprefixlen);
@@ -322,8 +353,16 @@ again:
 
 	ed25519_seckey_expand(sk,seed);
 	ed25519_pubkey(pk,sk);
+
+#ifdef STATISTICS
+	++st->numcalc;
+#endif
+
 	FILTERFOR(i) {
 		if (unlikely(MATCHFILTER(i,pk))) {
+#ifdef STATISTICS
+			++st->numsuccess;
+#endif
 			// calc checksum
 			memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
 			FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
@@ -343,16 +382,14 @@ end:
 	return 0;
 }
 
-static void addu64toscalar32(u8 *dst, u64 v)
+static void addu64toscalar32(u8 *dst,u64 v)
 {
 	int i;
 	u32 c = 0;
 	for (i = 0;i < 8;++i) {
-		c += *dst + (v & 0xFF);
-		*dst = c & 0xFF;
-		c >>= 8;
+		c += *dst + (v & 0xFF); *dst = c & 0xFF; c >>= 8;
 		v >>= 8;
-		dst++;
+		++dst;
 	}
 }
 
@@ -375,6 +412,9 @@ static void *dofastwork(void *task)
 	u64 counter;
 	size_t i;
 	char *sname;
+#ifdef STATISTICS
+	struct statstruct *st = (struct statstruct *)task;
+#endif
 
 	memcpy(secret, skprefix, skprefixlen);
 	memcpy(pubonion.raw, pkprefix, pkprefixlen);
@@ -412,7 +452,9 @@ initseed:
 					sk[31] |= 64;
 				}
 				else goto initseed;
-				
+#ifdef STATISTICS
+				++st->numsuccess;
+#endif
 				// calc checksum
 				memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
 				FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
@@ -430,6 +472,9 @@ initseed:
 		ge_add(&sum, &ge_public,&ge_eightpoint);
 		ge_p1p1_to_p3(&ge_public,&sum);
 		ge_p3_tobytes(pk,&ge_public);
+#ifdef STATISTICS
+		++st->numcalc;
+#endif
 	}
 	goto initseed;
 
@@ -452,8 +497,12 @@ void printhelp(const char *progname)
 		"\t-F  - include directory names in onion names output\n"
 		"\t-d dirname  - output directory\n"
 		"\t-t numthreads  - specify number of threads (default - auto)\n"
+		"\t-j numthreads  - same as -t\n"
 		"\t-n numkeys  - specify number of keys (default - 0 - unlimited)\n"
 		"\t-z  - use faster, experimental key generation method\n"
+		"\t-s  - print statistics each 10 seconds\n"
+		"\t-S t  - print statistics every specified ammount of seconds\n"
+		"\t-R  - realtime statistic mode\n"
 		,progname,progname);
 	exit(1);
 }
@@ -481,12 +530,12 @@ void setworkdir(const char *wd)
 	workdir = s;
 	workdirlen = l;
 	if (!quietflag)
-		fprintf(stderr, "set workdir: %s\n", workdir);
+		fprintf(stderr,"set workdir: %s\n",workdir);
 }
 
 VEC_STRUCT(threadvec, pthread_t);
 
-int main(int argc, char **argv)
+int main(int argc,char **argv)
 {
 	char *outfile = 0;
 	const char *arg;
@@ -495,6 +544,12 @@ int main(int argc, char **argv)
 	int numthreads = 0;
 	int fastkeygen = 0;
 	struct threadvec threads;
+#ifdef STATISTICS
+	struct statsvec stats;
+	struct tstatsvec tstats;
+	u64 reportdelay = 0;
+#endif
+	int realtimestats = 0;
 	int tret;
 
 	filters_init();
@@ -568,7 +623,7 @@ int main(int argc, char **argv)
 					fprintf(stderr, "additional argument required\n");
 				}
 			}
-			else if (*arg == 't') {
+			else if (*arg == 't' || *arg == 'j') {
 				if (argc--)
 					numthreads = atoi(*argv++);
 				else {
@@ -586,6 +641,29 @@ int main(int argc, char **argv)
 			}
 			else if (*arg == 'z')
 				fastkeygen = 1;
+			else if (*arg == 's') {
+#ifdef STATISTICS
+				reportdelay = 10000000;
+#else
+				fprintf(stderr,"statistics support not compiled in\n");
+				exit(1);
+#endif
+			}
+			else if (*arg == 'S') {
+#ifdef STATISTICS
+				if (argc--)
+					reportdelay = (u64)atoll(*argv++) * 1000000;
+				else {
+					fprintf(stderr, "additional argument required\n");
+					exit(1);
+				}
+#else
+				fprintf(stderr,"statistics support not compiled in\n");
+				exit(1);
+#endif
+			}
+			else if (*arg == 'R')
+				realtimestats = 1;
 			else {
 				fprintf(stderr, "unrecognised argument: -%c\n", *arg);
 				exit(1);
@@ -596,14 +674,14 @@ int main(int argc, char **argv)
 		else filters_add(arg);
 	}
 
-	if (outfile)
-		fout = fopen(outfile, "w");
-
 	if (!quietflag)
 		printfilters();
 
 	if (!filters_count())
 		return 0;
+
+	if (outfile)
+		fout = fopen(outfile, "w");
 
 	if (workdir)
 		mkdir(workdir, 0700);
@@ -624,20 +702,41 @@ int main(int argc, char **argv)
 		numthreads = 1;
 	}
 
-	signal(SIGTERM, termhandler);
-	signal(SIGINT, termhandler);
+	signal(SIGTERM,termhandler);
+	signal(SIGINT,termhandler);
 
 	VEC_INIT(threads);
-	VEC_ADDN(threads, pthread_t, numthreads);
+	VEC_ADDN(threads,pthread_t,numthreads);
+#ifdef STATISTICS
+	VEC_INIT(stats);
+	VEC_INIT(tstats);
+	VEC_ADDN(stats,struct statstruct,numthreads);
+	VEC_ADDN(tstats,struct tstatstruct,numthreads);
+	memset(&VEC_BUF(stats,0),0,sizeof(struct statstruct) * VEC_LENGTH(stats));
+	memset(&VEC_BUF(tstats,0),0,sizeof(struct tstatstruct) * VEC_LENGTH(tstats));
+#endif
 
-	for (size_t i = 0; i < VEC_LENGTH(threads); ++i) {
-		tret = pthread_create(&VEC_BUF(threads, i), 0, fastkeygen ? dofastwork : dowork, 0);
+	for (size_t i = 0;i < VEC_LENGTH(threads);++i) {
+		void *tp = 0;
+#ifdef STATISTICS
+		tp = &VEC_BUF(stats,i);
+#endif
+		tret = pthread_create(&VEC_BUF(threads,i),0,fastkeygen ? dofastwork : dowork,tp);
 		if (tret) {
-			fprintf(stderr, "error while making %dth thread: %d\n", (int)i, tret);
+			fprintf(stderr,"error while making %dth thread: %d\n",(int)i,tret);
 			exit(1);
 		}
 	}
 
+#ifdef STATISTICS
+	struct timespec nowtime;
+	u64 istarttime,inowtime,ireporttime = 0,elapsedoffset = 0;
+	if (clock_gettime(CLOCK_MONOTONIC,&nowtime) < 0) {
+		fprintf(stderr, "failed to get time\n");
+		exit(1);
+	}
+	istarttime = (1000000 * (u64)nowtime.tv_sec) + (nowtime.tv_nsec / 1000);
+#endif
 	struct timespec ts;
 	memset(&ts,0,sizeof(ts));
 	ts.tv_nsec = 100000000;
@@ -647,13 +746,65 @@ int main(int argc, char **argv)
 			break;
 		}
 		nanosleep(&ts,0);
+		
+#ifdef STATISTICS
+		clock_gettime(CLOCK_MONOTONIC,&nowtime);
+		inowtime = (1000000 * (u64)nowtime.tv_sec) + (nowtime.tv_nsec / 1000);
+		u64 sumcalc = 0,sumsuccess = 0;
+		for (size_t i = 0;i < numthreads;++i) {
+			u32 newt,tdiff;
+			// numcalc
+			newt = VEC_BUF(stats,i).numcalc;
+			tdiff = newt - VEC_BUF(tstats,i).oldnumcalc;
+			VEC_BUF(tstats,i).oldnumcalc = newt;
+			VEC_BUF(tstats,i).numcalc += (u64)tdiff;
+			sumcalc += VEC_BUF(tstats,i).numcalc;
+			// numsuccess
+			newt = VEC_BUF(stats,i).numsuccess;
+			tdiff = newt - VEC_BUF(tstats,i).oldnumsuccess;
+			VEC_BUF(tstats,i).oldnumsuccess = newt;
+			VEC_BUF(tstats,i).numsuccess += (u64)tdiff;
+			sumsuccess += VEC_BUF(tstats,i).numsuccess;
+		}
+		if (reportdelay && (!ireporttime || inowtime - ireporttime >= reportdelay)) {
+			if (ireporttime)
+				ireporttime += reportdelay;
+			else
+				ireporttime = inowtime;
+			if (!ireporttime)
+				ireporttime = 1;
+
+			double calcpersec = (1000000.0 * sumcalc) / (inowtime - istarttime);
+			double successpersec = (1000000.0 * sumsuccess) / (inowtime - istarttime);
+			fprintf(stderr,">calc/sec:%8lf, success/sec:%8lf, elapsed:%5.6lfsec\n",calcpersec,successpersec,(inowtime - istarttime + elapsedoffset) / 1000000.0);
+
+			if (realtimestats) {
+				for (size_t i = 0;i < numthreads;++i) {
+					VEC_BUF(tstats,i).numcalc = 0;
+					VEC_BUF(tstats,i).numsuccess = 0;
+				}
+				elapsedoffset += inowtime - istarttime;
+				istarttime = inowtime;
+			}
+		}
+		if (sumcalc > U64_MAX / 2) {
+			for (size_t i = 0;i < numthreads;++i) {
+				VEC_BUF(tstats,i).numcalc /= 2;
+				VEC_BUF(tstats,i).numsuccess /= 2;
+			}
+			u64 timediff = (inowtime - istarttime + 1) / 2;
+			elapsedoffset += timediff;
+			istarttime += timediff;
+		}
+#endif
 	}
 
-	fprintf(stderr, "waiting for threads to finish...\n");
-	for (size_t i = 0; i < VEC_LENGTH(threads); ++i) {
-		pthread_join(VEC_BUF(threads, i), 0);
-	}
-	fprintf(stderr, "done, quitting\n");
+	if (!quietflag)
+		fprintf(stderr, "waiting for threads to finish...\n");
+	for (size_t i = 0;i < VEC_LENGTH(threads);++i)
+		pthread_join(VEC_BUF(threads,i),0);
+	if (!quietflag)
+		fprintf(stderr, "done, quitting\n");
 
 	pthread_mutex_destroy(&keysgenerated_mutex);
 	pthread_mutex_destroy(&fout_mutex);

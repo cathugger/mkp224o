@@ -41,6 +41,8 @@ AC_ARG_ENABLE([amd64_64_24k],
 
 AS_IF([test "x$ed25519impl" == "x"],[ed25519impl=ref10])
 
+MYDEFS=""
+
 AC_ARG_ENABLE([intfilter],
 	[AS_HELP_STRING([--enable-intfilter],
 		[use 64bit integers for filtering. faster but limits filter length @<:@default=no@:>@])],
@@ -48,11 +50,19 @@ AC_ARG_ENABLE([intfilter],
 )
 if test "x$enable_intfilter" = "xyes"
 then
-	FILTERDEF="-DINTFILTER"
-else
-	FILTERDEF=""
+	MYDEFS="$MYDEFS -DINTFILTER"
+fi
+
+AC_ARG_ENABLE([statistics],
+	[AS_HELP_STRING([--enable-statistics],
+		[collect statistics @<:@default=yes@:>@])],
+	[], [enable_statistics=yes]
+)
+if test "x$enable_statistics" = "xyes"
+then
+	MYDEFS="$MYDEFS -DSTATISTICS"
 fi
 
 AC_SUBST(ED25519IMPL,["$ed25519impl"])
-AC_SUBST(FILTERDEF,["$FILTERDEF"])
+AC_SUBST(MYDEFS,["$MYDEFS"])
 AC_OUTPUT(Makefile)
