@@ -386,7 +386,7 @@ static void addu64toscalar32(u8 *dst,u64 v)
 {
 	int i;
 	u32 c = 0;
-	for (i = 0;i < 8;++i) {
+	for (i = 0;i < 32;++i) {
 		c += *dst + (v & 0xFF); *dst = c & 0xFF; c >>= 8;
 		v >>= 8;
 		++dst;
