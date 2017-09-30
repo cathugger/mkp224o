@@ -499,10 +499,11 @@ void printhelp(const char *progname)
 		"\t-t numthreads  - specify number of threads (default - auto)\n"
 		"\t-j numthreads  - same as -t\n"
 		"\t-n numkeys  - specify number of keys (default - 0 - unlimited)\n"
-		"\t-z  - use faster, experimental key generation method\n"
+		"\t-z  - use faster key generation method. this is now default\n"
+		"\t-Z  - use slower key generation method\n"
 		"\t-s  - print statistics each 10 seconds\n"
 		"\t-S t  - print statistics every specified ammount of seconds\n"
-		"\t-R  - realtime statistic mode\n"
+		"\t-T  - do not reset statistics counters when printing\n"
 		,progname,progname);
 	exit(1);
 }
@@ -542,13 +543,13 @@ int main(int argc,char **argv)
 	int ignoreargs = 0;
 	int dirnameflag = 0;
 	int numthreads = 0;
-	int fastkeygen = 0;
+	int fastkeygen = 1;
 	struct threadvec threads;
 #ifdef STATISTICS
 	struct statsvec stats;
 	struct tstatsvec tstats;
 	u64 reportdelay = 0;
-	int realtimestats = 0;
+	int realtimestats = 1;
 #endif
 	int tret;
 
@@ -639,6 +640,8 @@ int main(int argc,char **argv)
 					exit(1);
 				}
 			}
+			else if (*arg == 'Z')
+				fastkeygen = 0;
 			else if (*arg == 'z')
 				fastkeygen = 1;
 			else if (*arg == 's') {
@@ -662,9 +665,9 @@ int main(int argc,char **argv)
 				exit(1);
 #endif
 			}
-			else if (*arg == 'R') {
+			else if (*arg == 'T') {
 #ifdef STATISTICS
-				realtimestats = 1;
+				realtimestats = 0;
 #else
 				fprintf(stderr,"statistics support not compiled in\n");
 				exit(1);
