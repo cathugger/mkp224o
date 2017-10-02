@@ -252,7 +252,6 @@ static void onionready(char *sname, const u8 *secret, const u8 *pubonion)
 	if (numneedgenerate) {
 		pthread_mutex_lock(&keysgenerated_mutex);
 		if (keysgenerated >= numneedgenerate) {
-			endwork = 1;
 			pthread_mutex_unlock(&keysgenerated_mutex);
 			return;
 		}

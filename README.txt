@@ -27,4 +27,5 @@ You should have received a copy of the CC0 Public Domain Dedication along with t
 
 keccak.c is based on <https://github.com/gvanas/KeccakCodePackage/blob/master/Standalone/CompactFIPS202/Keccak-more-compact.c>.
 ed25519/{ref10,amd64-51-30k,amd64-64-24k} are adopted from SUPERCOP <https://bench.cr.yp.to/supercop.html>.
+ed25519/ed25519-donna adopted from <https://github.com/floodyberry/ed25519-donna>.
 idea used in main.c' dofastwork() is stolen from <https://github.com/Yawning/horse25519>.
