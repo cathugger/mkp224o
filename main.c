@@ -13,8 +13,8 @@
 #include "likely.h"
 #include "vec.h"
 #include "base32.h"
-#include "ed25519/ed25519.h"
 #include "keccak.h"
+#include "ed25519/ed25519.h"
 
 // additional leading zero is added by C
 static const char * const pkprefix = "== ed25519v1-public: type0 ==\0\0";
@@ -553,6 +553,7 @@ int main(int argc,char **argv)
 #endif
 	int tret;
 
+	ge_initeightpoint();
 	filters_init();
 
 	fout = stdout;

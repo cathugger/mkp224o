@@ -6,6 +6,7 @@ ASFLAGS=
 LDFLAGS= -no-pie
 MV= mv
 
+ED25519_DEFS= -DED25519_ref10 -DED25519_amd64_51_30k -DED25519_amd64_64_24k -DED25519_donna
 ED25519_ref10= $(patsubst %.c,%.c.o,$(wildcard ed25519/ref10/*.c))
 ED25519_amd64_51_30k= \
 	$(patsubst %.c,%.c.o,$(wildcard ed25519/amd64-51-30k/*.c)) \
@@ -13,6 +14,7 @@ ED25519_amd64_51_30k= \
 ED25519_amd64_64_24k= \
 	$(patsubst %.c,%.c.o,$(wildcard ed25519/amd64-64-24k/*.c)) \
 	$(patsubst %.s,%.s.o,$(wildcard ed25519/amd64-64-24k/*.s))
+ED25519_donna=
 ED25519OBJ= $(ED25519_@ED25519IMPL@)
 
 MAINOBJ= \
@@ -81,7 +83,7 @@ clean:
 	$(RM) $(EXE)
 
 depend:
-	makedepend -Y -fMakefile.in -o.c.o -- $(CSTD) -DED25519_ref10 -DED25519_amd64_51_30k -DED25519_amd64_64_24k -- $(ALLC)
+	makedepend -Y -fMakefile.in -o.c.o -- $(CSTD) $(ED25519_DEFS) -- $(ALLC)
 
 # DO NOT DELETE THIS LINE
 
@@ -349,12 +351,22 @@ ed25519/ref10/sign.c.o: ed25519/amd64-51-30k/crypto_hash_sha512.h
 ed25519/ref10/sign.c.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/sign.c.o: ed25519/ref10/crypto_int32.h ed25519/ref10/sc.h
 keccak.c.o: types.h keccak.h
-main.c.o: types.h likely.h vec.h base32.h ed25519/ed25519.h
+main.c.o: types.h likely.h vec.h base32.h keccak.h ed25519/ed25519.h
 main.c.o: ed25519/ref10/ed25519.h ed25519/ref10/ge.h ed25519/ref10/fe.h
 main.c.o: ed25519/ref10/crypto_int32.h ed25519/amd64-51-30k/ed25519.h
 main.c.o: ed25519/amd64-51-30k/ge25519.h ed25519/amd64-51-30k/fe25519.h
 main.c.o: ed25519/amd64-51-30k/sc25519.h ed25519/amd64-64-24k/ed25519.h
-main.c.o: ed25519/amd64-64-24k/ge25519.h keccak.h
+main.c.o: ed25519/amd64-64-24k/ge25519.h
+main.c.o: ed25519/ed25519-donna/ed25519-donna.h
+main.c.o: ed25519/ed25519-donna/ed25519-donna-portable.h
+main.c.o: ed25519/ed25519-donna/ed25519-donna-portable-identify.h
+main.c.o: ed25519/ed25519-donna/curve25519-donna-64bit.h
+main.c.o: ed25519/ed25519-donna/curve25519-donna-helpers.h
+main.c.o: ed25519/ed25519-donna/modm-donna-64bit.h
+main.c.o: ed25519/ed25519-donna/ed25519-donna-basepoint-table.h
+main.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-tables.h
+main.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-x86.h
+main.c.o: ed25519/ed25519-donna/ed25519-donna-impl-base.h
 test_base16.c.o: types.h base16.h
 test_base32.c.o: types.h base32.h
 test_ed25519.c.o: types.h base16.h ed25519/ed25519.h ed25519/ref10/ed25519.h
@@ -365,3 +377,13 @@ test_ed25519.c.o: ed25519/amd64-51-30k/fe25519.h
 test_ed25519.c.o: ed25519/amd64-51-30k/sc25519.h
 test_ed25519.c.o: ed25519/amd64-64-24k/ed25519.h
 test_ed25519.c.o: ed25519/amd64-64-24k/ge25519.h
+test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna.h
+test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-portable.h
+test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-portable-identify.h
+test_ed25519.c.o: ed25519/ed25519-donna/curve25519-donna-64bit.h
+test_ed25519.c.o: ed25519/ed25519-donna/curve25519-donna-helpers.h
+test_ed25519.c.o: ed25519/ed25519-donna/modm-donna-64bit.h
+test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-basepoint-table.h
+test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-tables.h
+test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-x86.h
+test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-impl-base.h
