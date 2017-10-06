@@ -4,18 +4,24 @@ This tool generates vanity ed25519 (hidden service version 3) onion addresses.
 For context, see <https://gitweb.torproject.org/torspec.git/plain/rend-spec-v3.txt>.
 
 REQUIREMENTS:
-libsodium, GNU autoconf, GNU make, UNIX-like platform (currently tested in Linux).
+libsodium, GNU autoconf, GNU make, UNIX-like platform (currently tested in Linux and OpenBSD).
 
 BUILDING:
-`./autogen.sh && ./configure && make` (gmake in *BSD platforms).
-See `./configure --help` for additional options
-which can contribute to better performance.
+`./autogen.sh` to generate configure script, if it's not there already.
+`./configure` to generate makefile; in *BSD platforms you probably want to use
+`./configure CPPFLAGS="-I/usr/local/include" LDFLAGS="-L/usr/local/lib"`.
+You probably also want to pass something like "--enable-amd64-51-30k"
+or "--enable-donna" to configure script for faster key generation;
+run `./configure --help` to see all avaiable options.
+Finally, `make` to start building (`gmake` in *BSD platforms).
 
 USAGE:
 Generator needs one of more filters to work.
 It makes directory with secret/public keys and hostname
 for each discovered service. By default root is current
 directory, but that can be overridden with -d switch.
+Use -s switch to enable printing of statistics, which may be useful
+when benchmarking different ed25519 implementations on your machine.
 Use -h switch to obtain all avaiable options.
 
 CONTACT:
