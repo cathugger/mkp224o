@@ -223,13 +223,13 @@ static void printfilters()
 #ifdef STATISTICS
 struct statstruct {
 	union {
-		u32 numcalc;
-		size_t align_numcalc;
-	} ;
+		u32 v;
+		size_t align;
+	} numcalc;
 	union {
-		u32 numsuccess;
-		size_t align_numsuccess;
-	} ;
+		u32 v;
+		size_t align;
+	} numsuccess;
 } ;
 VEC_STRUCT(statsvec,struct statstruct);
 
@@ -355,13 +355,13 @@ again:
 	ed25519_pubkey(pk,sk);
 
 #ifdef STATISTICS
-	++st->numcalc;
+	++st->numcalc.v;
 #endif
 
 	FILTERFOR(i) {
 		if (unlikely(MATCHFILTER(i,pk))) {
 #ifdef STATISTICS
-			++st->numsuccess;
+			++st->numsuccess.v;
 #endif
 			// calc checksum
 			memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
@@ -453,7 +453,7 @@ initseed:
 				}
 				else goto initseed;
 #ifdef STATISTICS
-				++st->numsuccess;
+				++st->numsuccess.v;
 #endif
 				// calc checksum
 				memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
@@ -473,7 +473,7 @@ initseed:
 		ge_p1p1_to_p3(&ge_public,&sum);
 		ge_p3_tobytes(pk,&ge_public);
 #ifdef STATISTICS
-		++st->numcalc;
+		++st->numcalc.v;
 #endif
 	}
 	goto initseed;
@@ -765,13 +765,13 @@ int main(int argc,char **argv)
 		for (size_t i = 0;i < numthreads;++i) {
 			u32 newt,tdiff;
 			// numcalc
-			newt = VEC_BUF(stats,i).numcalc;
+			newt = VEC_BUF(stats,i).numcalc.v;
 			tdiff = newt - VEC_BUF(tstats,i).oldnumcalc;
 			VEC_BUF(tstats,i).oldnumcalc = newt;
 			VEC_BUF(tstats,i).numcalc += (u64)tdiff;
 			sumcalc += VEC_BUF(tstats,i).numcalc;
 			// numsuccess
-			newt = VEC_BUF(stats,i).numsuccess;
+			newt = VEC_BUF(stats,i).numsuccess.v;
 			tdiff = newt - VEC_BUF(tstats,i).oldnumsuccess;
 			VEC_BUF(tstats,i).oldnumsuccess = newt;
 			VEC_BUF(tstats,i).numsuccess += (u64)tdiff;
