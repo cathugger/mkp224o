@@ -321,7 +321,7 @@ static void *dowork(void *task)
 			u64 prefix[4];
 			u64 key[4];
 			u64 hash[4];
-		} ;
+		} i;
 	} pubonion;
 	u8 * const pk = &pubonion.raw[pkprefixlen];
 	u8 secret[skprefixlen + SECRET_LEN];
@@ -401,7 +401,7 @@ static void *dofastwork(void *task)
 			u64 prefix[4];
 			u64 key[4];
 			u64 hash[4];
-		} ;
+		} i;
 	} pubonion;
 	u8 * const pk = &pubonion.raw[pkprefixlen];
 	u8 secret[skprefixlen + SECRET_LEN];
