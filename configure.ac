@@ -2,8 +2,50 @@ AC_INIT(mkp224o)
 # sanity check
 AC_CONFIG_SRCDIR([main.c])
 # C compiler
-: ${CFLAGS="-O3 -march=native -fomit-frame-pointer"}
+oldcflags="$CFLAGS"
 AC_PROG_CC
+
+if test "x$oldcflags" != "x$CFLAGS"
+then
+	oldcflags="-O3"
+	CFLAGS="-march=native"
+	AC_MSG_CHECKING([whether CC supports -march=native])
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+		[AC_MSG_RESULT([yes])]
+		[oldcflags="$oldcflags -march=native"],
+		[AC_MSG_RESULT([no])]
+	)
+	CFLAGS="-fomit-frame-pointer"
+	AC_MSG_CHECKING([whether CC supports -fomit-frame-pointer])
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+		[AC_MSG_RESULT([yes])]
+		[oldcflags="$oldcflags -fomit-frame-pointer"],
+		[AC_MSG_RESULT([no])]
+	)
+	CFLAGS="$oldcflags"
+fi
+
+cstd=""
+oldcflags="$CFLAGS"
+CFLAGS="-std=c99"
+AC_MSG_CHECKING([whether CC supports -std=c99])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+    [AC_MSG_RESULT([yes])]
+    [cstd="-std=c99"],
+    [AC_MSG_RESULT([no])]
+)
+CFLAGS="$oldcflags"
+
+nopie=""
+oldcflags="$CFLAGS"
+CFLAGS="-no-pie"
+AC_MSG_CHECKING([whether CC supports -no-pie])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+    [AC_MSG_RESULT([yes])]
+    [nopie="-no-pie"],
+    [AC_MSG_RESULT([no])]
+)
+CFLAGS="$oldcflags"
 
 MYDEFS=""
 
@@ -92,6 +134,8 @@ then
 	MYDEFS="$MYDEFS -DSTATISTICS"
 fi
 
+AC_SUBST(CSTD,["$cstd"])
 AC_SUBST(ED25519IMPL,["$ed25519impl"])
 AC_SUBST(MYDEFS,["$MYDEFS"])
+AC_SUBST(NOPIE,["$nopie"])
 AC_OUTPUT(Makefile)
