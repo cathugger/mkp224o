@@ -62,16 +62,16 @@ default: mkp224o
 all: $(EXE)
 
 mkp224o: $(MAINOBJ)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@.tmp $^ $(MAINLIB) && $(MV) $@.tmp $@
+	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ $(MAINLIB) && $(MV) $@.tmp $@
 
 test_base32: $(TEST_BASE32OBJ)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@.tmp $^ && $(MV) $@.tmp $@
+	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ && $(MV) $@.tmp $@
 
 test_base16: $(TEST_BASE16OBJ)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@.tmp $^ && $(MV) $@.tmp $@
+	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ && $(MV) $@.tmp $@
 
 test_ed25519: $(TEST_ED25519OBJ)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@.tmp $^ $(TEST_ED25519LIB) && $(MV) $@.tmp $@
+	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ $(TEST_ED25519LIB) && $(MV) $@.tmp $@
 
 %.c.o: %.c
 	$(CC) $(CFLAGS) -c -o $@.tmp $< && $(MV) $@.tmp $@
