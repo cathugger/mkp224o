@@ -37,15 +37,29 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
 CFLAGS="$oldcflags"
 
 nopie=""
+
 oldcflags="$CFLAGS"
-CFLAGS="-no-pie"
-AC_MSG_CHECKING([whether CC supports -no-pie])
+CFLAGS="-nopie"
+AC_MSG_CHECKING([whether CC supports -nopie])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
     [AC_MSG_RESULT([yes])]
-    [nopie="-no-pie"],
+    [nopie="-nopie"],
     [AC_MSG_RESULT([no])]
 )
 CFLAGS="$oldcflags"
+
+if test "x$nopie" = "x"
+then
+	oldcflags="$CFLAGS"
+	CFLAGS="-no-pie"
+	AC_MSG_CHECKING([whether CC supports -no-pie])
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+		[AC_MSG_RESULT([yes])]
+		[nopie="-no-pie"],
+		[AC_MSG_RESULT([no])]
+	)
+	CFLAGS="$oldcflags"
+fi
 
 MYDEFS=""
 
