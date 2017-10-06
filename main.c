@@ -13,6 +13,7 @@
 #include "likely.h"
 #include "vec.h"
 #include "base32.h"
+#include "cpucount.h"
 #include "keccak.h"
 #include "ed25519/ed25519.h"
 
@@ -169,7 +170,7 @@ static void loadfilterfile(const char *fname)
 	FILE *f = fopen(fname,"r");
 	while (fgets(buf,sizeof(buf),f)) {
 		for (char *p = buf;*p;++p) {
-			if(*p == '\n') {
+			if (*p == '\n') {
 				*p = 0;
 				break;
 			}
@@ -707,8 +708,9 @@ int main(int argc,char **argv)
 	}
 
 	if (numthreads <= 0) {
-		// TODO: autodetect
-		numthreads = 1;
+		numthreads = cpucount();
+		if (numthreads <= 0)
+			numthreads = 1;
 	}
 
 	signal(SIGTERM,termhandler);

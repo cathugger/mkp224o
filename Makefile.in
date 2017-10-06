@@ -19,6 +19,7 @@ ED25519OBJ= $(ED25519_@ED25519IMPL@)
 
 MAINOBJ= \
 	main.c.o \
+	cpucount.c.o \
 	base32_to.c.o \
 	base32_from.c.o \
 	$(ED25519OBJ) \
@@ -91,6 +92,7 @@ base16_from.c.o: types.h base16.h
 base16_to.c.o: types.h base16.h
 base32_from.c.o: types.h base32.h
 base32_to.c.o: types.h base32.h
+cpucount.c.o: cpucount.h
 ed25519/amd64-51-30k/batch.c.o: ed25519/amd64-51-30k/crypto_sign.h
 ed25519/amd64-51-30k/batch.c.o: ed25519/amd64-51-30k/ed25519.h
 ed25519/amd64-51-30k/batch.c.o: ed25519/amd64-51-30k/crypto_verify_32.h
@@ -351,12 +353,12 @@ ed25519/ref10/sign.c.o: ed25519/amd64-51-30k/crypto_hash_sha512.h
 ed25519/ref10/sign.c.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/sign.c.o: ed25519/ref10/crypto_int32.h ed25519/ref10/sc.h
 keccak.c.o: types.h keccak.h
-main.c.o: types.h likely.h vec.h base32.h keccak.h ed25519/ed25519.h
-main.c.o: ed25519/ref10/ed25519.h ed25519/ref10/ge.h ed25519/ref10/fe.h
-main.c.o: ed25519/ref10/crypto_int32.h ed25519/amd64-51-30k/ed25519.h
-main.c.o: ed25519/amd64-51-30k/ge25519.h ed25519/amd64-51-30k/fe25519.h
-main.c.o: ed25519/amd64-51-30k/sc25519.h ed25519/amd64-64-24k/ed25519.h
-main.c.o: ed25519/amd64-64-24k/ge25519.h
+main.c.o: types.h likely.h vec.h base32.h cpucount.h keccak.h
+main.c.o: ed25519/ed25519.h ed25519/ref10/ed25519.h ed25519/ref10/ge.h
+main.c.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
+main.c.o: ed25519/amd64-51-30k/ed25519.h ed25519/amd64-51-30k/ge25519.h
+main.c.o: ed25519/amd64-51-30k/fe25519.h ed25519/amd64-51-30k/sc25519.h
+main.c.o: ed25519/amd64-64-24k/ed25519.h ed25519/amd64-64-24k/ge25519.h
 main.c.o: ed25519/ed25519-donna/ed25519-donna.h
 main.c.o: ed25519/ed25519-donna/ed25519-donna-portable.h
 main.c.o: ed25519/ed25519-donna/ed25519-donna-portable-identify.h
