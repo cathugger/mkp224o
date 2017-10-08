@@ -74,8 +74,11 @@ struct binfilter {
 } ;
 
 #ifdef INTFILTER
+#ifndef IFT
+#define IFT u64
+#endif
 struct intfilter {
-	u64 f,m;
+	IFT f,m;
 } ;
 VEC_STRUCT(ifiltervec,struct intfilter) ifilters;
 #else
@@ -146,8 +149,8 @@ static void filters_add(const char *filter)
 	size_t ret, ret2;
 #ifdef INTFILTER
 	union intconv {
-		u64 i;
-		u8 b[8];
+		IFT i;
+		u8 b[sizeof(IFT)];
 	} fc,mc;
 #endif
 
@@ -161,7 +164,7 @@ static void filters_add(const char *filter)
 	if (!ret)
 		return;
 #ifdef INTFILTER
-	if (ret > 8)
+	if (ret > sizeof(IFT))
 #else
 	if (ret > PUBLIC_LEN)
 #endif
@@ -177,7 +180,7 @@ static void filters_add(const char *filter)
 	for (size_t i = 0;i < bf.len;++i)
 		mc.b[i] = 0xFF;
 	mc.b[bf.len] = bf.mask;
-	memcpy(fc.b,bf.f,8);
+	memcpy(fc.b,bf.f,sizeof(fc.b));
 	fc.i &= mc.i;
 	struct intfilter ifltr = {.f = fc.i,.m = mc.i};
 	VEC_FOR(ifilters,i) {
@@ -227,7 +230,7 @@ static size_t filters_count()
 #ifdef INTFILTER
 
 #define FILTERFOR(it) for (it = 0;it < VEC_LENGTH(ifilters);++it)
-#define MATCHFILTER(it,pk) ((*(u64 *)(pk) & VEC_BUF(ifilters,it).m) == VEC_BUF(ifilters,it).f)
+#define MATCHFILTER(it,pk) ((*(IFT *)(pk) & VEC_BUF(ifilters,it).m) == VEC_BUF(ifilters,it).f)
 
 #else
 
@@ -273,7 +276,7 @@ static void printfilters()
 #ifdef INTFILTER
 		size_t len = 0;
 		u8 *imraw = (u8 *)&VEC_BUF(ifilters,i).m;
-		while (len < 8 && imraw[len] != 0x00) ++len;
+		while (len < sizeof(IFT) && imraw[len] != 0x00) ++len;
 		u8 mask = imraw[len-1];
 		u8 *ifraw = (u8 *)&VEC_BUF(ifilters,i).f;
 #else

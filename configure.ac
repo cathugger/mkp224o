@@ -128,14 +128,29 @@ then
 	CFLAGS="$CFLAGS -msse2"
 fi
 
+
 AC_ARG_ENABLE([intfilter],
 	[AS_HELP_STRING([--enable-intfilter],
-		[use 64bit integers for filtering. faster but limits filter length @<:@default=no@:>@])],
+		[use 64-bit integers for filtering. faster but limits filter length to 12 @<:@default=no@:>@])],
 	[], [enable_intfilter=no]
 )
-if test "x$enable_intfilter" = "xyes"
+AC_ARG_ENABLE([intfilter32],
+	[AS_HELP_STRING([--enable-intfilter32],
+		[use 32-bit integers for filtering. even faster on 32-bit machines but limits filter length to 6 @<:@default=no@:>@])],
+	[], [enable_intfilter32=no]
+)
+if test "x$enable_intfilter32" = "xyes"
 then
-	MYDEFS="$MYDEFS -DINTFILTER"
+	if test "x$enable_intfilter" = "xyes"
+	then
+		AC_MSG_WARN([both intfilter and intfilter32 specified; using intfilter32])
+	fi
+	MYDEFS="$MYDEFS -DINTFILTER -DIFT=u32"
+else
+	if test "x$enable_intfilter" = "xyes"
+	then
+		MYDEFS="$MYDEFS -DINTFILTER"
+	fi
 fi
 
 AC_ARG_ENABLE([statistics],
