@@ -103,8 +103,7 @@ static inline int ifilter_conflict(struct intfilter *o,struct intfilter *n)
 	if ((o->f & n->m) != (n->f & o->m))
 		return 0;
 	// determine which filter contain less bits
-	// this shit needs code independent of endianess, so not direct <=
-	if (memcmp(&o->m,&n->m,sizeof(o->m)) <= 0)
+	if (o->m <= n->m)
 		return -1;
 	return 1;
 }
@@ -193,8 +192,12 @@ static void filters_add(const char *filter)
 			// we eat old filter
 		}
 	}
-	VEC_ADD(ifilters,ifltr);
+#ifdef BINSEARCH
+	ifilter_addflatten(&ifltr);
 #else
+	VEC_ADD(ifilters,ifltr);
+#endif // BINSEARCH
+#else // INTFILTER
 	VEC_FOR(bfilters,i) {
 		int c = bfilter_conflict(&VEC_BUF(bfilters,i),&bf);
 		if (c < 0)
@@ -205,8 +208,12 @@ static void filters_add(const char *filter)
 			// we eat old filter
 		}
 	}
+#ifdef BINSEARCH
+	// TODO
+#else
 	VEC_ADD(bfilters,bf);
-#endif
+#endif // BINSEARCH
+#endif // INTFILTER
 }
 
 static void filters_clean()
