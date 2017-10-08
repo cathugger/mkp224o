@@ -91,6 +91,55 @@ static void filters_init()
 #endif
 }
 
+#ifdef INTFILTER
+// o - old filter, n - new
+// return -1 - old stays, 0 - no conflict, 1 - new overrides old
+// assumes masked bits are cleared already
+static inline int ifilter_conflict(struct intfilter *o,struct intfilter *n)
+{
+	if ((o->f & n->m) != (n->f & o->m))
+		return 0;
+	// determine which filter contain less bits
+	// this shit needs code independent of endianess, so not direct <=
+	if (memcmp(&o->m,&n->m,sizeof(o->m)) <= 0)
+		return -1;
+	return 1;
+}
+#else
+// o - old filter, n - new
+// return: -1 - old stays, 0 - no conflict, 1 - new overrides old
+// assumes irrelevant bits are cleared already
+static inline int bfilter_conflict(struct binfilter *o,struct binfilter *n)
+{
+	for (size_t i = 0;i < sizeof(o->f);++i) {
+		u8 oo,nn;
+		if (i < n->len)
+			oo = o->f[i];
+		else if (i == n->len)
+			oo = o->f[i] & n->mask;
+		else
+			oo = 0;
+		if (i < o->len)
+			nn = n->f[i];
+		else if (i == o->len)
+			nn = n->f[i] & o->mask;
+		else
+			nn = 0;
+		if (oo != nn)
+			return 0;
+	}
+	// functional filters subset was the same
+	// determine which filter contain less bits
+	if (o->len < n->len)
+		return -1;
+	if (o->len > n->len)
+		return 1;
+	if (o->mask <= n->mask)
+		return -1;
+	return 1;
+}
+#endif
+
 static void filters_add(const char *filter)
 {
 	struct binfilter bf;
@@ -101,6 +150,8 @@ static void filters_add(const char *filter)
 		u8 b[8];
 	} fc,mc;
 #endif
+
+	memset(&bf,0,sizeof(bf));
 
 	if (!base32_valid(filter,&ret)) {
 		fprintf(stderr, "filter \"%s\" is invalid\n", filter);
@@ -120,7 +171,6 @@ static void filters_add(const char *filter)
 	}
 	ret2 = base32_from(bf.f,&bf.mask,filter);
 	assert(ret == ret2);
-	//printf("--m:%02X\n", bf.mask);
 	bf.len = ret - 1;
 #ifdef INTFILTER
 	mc.i = 0;
@@ -129,9 +179,29 @@ static void filters_add(const char *filter)
 	mc.b[bf.len] = bf.mask;
 	memcpy(fc.b,bf.f,8);
 	fc.i &= mc.i;
-	struct intfilter ifltr = {fc.i,mc.i};
+	struct intfilter ifltr = {.f = fc.i,.m = mc.i};
+	VEC_FOR(ifilters,i) {
+		int c = ifilter_conflict(&VEC_BUF(ifilters,i),&ifltr);
+		if (c < 0)
+			return; // old filter eats us
+		else if (c > 0) {
+			VEC_REMOVE(ifilters,i);
+			--i;
+			// we eat old filter
+		}
+	}
 	VEC_ADD(ifilters,ifltr);
 #else
+	VEC_FOR(bfilters,i) {
+		int c = bfilter_conflict(&VEC_BUF(bfilters,i),&bf);
+		if (c < 0)
+			return; // old filter eats us
+		else if (c > 0) {
+			VEC_REMOVE(bfilters,i);
+			--i;
+			// we eat old filter
+		}
+	}
 	VEC_ADD(bfilters,bf);
 #endif
 }
@@ -721,14 +791,14 @@ int main(int argc,char **argv)
 	signal(SIGINT,termhandler);
 
 	VEC_INIT(threads);
-	VEC_ADDN(threads,pthread_t,numthreads);
+	VEC_ADDN(threads,numthreads);
 #ifdef STATISTICS
 	VEC_INIT(stats);
+	VEC_ADDN(stats,numthreads);
+	VEC_ZERO(stats);
 	VEC_INIT(tstats);
-	VEC_ADDN(stats,struct statstruct,numthreads);
-	VEC_ADDN(tstats,struct tstatstruct,numthreads);
-	memset(&VEC_BUF(stats,0),0,sizeof(struct statstruct) * VEC_LENGTH(stats));
-	memset(&VEC_BUF(tstats,0),0,sizeof(struct tstatstruct) * VEC_LENGTH(tstats));
+	VEC_ADDN(tstats,numthreads);
+	VEC_ZERO(tstats);
 #endif
 
 	for (size_t i = 0;i < VEC_LENGTH(threads);++i) {
