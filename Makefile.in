@@ -19,6 +19,7 @@ ED25519OBJ= $(ED25519_@ED25519IMPL@)
 
 MAINOBJ= \
 	main.c.o \
+	vec.c.o \
 	cpucount.c.o \
 	base32_to.c.o \
 	base32_from.c.o \

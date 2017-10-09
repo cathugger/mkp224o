@@ -187,12 +187,6 @@ static inline int bfilter_conflict(struct binfilter *o,struct binfilter *n)
  *   0xFFffFF0f ^ 0xFFffFF00 -> 0x0000000f <- direct mask
  *   0xFFffFF0f ^ 0x0000000f -> 0xFFffFF00 <- shifted mask
  *
- * above method doesn't work in some cases. better way:
- * l: 0x80ffFFff ^ 0x00f0FFff -> 0x800f0000
- *   0x800f0000 >> 16 -> 0x0000800f
- *   0x0000800f + 1 -> 0x00008010
- *   0x0000800f & 0x00008010 -> 0x00008000 <- smask
- *   0x0000800f ^ 0x00008000 -> 0x0000000f <- dmask
  * essentially, we have to make direct mask + shifted mask bits worth of information
  * and then split it into 2 parts
  * we do not need absolute shifted mask shifting value, just relative to direct mask
@@ -203,25 +197,51 @@ static inline int bfilter_conflict(struct binfilter *o,struct binfilter *n)
  * for each value, realmask <- (val & 0x000000dd) | ((val & 0x000sss00) << relshiftval)
  * or..
  * realmask <- (val & 0x000000dd) | ((val << relshiftval) & 0x0sss0000)
+ * ...
+ * above method doesn't work in some cases. better way:
+ * l: 0x80ffFFff ^ 0x00f0FFff -> 0x800f0000
+ *   0x800f0000 >> 16 -> 0x0000800f
+ *   0x0000800f + 1 -> 0x00008010
+ *   0x0000800f & 0x00008010 -> 0x00008000 <- smask
+ *   0x0000800f ^ 0x00008000 -> 0x0000000f <- dmask
  */
 
-// add flattened set of values
-static void ifilter_addflattened(
+// add expanded set of values
+// space for that must already be allocated
+static void ifilter_addexpanded(
 	size_t n,struct intfilter *ifltr,
 	IFT dmask,IFT smask,IFT cmask,
 	int ishift,int rshift)
 {
 	for (size_t j = 0;;++j) {
-		VEC_BUF(ifilters,n + j).f = ifltr->f | (((j & dmask) | ((j << rshift) & smask)) << ishift);
+		VEC_BUF(ifilters,n + j).f =
+			ifltr->f | (((j & dmask) | ((j << rshift) & smask)) << ishift);
 		if (j == cmask)
 			break;
 	}
 }
 
-// flatten existing stuff
-static void ifilter_flatten(IFT dmask,IFT smask,IFT cmask,int ishift,int rshift)
+// expand existing stuff
+// allocates needed stuff on its own
+static void ifilter_expand(IFT dmask,IFT smask,IFT cmask,int ishift,int rshift)
 {
-	
+	size_t len = VEC_LENGTH(ifilters);
+	printf(">expand:cm:%08X,len:%d,cm*len:%d\n",
+		cmask,(int)len,(int)(cmask * len));
+	VEC_ADDN(ifilters,cmask * len);
+	printf(">expand after\n");
+	size_t esz = cmask + 1; // size of expanded elements
+	for (size_t i = len - 1;;--i) {
+		for (IFT j = 0;;++j) {
+			VEC_BUF(ifilters,i * esz + j).f =
+				VEC_BUF(ifilters,i).f |
+				(((j & dmask) | ((j << rshift) & smask)) << ishift);
+			if (j == cmask)
+				break;
+		}
+		if (i == 0)
+			break;
+	}
 }
 
 static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
@@ -267,22 +287,34 @@ static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
 	// preparations done
 	if (ifiltermask > mask) {
 		// already existing stuff has more precise mask than we
-		// so we need to flatten our stuff
+		// so we need to expand our stuff
 		// first find where we should insert
 		VEC_FOR(ifilters,i) {
 			if (VEC_BUF(ifilters,i).f > ifltr->f) {
 				// there
 				VEC_INSERTN(ifilters,i,cmask + 1);
-				ifilter_addflattened(i,ifltr,dmask,smask,cmask,ishift,rshift);
+				ifilter_addexpanded(i,ifltr,dmask,smask,cmask,ishift,rshift);
 				return;
 			}
 		}
 		size_t i = VEC_LENGTH(ifilters);
 		VEC_ADDN(ifilters,cmask + 1);
-		ifilter_addflattened(i,ifltr,dmask,smask,cmask,ishift,rshift);
-		return;
+		ifilter_addexpanded(i,ifltr,dmask,smask,cmask,ishift,rshift);
 	}
-	assert(0);
+	else {
+		// adjust existing mask
+		ifiltermask = mask;
+		// already existing stuff needs to be expanded
+		ifilter_expand(dmask,smask,cmask,ishift,rshift);
+		// now just insert our stuff in the right place
+		VEC_FOR(ifilters,i) {
+			if (VEC_BUF(ifilters,i).f > ifltr->f) {
+				VEC_INSERT(ifilters,i,*ifltr);
+				return;
+			}
+		}
+		VEC_ADD(ifilters,*ifltr);
+	}
 }
 #endif // BINSEARCH
 #endif // INTFILTER

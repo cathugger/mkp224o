@@ -3,45 +3,21 @@ struct typename { \
 	inttype *buf; \
 	size_t len, alen; \
 }
+VEC_STRUCT(vec_basestruct,void) ;
 
 #define VEC_INIT(ctl) memset(&ctl,0,sizeof(ctl))
 
-#define VEC_ADD1(ctl) { \
-	if (!(ctl).alen) { \
-		(ctl).alen = 8; \
-		(ctl).buf = malloc(8 * sizeof(*(ctl).buf)); \
-	} else if ((ctl).len >= (ctl).alen) { \
-		(ctl).alen *= 2; \
-		(ctl).buf = realloc((ctl).buf,(ctl).alen * sizeof(*(ctl).buf)); \
-	} \
-	++(ctl).len; \
-}
-
+void vec_add1(struct vec_basestruct *ctl,size_t sz);
+#define VEC_ADD1(ctl) \
+	vec_add1((struct vec_basestruct *)&(ctl),sizeof(*(ctl).buf))
 #define VEC_ADD(ctl,val) { \
-	if (!(ctl).alen) { \
-		(ctl).alen = 8; \
-		(ctl).buf = malloc(8 * sizeof(*(ctl).buf)); \
-	} else if ((ctl).len >= (ctl).alen) { \
-		(ctl).alen *= 2; \
-		(ctl).buf = realloc((ctl).buf,(ctl).alen * sizeof(*(ctl).buf)); \
-	} \
-	(ctl).buf[(ctl).len++] = (val); \
+	VEC_ADD1(ctl); \
+	(ctl).buf[(ctl).len - 1] = (val); \
 }
 
-#define VEC_ADDN(ctl,n) { \
-	if (!(ctl).alen) { \
-		(ctl).alen = 8; \
-		(ctl).buf = malloc(8 * sizeof(*(ctl).buf)); \
-	} \
-	size_t nlen = (ctl).alen; \
-	while ((ctl).len + n > nlen) \
-		nlen *= 2; \
-	if (nlen > (ctl).alen) { \
-		(ctl).alen = nlen; \
-		(ctl).buf = realloc((ctl).buf,nlen * sizeof(*(ctl).buf)); \
-	} \
-	(ctl).len += n; \
-}
+void vec_addn(struct vec_basestruct *ctl,size_t sz,size_t n);
+#define VEC_ADDN(ctl,n) \
+	vec_addn((struct vec_basestruct *)&(ctl),sizeof(*(ctl).buf),(n))
 
 #define VEC_REMOVE(ctl,n) { \
 	--(ctl).len; \
@@ -72,8 +48,10 @@ struct typename { \
 		((ctl).len - (n) - (m)) * sizeof(*(ctl).buf)); \
 }
 
-#define VEC_ZERO(ctl) \
-	memset((ctl).buf,0,(ctl).len * sizeof(*(ctl).buf))
+#define VEC_ZERO(ctl) { \
+	if ((ctl).buf) \
+		memset((ctl).buf,0,(ctl).len * sizeof(*(ctl).buf)); \
+}
 
 #define VEC_FREE(ctl) { \
 	free((ctl).buf); \
