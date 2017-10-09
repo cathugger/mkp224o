@@ -142,6 +142,130 @@ static inline int bfilter_conflict(struct binfilter *o,struct binfilter *n)
 }
 #endif
 
+#ifdef INTFILTER
+#ifdef BINSEARCH
+/*
+ * raw representation -- FF.FF.F0.00
+ * big endian         -- 0xFFFFF000
+ * little endian      -- 0x00F0FFFF
+ * b: 0xFFffF000 ^ 0xFFff0000 -> 0x0000F000
+ *   0x0000F000 + 1 -> 0x0000F001
+ *   0x0000F000 & 0x0000F001 -> 0x0000F000 <- shifted mask
+ *   0x0000F000 ^ 0x0000F000 -> 0x00000000 <- direct mask
+ *   0x0000F000 ^ 0x00000000 -> 0x0000F000 <- shifted mask
+ * l: 0x00f0FFff ^ 0x0000FFff -> 0x00f00000
+ *   0x00f00000 + 1 -> 0x00f00001
+ *   0x00f00000 & 0x00f00001 -> 0x00f00000 <- shifted mask
+ *   0x00f00000 ^ 0x00f00000 -> 0x00000000 <- direct mask
+ *   0x00f00000 ^ 0x00000000 -> 0x00f00000 <- shifted mask
+ *
+ * b: 0xFFffFFff ^ 0xF0000000 -> 0x0FffFFff
+ *   0x0FffFFff + 1 -> 0x10000000
+ *   0x0FffFFff & 0x10000000 -> 0x00000000 <- shifted mask
+ *   0x0FffFFff ^ 0x00000000 -> 0x0FffFFff <- direct mask
+ *   0x0FffFFff ^ 0x0FffFFff -> 0x00000000 <- shifted mask
+ * l: 0xFFffFFff ^ 0x000000f0 -> 0xFFffFF0f
+ *   0xFFffFF0f + 1 -> 0xFFffFF10
+ *   0xFFffFF0f & 0xFFffFF10 -> 0xFFffFF00 <- shifted mask
+ *   0xFFffFF0f ^ 0xFFffFF00 -> 0x0000000f <- direct mask
+ *   0xFFffFF0f ^ 0x0000000f -> 0xFFffFF00 <- shifted mask
+ *
+ * above method doesn't work in some cases. better way:
+ * l: 0x80ffFFff ^ 0x00f0FFff -> 0x800f0000
+ *   0x800f0000 >> 16 -> 0x0000800f
+ *   0x0000800f + 1 -> 0x00008010
+ *   0x0000800f & 0x00008010 -> 0x00008000 <- smask
+ *   0x0000800f ^ 0x00008000 -> 0x0000000f <- dmask
+ * essentially, we have to make direct mask + shifted mask bits worth of information
+ * and then split it into 2 parts
+ * we do not need absolute shifted mask shifting value, just relative to direct mask
+ * 0x0sss00dd - shifted & direct mask combo
+ * 0x000sssdd - combined mask
+ * 8 - relshiftval
+ * generate values from 0x00000000 to 0x000sssdd
+ * for each value, realmask <- (val & 0x000000dd) | ((val & 0x000sss00) << relshiftval)
+ * or..
+ * realmask <- (val & 0x000000dd) | ((val << relshiftval) & 0x0sss0000)
+ */
+static inline void ifilter_addflatten(struct intfilter *ifltr)
+{
+	printf(">enter flatten,f:%08X,m:%08X\n",ifltr->f,ifltr->m);
+	if (VEC_LENGTH(ifilters) == 0) {
+		printf(">flatten simple\n");
+		// simple
+		VEC_ADD(ifilters,*ifltr);
+		return;
+	}
+	if (VEC_BUF(ifilters,0).m == ifltr->m) {
+		printf(">flatten lucky\n");
+		// lucky, only need to insert at the right place
+		VEC_FOR(ifilters,i) {
+			if (VEC_BUF(ifilters,i).f > ifltr->f) {
+				VEC_INSERT(ifilters,i,*ifltr);
+				return;
+			}
+		}
+		VEC_ADD(ifilters,*ifltr);
+		return;
+	}
+	printf(">flatten complicated; em:0x%08X,m:0x%08X\n",VEC_BUF(ifilters,0).m,ifltr->m);
+	IFT cross = VEC_BUF(ifilters,0).m ^ ifltr->m;
+	printf(">cross:%08X\n",cross);
+	int ishift = 0;
+	while ((cross & 1) == 0) {
+		++ishift;
+		cross >>= 1;
+	}
+	printf(">ishift:%d,cross:%08X\n",ishift,cross);
+	IFT smask = cross & (cross + 1); // shift mask
+	printf(">smask:%08X\n",smask);
+	IFT dmask = cross ^ smask; // direct mask
+	printf(">dmask:%08X\n",dmask);
+	IFT cmask; // combined mask
+	int rshift = -1; // relative shift
+	do {
+		++rshift;
+		cmask = (smask >> rshift) | dmask;
+	} while ((cmask & (cmask + 1)) != 0);
+	printf(">cmask:%08X,rshift:%d\n",cmask,rshift);
+	// preparations done
+	if (VEC_BUF(ifilters,0).m > ifltr->m) {
+		// already existing stuff has more precise mask than we
+		// so we need to flatten our stuff
+		// first find where we should insert
+		VEC_FOR(ifilters,i) {
+			if (VEC_BUF(ifilters,i).f > ifltr->f) {
+				// there
+				printf(">before insert:%d\n",(int)VEC_LENGTH(ifilters));
+				VEC_INSERTN(ifilters,i,cmask + 1);
+				printf(">after insert:%d\n",(int)VEC_LENGTH(ifilters));
+				printf(">afterval f:%08X,m:%08X\n",VEC_BUF(ifilters,i+cmask+1).f,VEC_BUF(ifilters,i+cmask+1).m);
+				for (size_t j = 0;;++j) {
+					VEC_BUF(ifilters,i + j).f = ifltr->f | (((j & dmask) | ((j << rshift) & smask)) << ishift);
+					VEC_BUF(ifilters,i + j).m = VEC_BUF(ifilters,0).m;
+					printf(">insert pos:%d,f:%08X,m:%08X\n",
+						(int)(i + j),VEC_BUF(ifilters,i + j).f,
+						VEC_BUF(ifilters,i + j).m);
+					if (j == cmask)
+						break;
+				}
+				return;
+			}
+		}
+		size_t i = VEC_LENGTH(ifilters);
+		VEC_ADDN(ifilters,cmask + 1);
+		for (size_t j = 0;;++j) {
+			VEC_BUF(ifilters,i + j).f = ifltr->f | (j & dmask) | ((j << rshift) & smask);
+			if (j == cmask)
+				break;
+		}
+		return;
+	}
+	assert(0);
+}
+#endif // BINSEARCH
+#endif // INTFILTER
+
 static void filters_add(const char *filter)
 {
 	struct binfilter bf;
@@ -195,6 +319,13 @@ static void filters_add(const char *filter)
 #ifdef BINSEARCH
 	ifilter_addflatten(&ifltr);
 #else
+	VEC_FOR(ifilters,i) {
+		// filter with least bits first
+		if (VEC_BUF(ifilters,i).m > ifltr.m) {
+			VEC_INSERT(ifilters,i,ifltr);
+			return;
+		}
+	}
 	VEC_ADD(ifilters,ifltr);
 #endif // BINSEARCH
 #else // INTFILTER
@@ -211,6 +342,16 @@ static void filters_add(const char *filter)
 #ifdef BINSEARCH
 	// TODO
 #else
+	VEC_FOR(bfilters,i) {
+		// filter with least bits first
+		if (VEC_BUF(bfilters,i).len > bf.len ||
+			(VEC_BUF(bfilters,i).len == bf.len &&
+				(VEC_BUF(bfilters,i).mask > bf.mask)))
+		{
+			VEC_INSERT(bfilters,i,bf);
+			return;
+		}
+	}
 	VEC_ADD(bfilters,bf);
 #endif // BINSEARCH
 #endif // INTFILTER

@@ -46,18 +46,30 @@ struct typename { \
 #define VEC_REMOVE(ctl,n) { \
 	--(ctl).len; \
 	memmove( \
-		&(ctl).buf[(n) * sizeof(*(ctl).buf)], \
-		&(ctl).buf[(n + 1) * sizeof(*(ctl).buf)], \
+		&(ctl).buf[(n)], \
+		&(ctl).buf[(n + 1)], \
 		((ctl).len - (n)) * sizeof(*(ctl).buf)); \
 }
 
-#define VEC_INSERT(ctl,n,val) { \
+#define VEC_INSERT1(ctl,n) { \
 	VEC_ADD1(ctl); \
 	memmove( \
-		&(ctl).buf[(n + 1) * sizeof(*(ctl).buf)], \
-		&(ctl).buf[(n) * sizeof(*(ctl).buf)], \
+		&(ctl).buf[(n + 1)], \
+		&(ctl).buf[(n)], \
 		((ctl).len - (n) - 1) * sizeof(*(ctl).buf)); \
+}
+
+#define VEC_INSERT(ctl,n,val) { \
+	VEC_INSERT1(ctl,n); \
 	(ctl).buf[n] = (val); \
+}
+
+#define VEC_INSERTN(ctl,n,m) { \
+	VEC_ADDN(ctl,m); \
+	memmove( \
+		&(ctl).buf[(n + m)], \
+		&(ctl).buf[(n)], \
+		((ctl).len - (n) - (m)) * sizeof(*(ctl).buf)); \
 }
 
 #define VEC_ZERO(ctl) \
