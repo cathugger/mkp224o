@@ -204,6 +204,26 @@ static inline int bfilter_conflict(struct binfilter *o,struct binfilter *n)
  * or..
  * realmask <- (val & 0x000000dd) | ((val << relshiftval) & 0x0sss0000)
  */
+
+// add flattened set of values
+static void ifilter_addflattened(
+	size_t n,struct intfilter *ifltr,
+	IFT dmask,IFT smask,IFT cmask,
+	int ishift,int rshift)
+{
+	for (size_t j = 0;;++j) {
+		VEC_BUF(ifilters,n + j).f = ifltr->f | (((j & dmask) | ((j << rshift) & smask)) << ishift);
+		if (j == cmask)
+			break;
+	}
+}
+
+// flatten existing stuff
+static void ifilter_flatten(IFT dmask,IFT smask,IFT cmask,int ishift,int rshift)
+{
+	
+}
+
 static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
 {
 	printf(">enter flatten,f:%08X,m:%08X\n",ifltr->f,mask);
@@ -252,27 +272,14 @@ static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
 		VEC_FOR(ifilters,i) {
 			if (VEC_BUF(ifilters,i).f > ifltr->f) {
 				// there
-				printf(">before insert:%d\n",(int)VEC_LENGTH(ifilters));
 				VEC_INSERTN(ifilters,i,cmask + 1);
-				printf(">after insert:%d\n",(int)VEC_LENGTH(ifilters));
-				printf(">afterval f:%08X\n",VEC_BUF(ifilters,i+cmask+1).f);
-				for (size_t j = 0;;++j) {
-					VEC_BUF(ifilters,i + j).f = ifltr->f | (((j & dmask) | ((j << rshift) & smask)) << ishift);
-					printf(">insert pos:%d,f:%08X\n",
-						(int)(i + j),VEC_BUF(ifilters,i + j).f);
-					if (j == cmask)
-						break;
-				}
+				ifilter_addflattened(i,ifltr,dmask,smask,cmask,ishift,rshift);
 				return;
 			}
 		}
 		size_t i = VEC_LENGTH(ifilters);
 		VEC_ADDN(ifilters,cmask + 1);
-		for (size_t j = 0;;++j) {
-			VEC_BUF(ifilters,i + j).f = ifltr->f | (j & dmask) | ((j << rshift) & smask);
-			if (j == cmask)
-				break;
-		}
+		ifilter_addflattened(i,ifltr,dmask,smask,cmask,ishift,rshift);
 		return;
 	}
 	assert(0);
