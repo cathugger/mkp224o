@@ -527,14 +527,20 @@ struct statstruct {
 		u32 v;
 		size_t align;
 	} numsuccess;
+	union {
+		u32 v;
+		size_t align;
+	} numrestart;
 } ;
 VEC_STRUCT(statsvec,struct statstruct);
 
 struct tstatstruct {
 	u64 numcalc;
 	u64 numsuccess;
+	u64 numrestart;
 	u32 oldnumcalc;
 	u32 oldnumsuccess;
+	u32 oldnumrestart;
 } ;
 VEC_STRUCT(tstatsvec,struct tstatstruct);
 #endif
@@ -643,6 +649,9 @@ static void *dowork(void *task)
 
 initseed:
 	randombytes(seed,sizeof(seed));
+#ifdef STATISTICS
+	++st->numrestart.v;
+#endif
 
 again:
 	if (unlikely(endwork))
@@ -706,7 +715,7 @@ static void *dofastwork(void *task)
 	u8 seed[SEED_LEN];
 	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
 	ge_p3 ge_public;
-	u64 counter;
+	size_t counter;
 	size_t i;
 	char *sname;
 #ifdef STATISTICS
@@ -724,13 +733,16 @@ static void *dofastwork(void *task)
 		memcpy(sname, workdir, workdirlen);
 
 initseed:
+#ifdef STATISTICS
+	++st->numrestart.v;
+#endif
 	randombytes(seed,sizeof(seed));
 	ed25519_seckey_expand(sk,seed);
 	
 	ge_scalarmult_base(&ge_public,sk);
 	ge_p3_tobytes(pk,&ge_public);
 	
-	for (counter = 0;counter < U64_MAX-8;counter += 8) {
+	for (counter = 0;counter < SIZE_MAX-8;counter += 8) {
 		ge_p1p1 sum;
 		
 		if (unlikely(endwork))
@@ -984,7 +996,11 @@ int main(int argc,char **argv)
 	if (!quietflag)
 		printfilters();
 
+#ifdef STATISTICS
+	if (!filters_count() && !reportdelay)
+#else
 	if (!filters_count())
+#endif
 		return 0;
 
 	if (outfile)
@@ -1054,11 +1070,11 @@ int main(int argc,char **argv)
 			break;
 		}
 		nanosleep(&ts,0);
-		
+
 #ifdef STATISTICS
 		clock_gettime(CLOCK_MONOTONIC,&nowtime);
 		inowtime = (1000000 * (u64)nowtime.tv_sec) + (nowtime.tv_nsec / 1000);
-		u64 sumcalc = 0,sumsuccess = 0;
+		u64 sumcalc = 0,sumsuccess = 0,sumrestart = 0;
 		for (size_t i = 0;i < numthreads;++i) {
 			u32 newt,tdiff;
 			// numcalc
@@ -1073,6 +1089,12 @@ int main(int argc,char **argv)
 			VEC_BUF(tstats,i).oldnumsuccess = newt;
 			VEC_BUF(tstats,i).numsuccess += (u64)tdiff;
 			sumsuccess += VEC_BUF(tstats,i).numsuccess;
+			// numrestart
+			newt = VEC_BUF(stats,i).numrestart.v;
+			tdiff = newt - VEC_BUF(tstats,i).oldnumrestart;
+			VEC_BUF(tstats,i).oldnumrestart = newt;
+			VEC_BUF(tstats,i).numrestart += (u64)tdiff;
+			sumrestart += VEC_BUF(tstats,i).numrestart;
 		}
 		if (reportdelay && (!ireporttime || inowtime - ireporttime >= reportdelay)) {
 			if (ireporttime)
@@ -1083,13 +1105,17 @@ int main(int argc,char **argv)
 				ireporttime = 1;
 
 			double calcpersec = (1000000.0 * sumcalc) / (inowtime - istarttime);
-			double successpersec = (1000000.0 * sumsuccess) / (inowtime - istarttime);
-			fprintf(stderr,">calc/sec:%8lf, success/sec:%8lf, elapsed:%5.6lfsec\n",calcpersec,successpersec,(inowtime - istarttime + elapsedoffset) / 1000000.0);
+			double succpersec = (1000000.0 * sumsuccess) / (inowtime - istarttime);
+			double restpersec = (1000000.0 * sumrestart) / (inowtime - istarttime);
+			fprintf(stderr,">calc/sec:%8lf, succ/sec:%8lf, rest/sec:%8lf, elapsed:%5.6lfsec\n",
+				calcpersec,succpersec,restpersec,
+				(inowtime - istarttime + elapsedoffset) / 1000000.0);
 
 			if (realtimestats) {
 				for (size_t i = 0;i < numthreads;++i) {
 					VEC_BUF(tstats,i).numcalc = 0;
 					VEC_BUF(tstats,i).numsuccess = 0;
+					VEC_BUF(tstats,i).numrestart = 0;
 				}
 				elapsedoffset += inowtime - istarttime;
 				istarttime = inowtime;
@@ -1099,6 +1125,7 @@ int main(int argc,char **argv)
 			for (size_t i = 0;i < numthreads;++i) {
 				VEC_BUF(tstats,i).numcalc /= 2;
 				VEC_BUF(tstats,i).numsuccess /= 2;
+				VEC_BUF(tstats,i).numrestart /= 2;
 			}
 			u64 timediff = (inowtime - istarttime + 1) / 2;
 			elapsedoffset += timediff;
