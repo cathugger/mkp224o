@@ -78,12 +78,18 @@ struct binfilter {
 #define IFT u64
 #endif
 struct intfilter {
-	IFT f,m;
+	IFT f;
+#ifndef BINSEARCH
+	IFT m;
+#endif
 } ;
 VEC_STRUCT(ifiltervec,struct intfilter) ifilters;
-#else
+#ifdef BINSEARCH
+IFT ifiltermask;
+#endif // BINSEARCH
+#else // INTFILTER
 VEC_STRUCT(bfiltervec,struct binfilter) bfilters;
-#endif
+#endif // INTFILTER
 
 static void filters_init()
 {
@@ -98,6 +104,7 @@ static void filters_init()
 // o - old filter, n - new
 // return -1 - old stays, 0 - no conflict, 1 - new overrides old
 // assumes masked bits are cleared already
+#ifndef BINSEARCH
 static inline int ifilter_conflict(struct intfilter *o,struct intfilter *n)
 {
 	if ((o->f & n->m) != (n->f & o->m))
@@ -107,7 +114,17 @@ static inline int ifilter_conflict(struct intfilter *o,struct intfilter *n)
 		return -1;
 	return 1;
 }
-#else
+#else // BINSEARCH
+static inline int ifilter_conflict(struct intfilter *o,struct intfilter *n,IFT mask)
+{
+	if ((o->f & mask) != (n->f & ifiltermask))
+		return 0;
+	if (ifiltermask <= mask)
+		return -1;
+	return 1;
+}
+#endif // BINSEARCH
+#else // INTFILTER
 // o - old filter, n - new
 // return: -1 - old stays, 0 - no conflict, 1 - new overrides old
 // assumes irrelevant bits are cleared already
@@ -187,16 +204,17 @@ static inline int bfilter_conflict(struct binfilter *o,struct binfilter *n)
  * or..
  * realmask <- (val & 0x000000dd) | ((val << relshiftval) & 0x0sss0000)
  */
-static inline void ifilter_addflatten(struct intfilter *ifltr)
+static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
 {
-	printf(">enter flatten,f:%08X,m:%08X\n",ifltr->f,ifltr->m);
+	printf(">enter flatten,f:%08X,m:%08X\n",ifltr->f,mask);
 	if (VEC_LENGTH(ifilters) == 0) {
 		printf(">flatten simple\n");
 		// simple
 		VEC_ADD(ifilters,*ifltr);
+		ifiltermask = mask;
 		return;
 	}
-	if (VEC_BUF(ifilters,0).m == ifltr->m) {
+	if (ifiltermask == mask) {
 		printf(">flatten lucky\n");
 		// lucky, only need to insert at the right place
 		VEC_FOR(ifilters,i) {
@@ -208,8 +226,8 @@ static inline void ifilter_addflatten(struct intfilter *ifltr)
 		VEC_ADD(ifilters,*ifltr);
 		return;
 	}
-	printf(">flatten complicated; em:0x%08X,m:0x%08X\n",VEC_BUF(ifilters,0).m,ifltr->m);
-	IFT cross = VEC_BUF(ifilters,0).m ^ ifltr->m;
+	printf(">flatten complicated; em:0x%08X,m:0x%08X\n",ifiltermask,mask);
+	IFT cross = ifiltermask ^ mask;
 	printf(">cross:%08X\n",cross);
 	int ishift = 0;
 	while ((cross & 1) == 0) {
@@ -222,14 +240,12 @@ static inline void ifilter_addflatten(struct intfilter *ifltr)
 	IFT dmask = cross ^ smask; // direct mask
 	printf(">dmask:%08X\n",dmask);
 	IFT cmask; // combined mask
-	int rshift = -1; // relative shift
-	do {
+	int rshift = 0; // relative shift
+	while (cmask = (smask >> rshift) | dmask,(cmask & (cmask + 1)) != 0)
 		++rshift;
-		cmask = (smask >> rshift) | dmask;
-	} while ((cmask & (cmask + 1)) != 0);
 	printf(">cmask:%08X,rshift:%d\n",cmask,rshift);
 	// preparations done
-	if (VEC_BUF(ifilters,0).m > ifltr->m) {
+	if (ifiltermask > mask) {
 		// already existing stuff has more precise mask than we
 		// so we need to flatten our stuff
 		// first find where we should insert
@@ -239,13 +255,11 @@ static inline void ifilter_addflatten(struct intfilter *ifltr)
 				printf(">before insert:%d\n",(int)VEC_LENGTH(ifilters));
 				VEC_INSERTN(ifilters,i,cmask + 1);
 				printf(">after insert:%d\n",(int)VEC_LENGTH(ifilters));
-				printf(">afterval f:%08X,m:%08X\n",VEC_BUF(ifilters,i+cmask+1).f,VEC_BUF(ifilters,i+cmask+1).m);
+				printf(">afterval f:%08X\n",VEC_BUF(ifilters,i+cmask+1).f);
 				for (size_t j = 0;;++j) {
 					VEC_BUF(ifilters,i + j).f = ifltr->f | (((j & dmask) | ((j << rshift) & smask)) << ishift);
-					VEC_BUF(ifilters,i + j).m = VEC_BUF(ifilters,0).m;
-					printf(">insert pos:%d,f:%08X,m:%08X\n",
-						(int)(i + j),VEC_BUF(ifilters,i + j).f,
-						VEC_BUF(ifilters,i + j).m);
+					printf(">insert pos:%d,f:%08X\n",
+						(int)(i + j),VEC_BUF(ifilters,i + j).f);
 					if (j == cmask)
 						break;
 				}
@@ -305,9 +319,19 @@ static void filters_add(const char *filter)
 	mc.b[bf.len] = bf.mask;
 	memcpy(fc.b,bf.f,sizeof(fc.b));
 	fc.i &= mc.i;
-	struct intfilter ifltr = {.f = fc.i,.m = mc.i};
+	struct intfilter ifltr = {
+		.f = fc.i,
+#ifndef BINSEARCH
+		.m = mc.i,
+#endif
+	};
 	VEC_FOR(ifilters,i) {
-		int c = ifilter_conflict(&VEC_BUF(ifilters,i),&ifltr);
+		int c;
+#ifndef BINSEARCH
+		c = ifilter_conflict(&VEC_BUF(ifilters,i),&ifltr);
+#else
+		c = ifilter_conflict(&VEC_BUF(ifilters,i),&ifltr,mc.i);
+#endif
 		if (c < 0)
 			return; // old filter eats us
 		else if (c > 0) {
@@ -317,7 +341,7 @@ static void filters_add(const char *filter)
 		}
 	}
 #ifdef BINSEARCH
-	ifilter_addflatten(&ifltr);
+	ifilter_addflatten(&ifltr,mc.i);
 #else
 	VEC_FOR(ifilters,i) {
 		// filter with least bits first
@@ -378,7 +402,11 @@ static size_t filters_count()
 #ifdef INTFILTER
 
 #define FILTERFOR(it) for (it = 0;it < VEC_LENGTH(ifilters);++it)
+#ifndef BINSEARCH
 #define MATCHFILTER(it,pk) ((*(IFT *)(pk) & VEC_BUF(ifilters,it).m) == VEC_BUF(ifilters,it).f)
+#else
+#define MATCHFILTER(it,pk) ((*(IFT *)(pk) & ifiltermask) == VEC_BUF(ifilters,it).f)
+#endif
 
 #else
 
@@ -423,7 +451,12 @@ static void printfilters()
 		u8 bufx[128];
 #ifdef INTFILTER
 		size_t len = 0;
-		u8 *imraw = (u8 *)&VEC_BUF(ifilters,i).m;
+		u8 *imraw;
+#ifndef BINSEARCH
+		imraw = (u8 *)&VEC_BUF(ifilters,i).m;
+#else
+		imraw = (u8 *)&ifiltermask;
+#endif
 		while (len < sizeof(IFT) && imraw[len] != 0x00) ++len;
 		u8 mask = imraw[len-1];
 		u8 *ifraw = (u8 *)&VEC_BUF(ifilters,i).f;
