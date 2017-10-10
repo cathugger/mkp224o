@@ -153,6 +153,26 @@ else
 	fi
 fi
 
+AC_ARG_ENABLE([binfilterlen],
+	[AS_HELP_STRING([--enable-binfilterlen=VAL],
+		[set binary string filter length (if you don't use intfilter) @<:@default=32@:>@])],
+	[], [enable_binfilterlen=no]
+)
+if test "x$enable_binfilterlen" != "xyes" -a "x$enable_binfilterlen" != "xno"
+then
+	MYDEFS="$MYDEFS -DBINFILTERLEN=$enable_binfilterlen"
+fi
+
+AC_ARG_ENABLE([binsearch],
+	[AS_HELP_STRING([--enable-binsearch],
+		[enable binary search algoritm; MUCH faster if there are a lot of filters @<:@default=no@:>@])],
+	[], [enable_binsearch=no]
+)
+if test "x$enable_binsearch" = "xyes"
+then
+	MYDEFS="$MYDEFS -DBINSEARCH"
+fi
+
 AC_ARG_ENABLE([statistics],
 	[AS_HELP_STRING([--enable-statistics],
 		[collect statistics @<:@default=yes@:>@])],

@@ -67,8 +67,11 @@ static void termhandler(int sig)
 
 // filters stuff
 
+#ifndef BINFILTERLEN
+#define BINFILTERLEN PUBLIC_LEN
+#endif
 struct binfilter {
-	u8 f[PUBLIC_LEN];
+	u8 f[BINFILTERLEN];
 	size_t len; // real len minus one
 	u8 mask;
 } ;
@@ -226,10 +229,7 @@ static void ifilter_addexpanded(
 static void ifilter_expand(IFT dmask,IFT smask,IFT cmask,int ishift,int rshift)
 {
 	size_t len = VEC_LENGTH(ifilters);
-	printf(">expand:cm:%08X,len:%d,cm*len:%d\n",
-		cmask,(int)len,(int)(cmask * len));
 	VEC_ADDN(ifilters,cmask * len);
-	printf(">expand after\n");
 	size_t esz = cmask + 1; // size of expanded elements
 	for (size_t i = len - 1;;--i) {
 		for (IFT j = 0;;++j) {
@@ -246,16 +246,13 @@ static void ifilter_expand(IFT dmask,IFT smask,IFT cmask,int ishift,int rshift)
 
 static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
 {
-	printf(">enter flatten,f:%08X,m:%08X\n",ifltr->f,mask);
 	if (VEC_LENGTH(ifilters) == 0) {
-		printf(">flatten simple\n");
 		// simple
 		VEC_ADD(ifilters,*ifltr);
 		ifiltermask = mask;
 		return;
 	}
 	if (ifiltermask == mask) {
-		printf(">flatten lucky\n");
 		// lucky, only need to insert at the right place
 		VEC_FOR(ifilters,i) {
 			if (VEC_BUF(ifilters,i).f > ifltr->f) {
@@ -266,24 +263,18 @@ static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
 		VEC_ADD(ifilters,*ifltr);
 		return;
 	}
-	printf(">flatten complicated; em:0x%08X,m:0x%08X\n",ifiltermask,mask);
 	IFT cross = ifiltermask ^ mask;
-	printf(">cross:%08X\n",cross);
 	int ishift = 0;
 	while ((cross & 1) == 0) {
 		++ishift;
 		cross >>= 1;
 	}
-	printf(">ishift:%d,cross:%08X\n",ishift,cross);
 	IFT smask = cross & (cross + 1); // shift mask
-	printf(">smask:%08X\n",smask);
 	IFT dmask = cross ^ smask; // direct mask
-	printf(">dmask:%08X\n",dmask);
 	IFT cmask; // combined mask
 	int rshift = 0; // relative shift
 	while (cmask = (smask >> rshift) | dmask,(cmask & (cmask + 1)) != 0)
 		++rshift;
-	printf(">cmask:%08X,rshift:%d\n",cmask,rshift);
 	// preparations done
 	if (ifiltermask > mask) {
 		// already existing stuff has more precise mask than we
@@ -330,10 +321,14 @@ static void filters_add(const char *filter)
 	} fc,mc;
 #endif
 
+	// skip regex start symbol. we do not support regex tho
+	if (*filter == '^')
+		++filter;
+
 	memset(&bf,0,sizeof(bf));
 
 	if (!base32_valid(filter,&ret)) {
-		fprintf(stderr, "filter \"%s\" is invalid\n", filter);
+		fprintf(stderr,"filter \"%s\" is invalid\n",filter);
 		return;
 	}
 	ret = BASE32_FROM_LEN(ret);
@@ -342,10 +337,10 @@ static void filters_add(const char *filter)
 #ifdef INTFILTER
 	if (ret > sizeof(IFT))
 #else
-	if (ret > PUBLIC_LEN)
+	if (ret > sizeof(bf.f))
 #endif
 	{
-		fprintf(stderr, "filter \"%s\" is too long\n", filter);
+		fprintf(stderr,"filter \"%s\" is too long\n",filter);
 		return;
 	}
 	ret2 = base32_from(bf.f,&bf.mask,filter);
@@ -403,7 +398,18 @@ static void filters_add(const char *filter)
 		}
 	}
 #ifdef BINSEARCH
-	// TODO
+	VEC_FOR(bfilters,i) {
+		/*
+		 * mask is irrelevant, as they're not
+		 * conflicting and have proper order
+		 * (unlike when using little endian words)
+		 */
+		if (memcmp(VEC_BUF(bfilters,i).f,bf.f,sizeof(bf.f)) > 0) {
+			VEC_INSERT(bfilters,i,bf);
+			return;
+		}
+	}
+	VEC_ADD(bfilters,bf);
 #else
 	VEC_FOR(bfilters,i) {
 		// filter with least bits first
@@ -440,21 +446,93 @@ static size_t filters_count()
 
 #ifdef INTFILTER
 
-#define FILTERFOR(it) for (it = 0;it < VEC_LENGTH(ifilters);++it)
 #ifndef BINSEARCH
-#define MATCHFILTER(it,pk) ((*(IFT *)(pk) & VEC_BUF(ifilters,it).m) == VEC_BUF(ifilters,it).f)
-#else
-#define MATCHFILTER(it,pk) ((*(IFT *)(pk) & ifiltermask) == VEC_BUF(ifilters,it).f)
-#endif
 
-#else
+#define MATCHFILTER(it,pk) \
+	((*(IFT *)(pk) & VEC_BUF(ifilters,it).m) == VEC_BUF(ifilters,it).f)
 
-#define FILTERFOR(it) for (it = 0;it < VEC_LENGTH(bfilters);++it)
+#define DOFILTER(it,pk,code) { \
+	for (it = 0;it < VEC_LENGTH(ifilters);++it) { \
+		if (unlikely(MATCHFILTER(it,pk))) { \
+			code; \
+			break; \
+		} \
+	} \
+}
+
+#else // BINSEARCH
+
+#define DOFILTER(it,pk,code) { \
+	for (size_t down = 0,up = VEC_LENGTH(ifilters);down < up;) { \
+		it = (up + down) / 2; \
+		if ((*(IFT *)(pk) & ifiltermask) < VEC_BUF(ifilters,it).f) \
+			up = it; \
+		else if ((*(IFT *)(pk) & ifiltermask) > VEC_BUF(ifilters,it).f) \
+			down = it + 1; \
+		else { \
+			code; \
+			break; \
+		} \
+	} \
+}
+
+#endif // BINSEARCH
+
+#else // INTFILTER
+
+#ifndef BINSEARCH
+
 #define MATCHFILTER(it,pk) ( \
 	memcmp(pk,VEC_BUF(bfilters,it).f,VEC_BUF(bfilters,it).len) == 0 && \
 	(pk[VEC_BUF(bfilters,it).len] & VEC_BUF(bfilters,it).mask) == VEC_BUF(bfilters,it).f[VEC_BUF(bfilters,it).len])
 
-#endif
+#define DOFILTER(it,pk,code) { \
+	for (it = 0;it < VEC_LENGTH(bfilters);++it) { \
+		if (unlikely(MATCHFILTER(it,pk))) { \
+			code; \
+			break; \
+		} \
+	} \
+}
+
+#else // BINSEARCH
+
+#define DOFILTER(it,pk,code) { \
+	for (size_t down = 0,up = VEC_LENGTH(bfilters);down < up;) { \
+		it = (up + down) / 2; \
+		{ \
+			register int filterdiff = memcmp(pk,VEC_BUF(bfilters,it).f,VEC_BUF(bfilters,it).len); \
+			if (filterdiff < 0) { \
+				up = it; \
+				continue; \
+			} \
+			if (filterdiff > 0) { \
+				down = it + 1; \
+				continue; \
+			} \
+		} \
+		if ((pk[VEC_BUF(bfilters,it).len] & VEC_BUF(bfilters,it).mask) < \
+			VEC_BUF(bfilters,it).f[VEC_BUF(bfilters,it).len]) \
+		{ \
+			up = it; \
+			continue; \
+		} \
+		if ((pk[VEC_BUF(bfilters,it).len] & VEC_BUF(bfilters,it).mask) > \
+			VEC_BUF(bfilters,it).f[VEC_BUF(bfilters,it).len]) \
+		{ \
+			down = it + 1; \
+			continue; \
+		} \
+		{ \
+			code; \
+			break; \
+		} \
+	} \
+}
+
+#endif // BINSEARCH
+
+#endif // INTFILTER
 
 static void loadfilterfile(const char *fname)
 {
@@ -644,6 +722,8 @@ static void *dowork(void *task)
 	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
 
 	sname = malloc(workdirlen + ONIONLEN + 63 + 1);
+	if (!sname)
+		abort();
 	if (workdir)
 		memcpy(sname,workdir,workdirlen);
 
@@ -664,22 +744,20 @@ again:
 	++st->numcalc.v;
 #endif
 
-	FILTERFOR(i) {
-		if (unlikely(MATCHFILTER(i,pk))) {
+	DOFILTER(i,pk,{
 #ifdef STATISTICS
-			++st->numsuccess.v;
+		++st->numsuccess.v;
 #endif
-			// calc checksum
-			memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
-			FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
-			// version byte
-			pk[PUBLIC_LEN + 2] = 0x03;
-			// base32
-			strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN), ".onion");
-			onionready(sname, secret, pubonion.raw);
-			goto initseed;
-		}
-	}
+		// calc checksum
+		memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
+		FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
+		// version byte
+		pk[PUBLIC_LEN + 2] = 0x03;
+		// base32
+		strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN), ".onion");
+		onionready(sname, secret, pubonion.raw);
+		goto initseed;
+	});
 	addseed(seed);
 	goto again;
 
@@ -729,6 +807,8 @@ static void *dofastwork(void *task)
 	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
 
 	sname = malloc(workdirlen + ONIONLEN + 63 + 1);
+	if (!sname)
+		abort();
 	if (workdir)
 		memcpy(sname, workdir, workdirlen);
 
@@ -747,35 +827,33 @@ initseed:
 		
 		if (unlikely(endwork))
 			goto end;
-		
-		FILTERFOR(i) {
-			if (unlikely(MATCHFILTER(i,pk))) {
-				// found!
-				// update secret key with counter
-				addu64toscalar32(sk,counter);
-				// sanity check
-				if (((sk[0] & 248) == sk[0]) && (((sk[31] & 63) | 64) == sk[31])) {
-					/* These operations should be a no-op. */
-					sk[0] &= 248;
-					sk[31] &= 63;
-					sk[31] |= 64;
-				}
-				else goto initseed;
-#ifdef STATISTICS
-				++st->numsuccess.v;
-#endif
-				// calc checksum
-				memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
-				FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
-				// version byte
-				pk[PUBLIC_LEN + 2] = 0x03;
-				// full name
-				strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
-				onionready(sname,secret,pubonion.raw);
-				// don't reuse same seed
-				goto initseed;
+
+		DOFILTER(i,pk,{
+			// found!
+			// update secret key with counter
+			addu64toscalar32(sk,counter);
+			// sanity check
+			if (((sk[0] & 248) == sk[0]) && (((sk[31] & 63) | 64) == sk[31])) {
+				/* These operations should be a no-op. */
+				sk[0] &= 248;
+				sk[31] &= 63;
+				sk[31] |= 64;
 			}
-		}
+			else goto initseed;
+#ifdef STATISTICS
+			++st->numsuccess.v;
+#endif
+			// calc checksum
+			memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
+			FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
+			// version byte
+			pk[PUBLIC_LEN + 2] = 0x03;
+			// full name
+			strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
+			onionready(sname,secret,pubonion.raw);
+			// don't reuse same seed
+			goto initseed;
+		});
 
 		// next
 		ge_add(&sum, &ge_public,&ge_eightpoint);
@@ -832,6 +910,8 @@ void setworkdir(const char *wd)
 	if (wd[l-1] != '/')
 		needslash = 1;
 	char *s = malloc(l + needslash + 1);
+	if (!s)
+		abort();
 	memcpy(s, wd, l);
 	if (needslash)
 		s[l++] = '/';
