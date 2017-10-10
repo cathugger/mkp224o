@@ -25,8 +25,12 @@ void vec_add1(struct vec_basestruct *ctl,size_t sz)
 
 void vec_addn(struct vec_basestruct *ctl,size_t sz,size_t n)
 {
-	if (!ctl->alen)
-		ctl->alen = 8;
+	if (!ctl->alen) {
+		if (SIZE_MAX / 8 >= sz)
+			ctl->alen = 8;
+		else
+			ctl->alen = 1;
+	}
 	size_t nlen = ctl->alen;
 	ctl->len += n;
 	while (ctl->len > nlen)
@@ -39,8 +43,6 @@ void vec_addn(struct vec_basestruct *ctl,size_t sz,size_t n)
 		if (!ctl->buf)
 			abort();
 	} else if (!ctl->buf) {
-		if (SIZE_MAX / ctl->alen < sz)
-			abort();
 		ctl->buf = malloc(ctl->alen * sz);
 		if (!ctl->buf)
 			abort();
