@@ -117,15 +117,6 @@ static inline int ifilter_conflict(struct intfilter *o,struct intfilter *n)
 		return -1;
 	return 1;
 }
-#else // BINSEARCH
-static inline int ifilter_conflict(struct intfilter *o,struct intfilter *n,IFT mask)
-{
-	if ((o->f & mask) != (n->f & ifiltermask))
-		return 0;
-	if (ifiltermask <= mask)
-		return -1;
-	return 1;
-}
 #endif // BINSEARCH
 #else // INTFILTER
 // o - old filter, n - new
@@ -209,18 +200,75 @@ static inline int bfilter_conflict(struct binfilter *o,struct binfilter *n)
  *   0x0000800f ^ 0x00008000 -> 0x0000000f <- dmask
  */
 
+static const int littleendian = 1;
+
+static int ifilter_compare(const void *p1,const void *p2)
+{
+	if (((const struct intfilter *)p1)->f < ((const struct intfilter *)p2)->f) return -1;
+	if (((const struct intfilter *)p1)->f > ((const struct intfilter *)p2)->f) return 1;
+	return 0;
+}
+
+static void ifilter_sort()
+{
+	qsort(&VEC_BUF(ifilters,0),VEC_LENGTH(ifilters),sizeof(struct intfilter),ifilter_compare);
+}
+
+// if res1==res2 then no results found but res1 tells where it should be inserted
+static void ifilter_find(IFT fltr,size_t start,size_t end,size_t *res1,size_t *res2)
+{
+	size_t it;
+	for (size_t down = start, up = end;it = (up + down) / 2, down < up;) {
+		if (fltr < VEC_BUF(ifilters,it).f)
+			up = it;
+		else if (fltr > VEC_BUF(ifilters,it).f)
+			down = it + 1;
+		else
+			break;
+	}
+	*res1 = it;
+	while (*res1 > start && VEC_BUF(ifilters,*res1 - 1).f == fltr)
+		--*res1;
+	*res2 = it;
+	while (*res2 < end && VEC_BUF(ifilters,*res2).f == fltr)
+		++*res2;
+}
+
+#define EXPVAL(init,j,dmask,smask,ishift,rshift) \
+	((init) | ((((j) & (dmask)) | (((j) << (rshift)) & (smask))) << (ishift)))
 // add expanded set of values
-// space for that must already be allocated
+// allocates space on its own
 static void ifilter_addexpanded(
-	size_t n,struct intfilter *ifltr,
+	struct intfilter *ifltr,
 	IFT dmask,IFT smask,IFT cmask,
 	int ishift,int rshift)
 {
-	for (size_t j = 0;;++j) {
-		VEC_BUF(ifilters,n + j).f =
-			ifltr->f | (((j & dmask) | ((j << rshift) & smask)) << ishift);
-		if (j == cmask)
-			break;
+	if (*(const u8 *)&littleendian) {
+		for (size_t j = 0,r1,r2 = 0;;++j,++r2) {
+			IFT cval = EXPVAL(ifltr->f,j,dmask,smask,ishift,rshift);
+			ifilter_find(cval,r2,VEC_LENGTH(ifilters),&r1,&r2);
+			if (r1 != r2) {
+				continue;
+				// already exists
+			}
+			VEC_INSERT1(ifilters,r1);
+			VEC_BUF(ifilters,r1).f = cval;
+			if (j == cmask)
+				break;
+		}
+	}
+	else {
+		size_t r1,r2,r3,r4;
+		ifilter_find(ifltr->f,0,VEC_LENGTH(ifilters),&r1,&r2);
+		ifilter_find(EXPVAL(ifltr->f,cmask,dmask,smask,ishift,rshift),r2,VEC_LENGTH(ifilters),&r3,&r4);
+		if (r4 - r1 >= cmask + 1)
+			return; // already have all of needed stuff
+		VEC_INSERTN(ifilters,r4,cmask + 1 - (r4 - r1));
+		for (size_t j = 0;;++j) {
+			VEC_BUF(ifilters,r1 + j).f = EXPVAL(ifltr->f,j,dmask,smask,ishift,rshift);
+			if (j == cmask)
+				break;
+		}
 	}
 }
 
@@ -233,9 +281,7 @@ static void ifilter_expand(IFT dmask,IFT smask,IFT cmask,int ishift,int rshift)
 	size_t esz = cmask + 1; // size of expanded elements
 	for (size_t i = len - 1;;--i) {
 		for (IFT j = 0;;++j) {
-			VEC_BUF(ifilters,i * esz + j).f =
-				VEC_BUF(ifilters,i).f |
-				(((j & dmask) | ((j << rshift) & smask)) << ishift);
+			VEC_BUF(ifilters,i * esz + j).f = EXPVAL(VEC_BUF(ifilters,i).f,j,dmask,smask,ishift,rshift);
 			if (j == cmask)
 				break;
 		}
@@ -254,13 +300,13 @@ static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
 	}
 	if (ifiltermask == mask) {
 		// lucky, only need to insert at the right place
-		VEC_FOR(ifilters,i) {
-			if (VEC_BUF(ifilters,i).f > ifltr->f) {
-				VEC_INSERT(ifilters,i,*ifltr);
-				return;
-			}
+		size_t r1,r2;
+		ifilter_find(ifltr->f,0,VEC_LENGTH(ifilters),&r1,&r2);
+		if (r1 != r2) {
+			// duplicate
+			return;
 		}
-		VEC_ADD(ifilters,*ifltr);
+		VEC_INSERT(ifilters,r1,*ifltr);
 		return;
 	}
 	IFT cross = ifiltermask ^ mask;
@@ -279,34 +325,46 @@ static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
 	if (ifiltermask > mask) {
 		// already existing stuff has more precise mask than we
 		// so we need to expand our stuff
-		// first find where we should insert
-		VEC_FOR(ifilters,i) {
-			if (VEC_BUF(ifilters,i).f > ifltr->f) {
-				// there
-				VEC_INSERTN(ifilters,i,cmask + 1);
-				ifilter_addexpanded(i,ifltr,dmask,smask,cmask,ishift,rshift);
-				return;
-			}
-		}
-		size_t i = VEC_LENGTH(ifilters);
-		VEC_ADDN(ifilters,cmask + 1);
-		ifilter_addexpanded(i,ifltr,dmask,smask,cmask,ishift,rshift);
+		ifilter_addexpanded(ifltr,dmask,smask,cmask,ishift,rshift);
 	}
 	else {
+		size_t r1,r2;
+		// check if not already exists
+		ifilter_find(ifltr->f & ifiltermask,0,VEC_LENGTH(ifilters),&r1,&r2);
+		if (r1 != r2) {
+			// this filter alreaedy exists in wider form
+			return;
+		}
 		// adjust existing mask
 		ifiltermask = mask;
 		// already existing stuff needs to be expanded
 		ifilter_expand(dmask,smask,cmask,ishift,rshift);
-		// now just insert our stuff in the right place
-		VEC_FOR(ifilters,i) {
-			if (VEC_BUF(ifilters,i).f > ifltr->f) {
-				VEC_INSERT(ifilters,i,*ifltr);
-				return;
-			}
+		if (*(const u8 *)&littleendian) {
+			VEC_ADD(ifilters,*ifltr);
+			ifilter_sort();
 		}
-		VEC_ADD(ifilters,*ifltr);
+		else {
+			// we already know place to insert
+			// well except this time it gon b expanded a bit
+			VEC_INSERT(ifilters,r1 * (cmask + 1),*ifltr);
+		}
 	}
 }
+
+#if 0
+static int ifilter_check()
+{
+	for (size_t i = 1;i < VEC_LENGTH(ifilters);++i) {
+		if (VEC_BUF(ifilters,i - 1).f == VEC_BUF(ifilters,i).f) {
+			return 1;
+		}
+		if (VEC_BUF(ifilters,i - 1).f > VEC_BUF(ifilters,i).f) {
+			return 2;
+		}
+	}
+	return 0;
+}
+#endif // 0
 #endif // BINSEARCH
 #endif // INTFILTER
 
@@ -359,13 +417,22 @@ static void filters_add(const char *filter)
 		.m = mc.i,
 #endif
 	};
+#ifdef BINSEARCH
+	ifilter_addflatten(&ifltr,mc.i);
+#if 0
+	int ifiltererr = ifilter_check();
+	if (ifiltererr != 0) {
+		if (ifiltererr == 1)
+			fprintf(stderr,"bug: duplicate filter found!\n");
+		else if (ifiltererr == 2)
+			fprintf(stderr,"bug: ifilters aint sorted!\n");
+		abort();
+	}
+#endif // 0
+#else // BINSEARCH
 	VEC_FOR(ifilters,i) {
 		int c;
-#ifndef BINSEARCH
 		c = ifilter_conflict(&VEC_BUF(ifilters,i),&ifltr);
-#else
-		c = ifilter_conflict(&VEC_BUF(ifilters,i),&ifltr,mc.i);
-#endif
 		if (c < 0)
 			return; // old filter eats us
 		else if (c > 0) {
@@ -374,9 +441,6 @@ static void filters_add(const char *filter)
 			// we eat old filter
 		}
 	}
-#ifdef BINSEARCH
-	ifilter_addflatten(&ifltr,mc.i);
-#else
 	VEC_FOR(ifilters,i) {
 		// filter with least bits first
 		if (VEC_BUF(ifilters,i).m > ifltr.m) {
@@ -463,11 +527,12 @@ static size_t filters_count()
 #else // BINSEARCH
 
 #define DOFILTER(it,pk,code) { \
+	register IFT maskedpk = *(IFT *)(pk) & ifiltermask; \
 	for (size_t down = 0,up = VEC_LENGTH(ifilters);down < up;) { \
 		it = (up + down) / 2; \
-		if ((*(IFT *)(pk) & ifiltermask) < VEC_BUF(ifilters,it).f) \
+		if (maskedpk < VEC_BUF(ifilters,it).f) \
 			up = it; \
-		else if ((*(IFT *)(pk) & ifiltermask) > VEC_BUF(ifilters,it).f) \
+		else if (maskedpk > VEC_BUF(ifilters,it).f) \
 			down = it + 1; \
 		else { \
 			code; \
