@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <assert.h>
 #include <time.h>
 #include <pthread.h>
 #include <signal.h>
@@ -200,8 +199,6 @@ static inline int bfilter_conflict(struct binfilter *o,struct binfilter *n)
  *   0x0000800f ^ 0x00008000 -> 0x0000000f <- dmask
  */
 
-static const int littleendian = 1;
-
 static int ifilter_compare(const void *p1,const void *p2)
 {
 	if (((const struct intfilter *)p1)->f < ((const struct intfilter *)p2)->f) return -1;
@@ -214,26 +211,6 @@ static void ifilter_sort()
 	qsort(&VEC_BUF(ifilters,0),VEC_LENGTH(ifilters),sizeof(struct intfilter),ifilter_compare);
 }
 
-// if res1==res2 then no results found but res1 tells where it should be inserted
-static void ifilter_find(IFT fltr,size_t start,size_t end,size_t *res1,size_t *res2)
-{
-	size_t it;
-	for (size_t down = start, up = end;it = (up + down) / 2, down < up;) {
-		if (fltr < VEC_BUF(ifilters,it).f)
-			up = it;
-		else if (fltr > VEC_BUF(ifilters,it).f)
-			down = it + 1;
-		else
-			break;
-	}
-	*res1 = it;
-	while (*res1 > start && VEC_BUF(ifilters,*res1 - 1).f == fltr)
-		--*res1;
-	*res2 = it;
-	while (*res2 < end && VEC_BUF(ifilters,*res2).f == fltr)
-		++*res2;
-}
-
 #define EXPVAL(init,j,dmask,smask,ishift,rshift) \
 	((init) | ((((j) & (dmask)) | (((j) << (rshift)) & (smask))) << (ishift)))
 // add expanded set of values
@@ -243,32 +220,12 @@ static void ifilter_addexpanded(
 	IFT dmask,IFT smask,IFT cmask,
 	int ishift,int rshift)
 {
-	if (*(const u8 *)&littleendian) {
-		for (size_t j = 0,r1,r2 = 0;;++j,++r2) {
-			IFT cval = EXPVAL(ifltr->f,j,dmask,smask,ishift,rshift);
-			ifilter_find(cval,r2,VEC_LENGTH(ifilters),&r1,&r2);
-			if (r1 != r2) {
-				continue;
-				// already exists
-			}
-			VEC_INSERT1(ifilters,r1);
-			VEC_BUF(ifilters,r1).f = cval;
-			if (j == cmask)
-				break;
-		}
-	}
-	else {
-		size_t r1,r2,r3,r4;
-		ifilter_find(ifltr->f,0,VEC_LENGTH(ifilters),&r1,&r2);
-		ifilter_find(EXPVAL(ifltr->f,cmask,dmask,smask,ishift,rshift),r2,VEC_LENGTH(ifilters),&r3,&r4);
-		if (r4 - r1 >= cmask + 1)
-			return; // already have all of needed stuff
-		VEC_INSERTN(ifilters,r4,cmask + 1 - (r4 - r1));
-		for (size_t j = 0;;++j) {
-			VEC_BUF(ifilters,r1 + j).f = EXPVAL(ifltr->f,j,dmask,smask,ishift,rshift);
-			if (j == cmask)
-				break;
-		}
+	size_t i = VEC_LENGTH(ifilters);
+	VEC_ADDN(ifilters,cmask + 1);
+	for (size_t j = 0;;++j) {
+		VEC_BUF(ifilters,i + j).f = EXPVAL(ifltr->f,j,dmask,smask,ishift,rshift);
+		if (j == cmask)
+			break;
 	}
 }
 
@@ -299,14 +256,8 @@ static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
 		return;
 	}
 	if (ifiltermask == mask) {
-		// lucky, only need to insert at the right place
-		size_t r1,r2;
-		ifilter_find(ifltr->f,0,VEC_LENGTH(ifilters),&r1,&r2);
-		if (r1 != r2) {
-			// duplicate
-			return;
-		}
-		VEC_INSERT(ifilters,r1,*ifltr);
+		// lucky
+		VEC_ADD(ifilters,*ifltr);
 		return;
 	}
 	IFT cross = ifiltermask ^ mask;
@@ -328,50 +279,19 @@ static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
 		ifilter_addexpanded(ifltr,dmask,smask,cmask,ishift,rshift);
 	}
 	else {
-		size_t r1,r2;
-		// check if not already exists
-		ifilter_find(ifltr->f & ifiltermask,0,VEC_LENGTH(ifilters),&r1,&r2);
-		if (r1 != r2) {
-			// this filter alreaedy exists in wider form
-			return;
-		}
-		// adjust existing mask
 		ifiltermask = mask;
-		// already existing stuff needs to be expanded
 		ifilter_expand(dmask,smask,cmask,ishift,rshift);
-		if (*(const u8 *)&littleendian) {
-			VEC_ADD(ifilters,*ifltr);
-			ifilter_sort();
-		}
-		else {
-			// we already know place to insert
-			// well except this time it gon b expanded a bit
-			VEC_INSERT(ifilters,r1 * (cmask + 1),*ifltr);
-		}
+		VEC_ADD(ifilters,*ifltr);
 	}
 }
 
-#if 0
-static int ifilter_check()
-{
-	for (size_t i = 1;i < VEC_LENGTH(ifilters);++i) {
-		if (VEC_BUF(ifilters,i - 1).f == VEC_BUF(ifilters,i).f) {
-			return 1;
-		}
-		if (VEC_BUF(ifilters,i - 1).f > VEC_BUF(ifilters,i).f) {
-			return 2;
-		}
-	}
-	return 0;
-}
-#endif // 0
 #endif // BINSEARCH
 #endif // INTFILTER
 
 static void filters_add(const char *filter)
 {
 	struct binfilter bf;
-	size_t ret, ret2;
+	size_t ret;
 #ifdef INTFILTER
 	union intconv {
 		IFT i;
@@ -401,8 +321,7 @@ static void filters_add(const char *filter)
 		fprintf(stderr,"filter \"%s\" is too long\n",filter);
 		return;
 	}
-	ret2 = base32_from(bf.f,&bf.mask,filter);
-	assert(ret == ret2);
+	base32_from(bf.f,&bf.mask,filter);
 	bf.len = ret - 1;
 #ifdef INTFILTER
 	mc.i = 0;
@@ -419,16 +338,6 @@ static void filters_add(const char *filter)
 	};
 #ifdef BINSEARCH
 	ifilter_addflatten(&ifltr,mc.i);
-#if 0
-	int ifiltererr = ifilter_check();
-	if (ifiltererr != 0) {
-		if (ifiltererr == 1)
-			fprintf(stderr,"bug: duplicate filter found!\n");
-		else if (ifiltererr == 2)
-			fprintf(stderr,"bug: ifilters aint sorted!\n");
-		abort();
-	}
-#endif // 0
 #else // BINSEARCH
 	VEC_FOR(ifilters,i) {
 		int c;
@@ -486,6 +395,18 @@ static void filters_add(const char *filter)
 		}
 	}
 	VEC_ADD(bfilters,bf);
+#endif // BINSEARCH
+#endif // INTFILTER
+}
+
+static void filters_prepare()
+{
+#ifdef INTFILTER
+#ifdef BINSEARCH
+	if (!quietflag)
+		fprintf(stderr,"sorting filters...\n");
+	ifilter_sort();
+	// TODO remove dups
 #endif // BINSEARCH
 #endif // INTFILTER
 }
@@ -615,8 +536,10 @@ static void loadfilterfile(const char *fname)
 	}
 }
 
-static void printfilters()
+static void filters_print()
 {
+	if (quietflag)
+		return;
 	size_t i,l;
 #ifdef INTFILTER
 	l = VEC_LENGTH(ifilters);
@@ -634,6 +557,11 @@ static void printfilters()
 #ifdef INTFILTER
 		size_t len = 0;
 		u8 *imraw;
+
+		if (i >= 20) {
+			fprintf(stderr,"[another %llu filters not shown]\n",(unsigned long long)(filters_count() - 20));
+			break;
+		}
 #ifndef BINSEARCH
 		imraw = (u8 *)&VEC_BUF(ifilters,i).m;
 #else
@@ -1138,8 +1066,9 @@ int main(int argc,char **argv)
 		else filters_add(arg);
 	}
 
-	if (!quietflag)
-		printfilters();
+	filters_prepare();
+
+	filters_print();
 
 #ifdef STATISTICS
 	if (!filters_count() && !reportdelay)
