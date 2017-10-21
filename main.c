@@ -103,57 +103,23 @@ static void filters_init()
 }
 
 #ifdef INTFILTER
-// o - old filter, n - new
-// return -1 - old stays, 0 - no conflict, 1 - new overrides old
-// assumes masked bits are cleared already
-#ifndef BINSEARCH
-static inline int ifilter_conflict(struct intfilter *o,struct intfilter *n)
-{
-	if ((o->f & n->m) != (n->f & o->m))
-		return 0;
-	// determine which filter contain less bits
-	if (o->m <= n->m)
-		return -1;
-	return 1;
-}
-#endif // BINSEARCH
-#else // INTFILTER
-// o - old filter, n - new
-// return: -1 - old stays, 0 - no conflict, 1 - new overrides old
-// assumes irrelevant bits are cleared already
-static inline int bfilter_conflict(struct binfilter *o,struct binfilter *n)
-{
-	for (size_t i = 0;i < sizeof(o->f);++i) {
-		u8 oo,nn;
-		if (i < n->len)
-			oo = o->f[i];
-		else if (i == n->len)
-			oo = o->f[i] & n->mask;
-		else
-			oo = 0;
-		if (i < o->len)
-			nn = n->f[i];
-		else if (i == o->len)
-			nn = n->f[i] & o->mask;
-		else
-			nn = 0;
-		if (oo != nn)
-			return 0;
-	}
-	// functional filters subset was the same
-	// determine which filter contain less bits
-	if (o->len < n->len)
-		return -1;
-	if (o->len > n->len)
-		return 1;
-	if (o->mask <= n->mask)
-		return -1;
-	return 1;
-}
-#endif
 
-#ifdef INTFILTER
-#ifdef BINSEARCH
+static void filter_sort(int (*compf)(const void *,const void *))
+{
+	qsort(&VEC_BUF(ifilters,0),VEC_LENGTH(ifilters),sizeof(struct intfilter),compf);
+}
+
+# ifdef BINSEARCH
+
+static int filter_compare(const void *p1,const void *p2)
+{
+	if (((const struct intfilter *)p1)->f < ((const struct intfilter *)p2)->f)
+		return -1;
+	if (((const struct intfilter *)p1)->f > ((const struct intfilter *)p2)->f)
+		return 1;
+	return 0;
+}
+
 /*
  * raw representation -- FF.FF.F0.00
  * big endian         -- 0xFFFFF000
@@ -198,18 +164,6 @@ static inline int bfilter_conflict(struct binfilter *o,struct binfilter *n)
  *   0x0000800f & 0x00008010 -> 0x00008000 <- smask
  *   0x0000800f ^ 0x00008000 -> 0x0000000f <- dmask
  */
-
-static int ifilter_compare(const void *p1,const void *p2)
-{
-	if (((const struct intfilter *)p1)->f < ((const struct intfilter *)p2)->f) return -1;
-	if (((const struct intfilter *)p1)->f > ((const struct intfilter *)p2)->f) return 1;
-	return 0;
-}
-
-static void ifilter_sort()
-{
-	qsort(&VEC_BUF(ifilters,0),VEC_LENGTH(ifilters),sizeof(struct intfilter),ifilter_compare);
-}
 
 #define EXPVAL(init,j,dmask,smask,ishift,rshift) \
 	((init) | ((((j) & (dmask)) | (((j) << (rshift)) & (smask))) << (ishift)))
@@ -285,7 +239,48 @@ static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
 	}
 }
 
-#endif // BINSEARCH
+# else // BINSEARCH
+
+/*
+ * struct intfilter layout: filter,mask
+ * stuff is compared in big-endian way, so memcmp
+ * filter needs to be compared first
+ * if its equal, mask needs to be compared
+ * memcmp is aplicable there too
+ * due to struct intfilter layout, it all can be stuffed into one memcmp call
+ */
+static int filter_compare(const void *p1,const void *p2)
+{
+	return memcmp(p1,p2,sizeof(struct intfilter));
+}
+
+# endif // BINSEARCH
+#else // INTFILTER
+
+static void filter_sort(int (*compf)(const void *,const void *))
+{
+	qsort(&VEC_BUF(bfilters,0),VEC_LENGTH(bfilters),sizeof(struct binfilter),compf);
+}
+
+static int filter_compare(const void *p1,const void *p2)
+{
+	const struct binfilter *b1 = (const struct binfilter *)p1;
+	const struct binfilter *b2 = (const struct binfilter *)p2;
+	size_t l = b1->len <= b2->len ? b1->len : b2->len;
+	int cmp = memcmp(b1->f,b2->f,l);
+	if (cmp)
+		return cmp;
+	if (b1->len < b2->len)
+		return -1;
+	if (b1->len > b2->len)
+		return 1;
+	if (b1->mask < b2->mask)
+		return -1;
+	if (b1->mask > b2->mask)
+		return 1;
+	return 0;
+}
+
 #endif // INTFILTER
 
 static void filters_add(const char *filter)
@@ -332,83 +327,28 @@ static void filters_add(const char *filter)
 	fc.i &= mc.i;
 	struct intfilter ifltr = {
 		.f = fc.i,
-#ifndef BINSEARCH
+# ifndef BINSEARCH
 		.m = mc.i,
-#endif
+# endif
 	};
-#ifdef BINSEARCH
+# ifdef BINSEARCH
 	ifilter_addflatten(&ifltr,mc.i);
-#else // BINSEARCH
-	VEC_FOR(ifilters,i) {
-		int c;
-		c = ifilter_conflict(&VEC_BUF(ifilters,i),&ifltr);
-		if (c < 0)
-			return; // old filter eats us
-		else if (c > 0) {
-			VEC_REMOVE(ifilters,i);
-			--i;
-			// we eat old filter
-		}
-	}
-	VEC_FOR(ifilters,i) {
-		// filter with least bits first
-		if (VEC_BUF(ifilters,i).m > ifltr.m) {
-			VEC_INSERT(ifilters,i,ifltr);
-			return;
-		}
-	}
+# else // BINSEARCH
 	VEC_ADD(ifilters,ifltr);
-#endif // BINSEARCH
+# endif // BINSEARCH
 #else // INTFILTER
-	VEC_FOR(bfilters,i) {
-		int c = bfilter_conflict(&VEC_BUF(bfilters,i),&bf);
-		if (c < 0)
-			return; // old filter eats us
-		else if (c > 0) {
-			VEC_REMOVE(bfilters,i);
-			--i;
-			// we eat old filter
-		}
-	}
-#ifdef BINSEARCH
-	VEC_FOR(bfilters,i) {
-		/*
-		 * mask is irrelevant, as they're not
-		 * conflicting and have proper order
-		 * (unlike when using little endian words)
-		 */
-		if (memcmp(VEC_BUF(bfilters,i).f,bf.f,sizeof(bf.f)) > 0) {
-			VEC_INSERT(bfilters,i,bf);
-			return;
-		}
-	}
 	VEC_ADD(bfilters,bf);
-#else
-	VEC_FOR(bfilters,i) {
-		// filter with least bits first
-		if (VEC_BUF(bfilters,i).len > bf.len ||
-			(VEC_BUF(bfilters,i).len == bf.len &&
-				(VEC_BUF(bfilters,i).mask > bf.mask)))
-		{
-			VEC_INSERT(bfilters,i,bf);
-			return;
-		}
-	}
-	VEC_ADD(bfilters,bf);
-#endif // BINSEARCH
 #endif // INTFILTER
 }
 
 static void filters_prepare()
 {
-#ifdef INTFILTER
-#ifdef BINSEARCH
 	if (!quietflag)
-		fprintf(stderr,"sorting filters...\n");
-	ifilter_sort();
-	// TODO remove dups
-#endif // BINSEARCH
-#endif // INTFILTER
+		fprintf(stderr,"sorting filters...");
+	filter_sort(filter_compare);
+	if (!quietflag)
+		fprintf(stderr," done.\n");
+	// TODO remove duplicates
 }
 
 static void filters_clean()
@@ -554,14 +494,16 @@ static void filters_print()
 	for (i = 0;i < l;++i) {
 		char buf0[256],buf1[256];
 		u8 bufx[128];
-#ifdef INTFILTER
-		size_t len = 0;
-		u8 *imraw;
 
 		if (i >= 20) {
 			fprintf(stderr,"[another %llu filters not shown]\n",(unsigned long long)(filters_count() - 20));
 			break;
 		}
+
+#ifdef INTFILTER
+		size_t len = 0;
+		u8 *imraw;
+
 #ifndef BINSEARCH
 		imraw = (u8 *)&VEC_BUF(ifilters,i).m;
 #else
