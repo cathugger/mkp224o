@@ -1,3 +1,4 @@
+#include "cpucount.h"
 
 #ifndef BSD
 #  ifndef __linux__
@@ -107,8 +108,6 @@ static int parsecpuinfo()
 	return ncpu;
 }
 #endif
-
-#include "cpucount.h"
 
 int cpucount()
 {

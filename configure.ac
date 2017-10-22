@@ -25,17 +25,6 @@ then
 	CFLAGS="$oldcflags"
 fi
 
-cstd=""
-oldcflags="$CFLAGS"
-CFLAGS="-std=c99"
-AC_MSG_CHECKING([whether CC supports -std=c99])
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
-    [AC_MSG_RESULT([yes])]
-    [cstd="-std=c99"],
-    [AC_MSG_RESULT([no])]
-)
-CFLAGS="$oldcflags"
-
 nopie=""
 
 oldcflags="$CFLAGS"
@@ -127,6 +116,46 @@ then
 	MYDEFS="$MYDEFS -DED25519_SSE2"
 	CFLAGS="$CFLAGS -msse2"
 fi
+
+cstd=""
+c99=""
+oldcflags="$CFLAGS"
+CFLAGS="-std=c99"
+AC_MSG_CHECKING([whether CC supports -std=c99])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+    [AC_MSG_RESULT([yes])]
+    [c99="yes"]
+    [cstd="-std=c99"],
+    [AC_MSG_RESULT([no])]
+)
+CFLAGS="$cstd -Wall"
+AC_MSG_CHECKING([whether CC supports -Wall])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+    [AC_MSG_RESULT([yes])]
+    [cstd="$cstd -Wall"],
+    [AC_MSG_RESULT([no])]
+)
+if test "x$c99" = "xyes" -a "x$ed25519impl" != "xdonna"
+then
+	CFLAGS="$cstd -Wpedantic"
+	AC_MSG_CHECKING([whether CC supports -Wpedantic])
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+		[AC_MSG_RESULT([yes])]
+		[cstd="$cstd -Wpedantic"],
+		[AC_MSG_RESULT([no])]
+	)
+fi
+if test "x$ed25519impl" = "xdonna"
+then
+	CFLAGS="$cstd -Wno-unused-function"
+	AC_MSG_CHECKING([whether CC supports -Wno-unused-function])
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+		[AC_MSG_RESULT([yes])]
+		[cstd="$cstd -Wno-unused-function"],
+		[AC_MSG_RESULT([no])]
+	)
+fi
+CFLAGS="$oldcflags"
 
 
 AC_ARG_ENABLE([intfilter],

@@ -345,7 +345,7 @@ static void filters_prepare()
 {
 	if (!quietflag)
 		fprintf(stderr,"sorting filters...");
-	filter_sort(filter_compare);
+	filter_sort(&filter_compare);
 	if (!quietflag)
 		fprintf(stderr," done.\n");
 	// TODO remove duplicates
@@ -369,9 +369,15 @@ static size_t filters_count()
 #endif
 }
 
+#ifdef STATISTICS
+#define ADDNUMSUCCESS ++st->numsuccess.v
+#else
+#define ADDNUMSUCCESS do {} while (0)
+#endif
+
 #ifdef INTFILTER
 
-#ifndef BINSEARCH
+# ifndef BINSEARCH
 
 #define MATCHFILTER(it,pk) \
 	((*(IFT *)(pk) & VEC_BUF(ifilters,it).m) == VEC_BUF(ifilters,it).f)
@@ -385,7 +391,7 @@ static size_t filters_count()
 	} \
 }
 
-#else // BINSEARCH
+# else // BINSEARCH
 
 #define DOFILTER(it,pk,code) { \
 	register IFT maskedpk = *(IFT *)(pk) & ifiltermask; \
@@ -402,11 +408,11 @@ static size_t filters_count()
 	} \
 }
 
-#endif // BINSEARCH
+# endif // BINSEARCH
 
 #else // INTFILTER
 
-#ifndef BINSEARCH
+# ifndef BINSEARCH
 
 #define MATCHFILTER(it,pk) ( \
 	memcmp(pk,VEC_BUF(bfilters,it).f,VEC_BUF(bfilters,it).len) == 0 && \
@@ -421,7 +427,7 @@ static size_t filters_count()
 	} \
 }
 
-#else // BINSEARCH
+# else // BINSEARCH
 
 #define DOFILTER(it,pk,code) { \
 	for (size_t down = 0,up = VEC_LENGTH(bfilters);down < up;) { \
@@ -456,7 +462,7 @@ static size_t filters_count()
 	} \
 }
 
-#endif // BINSEARCH
+# endif // BINSEARCH
 
 #endif // INTFILTER
 
@@ -680,9 +686,8 @@ again:
 #endif
 
 	DOFILTER(i,pk,{
-#ifdef STATISTICS
-		++st->numsuccess.v;
-#endif
+		ADDNUMSUCCESS;
+
 		// calc checksum
 		memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
 		FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
@@ -774,10 +779,11 @@ initseed:
 				sk[31] &= 63;
 				sk[31] |= 64;
 			}
-			else goto initseed;
-#ifdef STATISTICS
-			++st->numsuccess.v;
-#endif
+			else
+				goto initseed;
+
+			ADDNUMSUCCESS;
+
 			// calc checksum
 			memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
 			FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
