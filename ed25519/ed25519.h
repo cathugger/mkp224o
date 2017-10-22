@@ -112,6 +112,7 @@ inline static void ge_initeightpoint() {}
 #define ED25519_CUSTOMRANDOM
 #define ED25519_CUSTOMHASH
 #include <sodium/crypto_hash_sha512.h>
+#include <sodium/randombytes.h>
 #include "ed25519-donna/ed25519-donna.h"
 
 static int ed25519_seckey_expand(unsigned char *sk,const unsigned char *seed)

@@ -817,7 +817,7 @@ end:
 	return 0;
 }
 
-static void addu64toscalar32(u8 *dst,u64 v)
+static void addsztoscalar32(u8 *dst,size_t v)
 {
 	int i;
 	u32 c = 0;
@@ -897,7 +897,7 @@ initseed:
 			}
 			// found!
 			// update secret key with counter
-			addu64toscalar32(sk,counter);
+			addsztoscalar32(sk,counter);
 			// sanity check
 			if (((sk[0] & 248) == sk[0]) && (((sk[31] & 63) | 64) == sk[31])) {
 				/* These operations should be a no-op. */
