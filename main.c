@@ -720,7 +720,7 @@ static inline void shiftpk(u8 *dst,const u8 *src,size_t sbits)
 {
 	size_t i,sbytes = sbits / 8;
 	sbits %= 8;
-	for (i = 0;i < PUBLIC_LEN-sbytes;++i) {
+	for (i = 0;i + sbytes < PUBLIC_LEN;++i) {
 		dst[i] = (src[i+sbytes] << sbits) |
 			(src[i+sbytes+1] >> (8 - sbits));
 	}
