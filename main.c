@@ -50,6 +50,7 @@ static size_t printlen;      // precalculated, related to printstartpos
 static pthread_mutex_t fout_mutex;
 static FILE *fout;
 static size_t numneedgenerate = 0;
+static int numwords = 1;
 static pthread_mutex_t keysgenerated_mutex;
 static volatile size_t keysgenerated = 0;
 static volatile int endwork = 0;
@@ -74,6 +75,9 @@ static void termhandler(int sig)
 #endif
 #endif
 
+#ifdef OMITMASK
+#define EXPANDMASK
+#endif
 
 #ifndef BINFILTERLEN
 #define BINFILTERLEN PUBLIC_LEN
@@ -115,6 +119,30 @@ static void filter_sort(int (*compf)(const void *,const void *))
 	qsort(&VEC_BUF(ifilters,0),VEC_LENGTH(ifilters),sizeof(struct intfilter),compf);
 }
 
+static inline size_t filter_len(size_t i)
+{
+# ifndef OMITMASK
+	const u8 *m = (const u8 *)&VEC_BUF(ifilters,i).m;
+# else // OMITMASK
+	const u8 *m = (const u8 *)&ifiltermask;
+# endif // OMITMASK
+	size_t c = 0;
+	for (size_t j = 0;;) {
+		u8 v = m[j];
+		for (size_t k = 0;;) {
+			if (!v)
+				return c;
+			++c;
+			if (++k >= 8)
+				break;
+			v <<= 1;
+		}
+		if (++j >= sizeof(IFT))
+			break;
+	}
+	return c;
+}
+
 # ifdef OMITMASK
 
 static int filter_compare(const void *p1,const void *p2)
@@ -125,6 +153,8 @@ static int filter_compare(const void *p1,const void *p2)
 		return 1;
 	return 0;
 }
+
+#  ifdef EXPANDMASK
 
 /*
  * raw representation -- FF.FF.F0.00
@@ -245,6 +275,8 @@ static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
 	}
 }
 
+#  endif // EXPANDMASK
+
 # else // OMITMASK
 
 /*
@@ -262,6 +294,20 @@ static int filter_compare(const void *p1,const void *p2)
 
 # endif // OMITMASK
 #else // INTFILTER
+
+static inline size_t filter_len(size_t i)
+{
+	size_t c = VEC_BUF(bfilters,i).len * 8;
+	u8 v = VEC_BUF(bfilters,i).mask;
+	for (size_t k = 0;;) {
+		if (!v)
+			return c;
+		++c;
+		if (++k >= 8)
+			return c;
+		v <<= 1;
+	}
+}
 
 static void filter_sort(int (*compf)(const void *,const void *))
 {
@@ -378,7 +424,7 @@ static size_t filters_count()
 #ifdef STATISTICS
 #define ADDNUMSUCCESS ++st->numsuccess.v
 #else
-#define ADDNUMSUCCESS do {} while (0)
+#define ADDNUMSUCCESS do ; while (0)
 #endif
 
 #ifdef INTFILTER
@@ -388,20 +434,22 @@ static size_t filters_count()
 #define MATCHFILTER(it,pk) \
 	((*(IFT *)(pk) & VEC_BUF(ifilters,it).m) == VEC_BUF(ifilters,it).f)
 
-#define DOFILTER(it,pk,code) { \
+#define DOFILTER(it,pk,code) \
+do { \
 	for (it = 0;it < VEC_LENGTH(ifilters);++it) { \
 		if (unlikely(MATCHFILTER(it,pk))) { \
 			code; \
 			break; \
 		} \
 	} \
-}
+} while (0)
 
 # else // BINSEARCH
 
 #  ifdef OMITMASK
 
-#define DOFILTER(it,pk,code) { \
+#define DOFILTER(it,pk,code) \
+do { \
 	register IFT maskedpk = *(IFT *)(pk) & ifiltermask; \
 	for (size_t down = 0,up = VEC_LENGTH(ifilters);down < up;) { \
 		it = (up + down) / 2; \
@@ -414,11 +462,12 @@ static size_t filters_count()
 			break; \
 		} \
 	} \
-}
+} while (0)
 
 #  else // OMITMASK
 
-#define DOFILTER(it,pk,code) { \
+#define DOFILTER(it,pk,code) \
+do { \
 	for (size_t down = 0,up = VEC_LENGTH(ifilters);down < up;) { \
 		it = (up + down) / 2; \
 		IFT maskedpk = *(IFT *)(pk) & VEC_BUF(ifilters,it).m; \
@@ -432,7 +481,7 @@ static size_t filters_count()
 			break; \
 		} \
 	} \
-}
+} while (0)
 
 #  endif // OMITMASK
 
@@ -446,18 +495,20 @@ static size_t filters_count()
 	memcmp(pk,VEC_BUF(bfilters,it).f,VEC_BUF(bfilters,it).len) == 0 && \
 	(pk[VEC_BUF(bfilters,it).len] & VEC_BUF(bfilters,it).mask) == VEC_BUF(bfilters,it).f[VEC_BUF(bfilters,it).len])
 
-#define DOFILTER(it,pk,code) { \
+#define DOFILTER(it,pk,code) \
+do { \
 	for (it = 0;it < VEC_LENGTH(bfilters);++it) { \
 		if (unlikely(MATCHFILTER(it,pk))) { \
 			code; \
 			break; \
 		} \
 	} \
-}
+} while (0)
 
 # else // BINSEARCH
 
-#define DOFILTER(it,pk,code) { \
+#define DOFILTER(it,pk,code) \
+do { \
 	for (size_t down = 0,up = VEC_LENGTH(bfilters);down < up;) { \
 		it = (up + down) / 2; \
 		{ \
@@ -488,7 +539,7 @@ static size_t filters_count()
 			break; \
 		} \
 	} \
-}
+} while (0)
 
 # endif // BINSEARCH
 
@@ -663,6 +714,20 @@ static void addseed(u8 *seed)
 	}
 }
 
+// 0123 4567 xxxx --3--> 3456 7xxx
+// 0123 4567 xxxx --1--> 1234 567x
+static inline void shiftpk(u8 *dst,const u8 *src,size_t sbits)
+{
+	size_t i,sbytes = sbits / 8;
+	sbits %= 8;
+	for (i = 0;i < PUBLIC_LEN-sbytes;++i) {
+		dst[i] = (src[i+sbytes] << sbits) |
+			(src[i+sbytes+1] >> (8 - sbits));
+	}
+	for(;i < PUBLIC_LEN;++i)
+		dst[i] = 0;
+}
+
 static void *dowork(void *task)
 {
 	union pubonionunion {
@@ -678,6 +743,7 @@ static void *dowork(void *task)
 	u8 * const sk = &secret[skprefixlen];
 	u8 seed[SEED_LEN];
 	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
+	u8 wpk[PUBLIC_LEN + 1];
 	size_t i;
 	char *sname;
 #ifdef STATISTICS
@@ -685,6 +751,7 @@ static void *dowork(void *task)
 #endif
 
 	memcpy(secret,skprefix,skprefixlen);
+	memset(&pubonion,0,sizeof(pubonion));
 	memcpy(pubonion.raw,pkprefix,pkprefixlen);
 	// write version later as it will be overwritten by hash
 	memcpy(hashsrc,checksumstr,checksumstrlen);
@@ -714,6 +781,19 @@ again:
 #endif
 
 	DOFILTER(i,pk,{
+		if (numwords > 1) {
+			shiftpk(wpk,pk,filter_len(i));
+			size_t j;
+			for (int w = 1;;) {
+				DOFILTER(j,wpk,goto secondfind);
+				goto again;
+			secondfind:
+				if (++w >= numwords)
+					break;
+				shiftpk(wpk,wpk,filter_len(j));
+			}
+		}
+
 		ADDNUMSUCCESS;
 
 		// calc checksum
@@ -724,6 +804,7 @@ again:
 		// base32
 		strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN), ".onion");
 		onionready(sname, secret, pubonion.raw);
+		pubonion.i.hash[0] = 0;
 		goto initseed;
 	});
 	addseed(seed);
@@ -760,6 +841,7 @@ static void *dofastwork(void *task)
 	u8 * const sk = &secret[skprefixlen];
 	u8 seed[SEED_LEN];
 	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
+	u8 wpk[PUBLIC_LEN + 1];
 	ge_p3 ge_public;
 	size_t counter;
 	size_t i;
@@ -769,6 +851,7 @@ static void *dofastwork(void *task)
 #endif
 
 	memcpy(secret, skprefix, skprefixlen);
+	memset(&pubonion,0,sizeof(pubonion));
 	memcpy(pubonion.raw, pkprefix, pkprefixlen);
 	// write version later as it will be overwritten by hash
 	memcpy(hashsrc, checksumstr, checksumstrlen);
@@ -797,6 +880,19 @@ initseed:
 			goto end;
 
 		DOFILTER(i,pk,{
+			if (numwords > 1) {
+				//printf("numwords=%d,filter_len=%d\n",numwords,(int)filter_len(i));
+				shiftpk(wpk,pk,filter_len(i));
+				size_t j;
+				for (int w = 1;;) {
+					DOFILTER(j,wpk,goto secondfind);
+					goto again;
+				secondfind:
+					if (++w >= numwords)
+						break;
+					shiftpk(wpk,wpk,filter_len(j));
+				}
+			}
 			// found!
 			// update secret key with counter
 			addu64toscalar32(sk,counter);
@@ -820,10 +916,11 @@ initseed:
 			// full name
 			strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
 			onionready(sname,secret,pubonion.raw);
+			pubonion.i.hash[0] = 0;
 			// don't reuse same seed
 			goto initseed;
 		});
-
+	again:
 		// next
 		ge_add(&sum, &ge_public,&ge_eightpoint);
 		ge_p1p1_to_p3(&ge_public,&sum);
@@ -855,6 +952,7 @@ void printhelp(const char *progname)
 		"\t-t numthreads  - specify number of threads (default - auto)\n"
 		"\t-j numthreads  - same as -t\n"
 		"\t-n numkeys  - specify number of keys (default - 0 - unlimited)\n"
+		"\t-N numwords  - specify number of words per key (default - 1)\n"
 		"\t-z  - use faster key generation method. this is now default\n"
 		"\t-Z  - use slower key generation method\n"
 		"\t-s  - print statistics each 10 seconds\n"
@@ -994,6 +1092,14 @@ int main(int argc,char **argv)
 			else if (*arg == 'n') {
 				if (argc--)
 					numneedgenerate = (size_t)atoll(*argv++);
+				else {
+					fprintf(stderr, "additional argument required\n");
+					exit(1);
+				}
+			}
+			else if (*arg == 'N') {
+				if (argc--)
+					numwords = atoi(*argv++);
 				else {
 					fprintf(stderr, "additional argument required\n");
 					exit(1);
