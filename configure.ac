@@ -215,6 +215,16 @@ then
 	MYDEFS="$MYDEFS -DBINSEARCH"
 fi
 
+AC_ARG_ENABLE([besort],
+	[AS_HELP_STRING([--enable-besort],
+		[force intfilter binsearch case to use big endian sorting and not omit masks from filters; useful if your filters aren't of same length @<:@default=no@:>@])],
+	[], [enable_besort=no]
+)
+if test "x$enable_besort" = "xyes"
+then
+	MYDEFS="$MYDEFS -DBESORT"
+fi
+
 AC_ARG_ENABLE([statistics],
 	[AS_HELP_STRING([--enable-statistics],
 		[collect statistics @<:@default=yes@:>@])],

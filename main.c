@@ -66,6 +66,15 @@ static void termhandler(int sig)
 
 // filters stuff
 
+#ifdef INTFILTER
+#ifdef BINSEARCH
+#ifndef BESORT
+#define OMITMASK
+#endif
+#endif
+#endif
+
+
 #ifndef BINFILTERLEN
 #define BINFILTERLEN PUBLIC_LEN
 #endif
@@ -78,14 +87,14 @@ struct binfilter {
 #ifdef INTFILTER
 struct intfilter {
 	IFT f;
-#ifndef BINSEARCH
+# ifndef OMITMASK
 	IFT m;
-#endif
+# endif
 } ;
 VEC_STRUCT(ifiltervec,struct intfilter) ifilters;
-#ifdef BINSEARCH
+# ifdef OMITMASK
 IFT ifiltermask;
-#endif // BINSEARCH
+# endif // BINSEARCH
 #else // INTFILTER
 VEC_STRUCT(bfiltervec,struct binfilter) bfilters;
 #endif // INTFILTER
@@ -106,7 +115,7 @@ static void filter_sort(int (*compf)(const void *,const void *))
 	qsort(&VEC_BUF(ifilters,0),VEC_LENGTH(ifilters),sizeof(struct intfilter),compf);
 }
 
-# ifdef BINSEARCH
+# ifdef OMITMASK
 
 static int filter_compare(const void *p1,const void *p2)
 {
@@ -236,7 +245,7 @@ static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
 	}
 }
 
-# else // BINSEARCH
+# else // OMITMASK
 
 /*
  * struct intfilter layout: filter,mask
@@ -251,7 +260,7 @@ static int filter_compare(const void *p1,const void *p2)
 	return memcmp(p1,p2,sizeof(struct intfilter));
 }
 
-# endif // BINSEARCH
+# endif // OMITMASK
 #else // INTFILTER
 
 static void filter_sort(int (*compf)(const void *,const void *))
@@ -324,15 +333,15 @@ static void filters_add(const char *filter)
 	fc.i &= mc.i;
 	struct intfilter ifltr = {
 		.f = fc.i,
-# ifndef BINSEARCH
+# ifndef OMITMASK
 		.m = mc.i,
 # endif
 	};
-# ifdef BINSEARCH
+# ifdef OMITMASK
 	ifilter_addflatten(&ifltr,mc.i);
-# else // BINSEARCH
+# else // OMITMASK
 	VEC_ADD(ifilters,ifltr);
-# endif // BINSEARCH
+# endif // OMITMASK
 #else // INTFILTER
 	VEC_ADD(bfilters,bf);
 #endif // INTFILTER
@@ -390,6 +399,8 @@ static size_t filters_count()
 
 # else // BINSEARCH
 
+#  ifdef OMITMASK
+
 #define DOFILTER(it,pk,code) { \
 	register IFT maskedpk = *(IFT *)(pk) & ifiltermask; \
 	for (size_t down = 0,up = VEC_LENGTH(ifilters);down < up;) { \
@@ -404,6 +415,26 @@ static size_t filters_count()
 		} \
 	} \
 }
+
+#  else // OMITMASK
+
+#define DOFILTER(it,pk,code) { \
+	for (size_t down = 0,up = VEC_LENGTH(ifilters);down < up;) { \
+		it = (up + down) / 2; \
+		IFT maskedpk = *(IFT *)(pk) & VEC_BUF(ifilters,it).m; \
+		register int cmp = memcmp(&maskedpk,&VEC_BUF(ifilters,it).f,sizeof(IFT)); \
+		if (cmp < 0) \
+			up = it; \
+		else if (cmp > 0) \
+			down = it + 1; \
+		else { \
+			code; \
+			break; \
+		} \
+	} \
+}
+
+#  endif // OMITMASK
 
 # endif // BINSEARCH
 
@@ -507,11 +538,11 @@ static void filters_print()
 		size_t len = 0;
 		u8 *imraw;
 
-#ifndef BINSEARCH
+# ifndef OMITMASK
 		imraw = (u8 *)&VEC_BUF(ifilters,i).m;
-#else
+# else
 		imraw = (u8 *)&ifiltermask;
-#endif
+# endif
 		while (len < sizeof(IFT) && imraw[len] != 0x00) ++len;
 		u8 mask = imraw[len-1];
 		u8 *ifraw = (u8 *)&VEC_BUF(ifilters,i).f;
