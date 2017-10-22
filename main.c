@@ -881,7 +881,6 @@ initseed:
 
 		DOFILTER(i,pk,{
 			if (numwords > 1) {
-				//printf("numwords=%d,filter_len=%d\n",numwords,(int)filter_len(i));
 				shiftpk(wpk,pk,filter_len(i));
 				size_t j;
 				for (int w = 1;;) {
