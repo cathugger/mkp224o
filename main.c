@@ -76,9 +76,6 @@ struct binfilter {
 } ;
 
 #ifdef INTFILTER
-#ifndef IFT
-#define IFT u64
-#endif
 struct intfilter {
 	IFT f;
 #ifndef BINSEARCH

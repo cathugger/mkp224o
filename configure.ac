@@ -117,6 +117,44 @@ then
 	CFLAGS="$CFLAGS -msse2"
 fi
 
+AC_ARG_ENABLE([intfilter],
+	[AS_HELP_STRING([--enable-intfilter@<:@=(32|64|128|native)@:>@],
+		[use integers of specific size @<:@default=64@:>@ for filtering. faster but limits filter length to: 6 for 32-bit, 12 for 64-bit, 24 for 128-bit @<:@default=no@:>@])],
+	[], [enable_intfilter=no]
+)
+AC_ARG_ENABLE([intfilter32],
+	[AS_HELP_STRING([--enable-intfilter32], [deprecated. use --enable-intfilter=32 instead])],
+	[enable_intfilter=32]
+	[AC_MSG_WARN([--enable-intfilter32 option is deprecated. use --enable-intfilter=32 instead])],
+	[]
+)
+case "$enable_intfilter" in
+32)
+	intfiltertype="u32"
+	;;
+64|yes)
+	intfiltertype="u64"
+	;;
+128)
+	intfiltertype="unsigned __int128"
+	;;
+native)
+	intfiltertype="size_t"
+	;;
+no)
+	intfiltertype=""
+	;;
+*)
+	AC_MSG_WARN([unrecognised intfilter type: $enable_intfilter])
+	intfiltertype=""
+	;;
+esac
+
+if test -n "$intfiltertype"
+then
+	MYDEFS="$MYDEFS -DINTFILTER -DIFT='$intfiltertype'"
+fi
+
 cstd=""
 c99=""
 oldcflags="$CFLAGS"
@@ -135,7 +173,7 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
     [cstd="$cstd -Wall"],
     [AC_MSG_RESULT([no])]
 )
-if test "x$c99" = "xyes" -a "x$ed25519impl" != "xdonna"
+if test "x$c99" = "xyes" -a "x$ed25519impl" != "xdonna" -a "x$enable_intfilter" != "x128"
 then
 	CFLAGS="$cstd -Wpedantic"
 	AC_MSG_CHECKING([whether CC supports -Wpedantic])
@@ -156,31 +194,6 @@ then
 	)
 fi
 CFLAGS="$oldcflags"
-
-
-AC_ARG_ENABLE([intfilter],
-	[AS_HELP_STRING([--enable-intfilter],
-		[use 64-bit integers for filtering. faster but limits filter length to 12 @<:@default=no@:>@])],
-	[], [enable_intfilter=no]
-)
-AC_ARG_ENABLE([intfilter32],
-	[AS_HELP_STRING([--enable-intfilter32],
-		[use 32-bit integers for filtering. even faster on 32-bit machines but limits filter length to 6 @<:@default=no@:>@])],
-	[], [enable_intfilter32=no]
-)
-if test "x$enable_intfilter32" = "xyes"
-then
-	if test "x$enable_intfilter" = "xyes"
-	then
-		AC_MSG_WARN([both intfilter and intfilter32 specified; using intfilter32])
-	fi
-	MYDEFS="$MYDEFS -DINTFILTER -DIFT=u32"
-else
-	if test "x$enable_intfilter" = "xyes"
-	then
-		MYDEFS="$MYDEFS -DINTFILTER"
-	fi
-fi
 
 AC_ARG_ENABLE([binfilterlen],
 	[AS_HELP_STRING([--enable-binfilterlen=VAL],
