@@ -751,6 +751,7 @@ static void *dowork(void *task)
 #endif
 
 	memcpy(secret,skprefix,skprefixlen);
+	wpk[PUBLIC_LEN] = 0;
 	memset(&pubonion,0,sizeof(pubonion));
 	memcpy(pubonion.raw,pkprefix,pkprefixlen);
 	// write version later as it will be overwritten by hash
@@ -786,7 +787,7 @@ again:
 			size_t j;
 			for (int w = 1;;) {
 				DOFILTER(j,wpk,goto secondfind);
-				goto again;
+				goto next;
 			secondfind:
 				if (++w >= numwords)
 					break;
@@ -804,9 +805,10 @@ again:
 		// base32
 		strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN), ".onion");
 		onionready(sname, secret, pubonion.raw);
-		pubonion.i.hash[0] = 0;
+		pk[PUBLIC_LEN] = 0;
 		goto initseed;
 	});
+next:
 	addseed(seed);
 	goto again;
 
@@ -851,6 +853,7 @@ static void *dofastwork(void *task)
 #endif
 
 	memcpy(secret, skprefix, skprefixlen);
+	wpk[PUBLIC_LEN] = 0;
 	memset(&pubonion,0,sizeof(pubonion));
 	memcpy(pubonion.raw, pkprefix, pkprefixlen);
 	// write version later as it will be overwritten by hash
@@ -885,7 +888,7 @@ initseed:
 				size_t j;
 				for (int w = 1;;) {
 					DOFILTER(j,wpk,goto secondfind);
-					goto again;
+					goto next;
 				secondfind:
 					if (++w >= numwords)
 						break;
@@ -915,12 +918,11 @@ initseed:
 			// full name
 			strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
 			onionready(sname,secret,pubonion.raw);
-			pubonion.i.hash[0] = 0;
+			pk[PUBLIC_LEN] = 0;
 			// don't reuse same seed
 			goto initseed;
 		});
-	again:
-		// next
+	next:
 		ge_add(&sum, &ge_public,&ge_eightpoint);
 		ge_p1p1_to_p3(&ge_public,&sum);
 		ge_p3_tobytes(pk,&ge_public);
