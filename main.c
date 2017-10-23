@@ -20,7 +20,7 @@
 #include "ed25519/ed25519.h"
 #include "ioutil.h"
 
-// additional leading zero is added by C
+// additional 0 terminator is added by C
 static const char * const pkprefix = "== ed25519v1-public: type0 ==\0\0";
 #define pkprefixlen (29 + 3)
 static const char * const skprefix = "== ed25519v1-secret: type0 ==\0\0";
