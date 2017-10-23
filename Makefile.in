@@ -23,6 +23,7 @@ MAINOBJ= \
 	cpucount.c.o \
 	base32_to.c.o \
 	base32_from.c.o \
+	ioutil.c.o \
 	$(ED25519OBJ) \
 	keccak.c.o
 

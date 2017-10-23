@@ -9,7 +9,6 @@
 #include <time.h>
 #include <pthread.h>
 #include <signal.h>
-#include <sys/stat.h>
 #include <sodium/randombytes.h>
 
 #include "types.h"
@@ -19,6 +18,7 @@
 #include "cpucount.h"
 #include "keccak.h"
 #include "ed25519/ed25519.h"
+#include "ioutil.h"
 
 // additional leading zero is added by C
 static const char * const pkprefix = "== ed25519v1-public: type0 ==\0\0";
@@ -646,8 +646,6 @@ VEC_STRUCT(tstatsvec,struct tstatstruct);
 
 static void onionready(char *sname, const u8 *secret, const u8 *pubonion)
 {
-	FILE *fh;
-
 	if (endwork)
 		return;
 
@@ -659,7 +657,7 @@ static void onionready(char *sname, const u8 *secret, const u8 *pubonion)
 		}
 	}
 
-	if (mkdir(sname,0700) != 0) {
+	if (createdir(sname,1) != 0) {
 		if (numneedgenerate)
 			pthread_mutex_unlock(&keysgenerated_mutex);
 		return;
@@ -673,26 +671,18 @@ static void onionready(char *sname, const u8 *secret, const u8 *pubonion)
 	}
 
 	strcpy(&sname[onionendpos], "/hs_ed25519_secret_key");
-	fh = fopen(sname, "wb");
-	if (fh) {
-		fwrite(secret, skprefixlen + SECRET_LEN, 1, fh);
-		fclose(fh);
-	}
+	writetofile(sname,secret,skprefixlen + SECRET_LEN,1);
 
 	strcpy(&sname[onionendpos], "/hostname");
-	fh = fopen(sname, "w");
-	if (fh) {
+	FILE *hfile = fopen(sname,"w");
+	if (hfile) {
 		sname[onionendpos] = '\n';
-		fwrite(&sname[direndpos], ONIONLEN+1, 1, fh);
-		fclose(fh);
+		fwrite(&sname[direndpos],ONIONLEN + 1,1,hfile);
+		fclose(hfile);
 	}
 
 	strcpy(&sname[onionendpos], "/hs_ed25519_public_key");
-	fh = fopen(sname, "wb");
-	if (fh) {
-		fwrite(pubonion, pkprefixlen + PUBLIC_LEN, 1, fh);
-		fclose(fh);
-	}
+	writetofile(sname,pubonion,pkprefixlen + PUBLIC_LEN,0);
 
 	if (fout) {
 		sname[onionendpos] = '\n';
@@ -1164,7 +1154,7 @@ int main(int argc,char **argv)
 		fout = fopen(outfile, "w");
 
 	if (workdir)
-		mkdir(workdir, 0700);
+		createdir(workdir,1);
 
 	direndpos = workdirlen;
 	onionendpos = workdirlen + ONIONLEN;
