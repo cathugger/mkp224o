@@ -109,7 +109,7 @@ static int parsecpuinfo()
 }
 #endif
 
-int cpucount()
+int cpucount(void)
 {
 	int ncpu;
 #ifdef _SC_NPROCESSORS_ONLN

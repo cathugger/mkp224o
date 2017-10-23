@@ -22,7 +22,7 @@ static void KeccakF1600(void *s)
         /*ι*/ FOR(j,7) if (LFSR86540(&R)) XL(0,0,(u64)1<<((1<<j)-1));
     }
 }
-void Keccak(u32 r, u32 c, const u8 *in, u64 inLen, u8 sfx, u8 *out, u64 outLen)
+void Keccak(u32 r, const u8 *in, u64 inLen, u8 sfx, u8 *out, u64 outLen)
 {
     /*initialize*/ u8 s[200]; ui R=r/8; ui i,b=0; FOR(i,200) s[i]=0;
     /*absorb*/ while(inLen>0) { b=(inLen<R)?inLen:R; FOR(i,b) s[i]^=in[i]; in+=b; inLen-=b; if (b==R) { KeccakF1600(s); b=0; } }

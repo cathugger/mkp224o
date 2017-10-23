@@ -1,1 +1,1 @@
-int cpucount();
+int cpucount(void);
