@@ -213,7 +213,8 @@ static void ifilter_addexpanded(
 	size_t i = VEC_LENGTH(ifilters);
 	VEC_ADDN(ifilters,cmask + 1);
 	for (size_t j = 0;;++j) {
-		VEC_BUF(ifilters,i + j).f = EXPVAL(ifltr->f,j,dmask,smask,ishift,rshift);
+		VEC_BUF(ifilters,i + j).f =
+			EXPVAL(ifltr->f,j,dmask,smask,ishift,rshift);
 		if (j == cmask)
 			break;
 	}
@@ -228,7 +229,8 @@ static void ifilter_expand(IFT dmask,IFT smask,IFT cmask,int ishift,int rshift)
 	size_t esz = cmask + 1; // size of expanded elements
 	for (size_t i = len - 1;;--i) {
 		for (IFT j = 0;;++j) {
-			VEC_BUF(ifilters,i * esz + j).f = EXPVAL(VEC_BUF(ifilters,i).f,j,dmask,smask,ishift,rshift);
+			VEC_BUF(ifilters,i * esz + j).f =
+				EXPVAL(VEC_BUF(ifilters,i).f,j,dmask,smask,ishift,rshift);
 			if (j == cmask)
 				break;
 		}
@@ -572,16 +574,16 @@ static void filters_print()
 	l = VEC_LENGTH(bfilters);
 #endif
 	if (l)
-		fprintf(stderr, "filters:\n");
-	else
-		fprintf(stderr, "no filters defined\n");
+		fprintf(stderr,"filters:\n");
 
 	for (i = 0;i < l;++i) {
 		char buf0[256],buf1[256];
 		u8 bufx[128];
 
 		if (i >= 20) {
-			fprintf(stderr,"[another %llu filters not shown]\n",(unsigned long long)(filters_count() - 20));
+			size_t notshown = l - i;
+			fprintf(stderr,"[another %zu %s not shown]\n",
+				notshown,notshown == 1 ? "filter" : "filters");
 			break;
 		}
 
@@ -610,8 +612,9 @@ static void filters_print()
 		while (*a && *a == *b)
 			++a, ++b;
 		*a = 0;
-		fprintf(stderr, "\t%s\n",buf0);
+		fprintf(stderr,"\t%s\n",buf0);
 	}
+	fprintf(stderr,"totally %zu %s\n",l,l == 1 ? "filter" : "filters");
 }
 
 // statistics, if enabled
@@ -670,10 +673,10 @@ static void onionready(char *sname, const u8 *secret, const u8 *pubonion)
 		pthread_mutex_unlock(&keysgenerated_mutex);
 	}
 
-	strcpy(&sname[onionendpos], "/hs_ed25519_secret_key");
+	strcpy(&sname[onionendpos],"/hs_ed25519_secret_key");
 	writetofile(sname,secret,skprefixlen + SECRET_LEN,1);
 
-	strcpy(&sname[onionendpos], "/hostname");
+	strcpy(&sname[onionendpos],"/hostname");
 	FILE *hfile = fopen(sname,"w");
 	if (hfile) {
 		sname[onionendpos] = '\n';
@@ -681,13 +684,13 @@ static void onionready(char *sname, const u8 *secret, const u8 *pubonion)
 		fclose(hfile);
 	}
 
-	strcpy(&sname[onionendpos], "/hs_ed25519_public_key");
+	strcpy(&sname[onionendpos],"/hs_ed25519_public_key");
 	writetofile(sname,pubonion,pkprefixlen + PUBLIC_LEN,0);
 
 	if (fout) {
 		sname[onionendpos] = '\n';
 		pthread_mutex_lock(&fout_mutex);
-		fwrite(&sname[printstartpos], printlen, 1, fout);
+		fwrite(&sname[printstartpos],printlen,1,fout);
 		fflush(fout);
 		pthread_mutex_unlock(&fout_mutex);
 	}
@@ -1168,6 +1171,9 @@ int main(int argc,char **argv)
 		numthreads = cpucount();
 		if (numthreads <= 0)
 			numthreads = 1;
+		if (!quietflag)
+			fprintf(stderr,"using %d %s\n",
+				numthreads,numthreads == 1 ? "thread" : "threads");
 	}
 
 	signal(SIGTERM,termhandler);
@@ -1191,7 +1197,7 @@ int main(int argc,char **argv)
 #endif
 		tret = pthread_create(&VEC_BUF(threads,i),0,fastkeygen ? dofastwork : dowork,tp);
 		if (tret) {
-			fprintf(stderr,"error while making %dth thread: %d\n",(int)i,tret);
+			fprintf(stderr,"error while making %zuth thread: %d\n",i,tret);
 			exit(1);
 		}
 	}
@@ -1279,11 +1285,11 @@ int main(int argc,char **argv)
 	}
 
 	if (!quietflag)
-		fprintf(stderr, "waiting for threads to finish...\n");
+		fprintf(stderr, "waiting for threads to finish...");
 	for (size_t i = 0;i < VEC_LENGTH(threads);++i)
 		pthread_join(VEC_BUF(threads,i),0);
 	if (!quietflag)
-		fprintf(stderr, "done, quitting\n");
+		fprintf(stderr, " done.\n");
 
 	pthread_mutex_destroy(&keysgenerated_mutex);
 	pthread_mutex_destroy(&fout_mutex);
