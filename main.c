@@ -694,11 +694,11 @@ static void onionready(char *sname, const u8 *secret, const u8 *pubonion)
 }
 
 // little endian inc
-static void addseed(u8 *seed)
+static void addsk32(u8 *sk)
 {
-	register unsigned int c = 1;
-	for (size_t i = 0;i < SEED_LEN;++i) {
-		c = (unsigned int)seed[i] + c; seed[i] = c & 0xFF; c >>= 8;
+	register unsigned int c = 8;
+	for (size_t i = 0;i < 32;++i) {
+		c = (unsigned int)sk[i] + c; sk[i] = c & 0xFF; c >>= 8;
 		// unsure if needed
 		if (!c) break;
 	}
@@ -756,6 +756,7 @@ static void *dowork(void *task)
 
 initseed:
 	randombytes(seed,sizeof(seed));
+	ed25519_seckey_expand(sk,seed);
 #ifdef STATISTICS
 	++st->numrestart.v;
 #endif
@@ -764,7 +765,6 @@ again:
 	if (unlikely(endwork))
 		goto end;
 
-	ed25519_seckey_expand(sk,seed);
 	ed25519_pubkey(pk,sk);
 
 #ifdef STATISTICS
@@ -784,6 +784,9 @@ again:
 				shiftpk(wpk,wpk,filter_len(j));
 			}
 		}
+		// sanity check
+		if ((sk[0] & 248) != sk[0] || ((sk[31] & 63) | 64) != sk[31])
+			goto initseed;
 
 		ADDNUMSUCCESS;
 
@@ -794,12 +797,12 @@ again:
 		pk[PUBLIC_LEN + 2] = 0x03;
 		// base32
 		strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN), ".onion");
-		onionready(sname, secret, pubonion.raw);
+		onionready(sname,secret,pubonion.raw);
 		pk[PUBLIC_LEN] = 0;
 		goto initseed;
 	});
 next:
-	addseed(seed);
+	addsk32(sk);
 	goto again;
 
 end:
@@ -845,16 +848,16 @@ static void *dofastwork(void *task)
 	memcpy(secret, skprefix, skprefixlen);
 	wpk[PUBLIC_LEN] = 0;
 	memset(&pubonion,0,sizeof(pubonion));
-	memcpy(pubonion.raw, pkprefix, pkprefixlen);
+	memcpy(pubonion.raw,pkprefix,pkprefixlen);
 	// write version later as it will be overwritten by hash
-	memcpy(hashsrc, checksumstr, checksumstrlen);
+	memcpy(hashsrc,checksumstr,checksumstrlen);
 	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
 
 	sname = malloc(workdirlen + ONIONLEN + 63 + 1);
 	if (!sname)
 		abort();
 	if (workdir)
-		memcpy(sname, workdir, workdirlen);
+		memcpy(sname,workdir,workdirlen);
 
 initseed:
 #ifdef STATISTICS
@@ -889,13 +892,7 @@ initseed:
 			// update secret key with counter
 			addsztoscalar32(sk,counter);
 			// sanity check
-			if (((sk[0] & 248) == sk[0]) && (((sk[31] & 63) | 64) == sk[31])) {
-				/* These operations should be a no-op. */
-				sk[0] &= 248;
-				sk[31] &= 63;
-				sk[31] |= 64;
-			}
-			else
+			if ((sk[0] & 248) != sk[0] || ((sk[31] & 63) | 64) != sk[31])
 				goto initseed;
 
 			ADDNUMSUCCESS;
