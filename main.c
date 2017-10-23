@@ -356,18 +356,27 @@ static void filters_add(const char *filter)
 
 	if (!base32_valid(filter,&ret)) {
 		fprintf(stderr,"filter \"%s\" is invalid\n",filter);
+		fprintf(stderr,"        ");
+		while (ret--)
+			fputc(' ',stderr);
+		fprintf(stderr,"^\n");
 		return;
 	}
 	ret = BASE32_FROM_LEN(ret);
 	if (!ret)
 		return;
 #ifdef INTFILTER
-	if (ret > sizeof(IFT))
+	size_t maxsz = sizeof(IFT);
 #else
-	if (ret > sizeof(bf.f))
+	size_t maxsz = sizeof(bf.f);
 #endif
-	{
+	if (ret > maxsz) {
 		fprintf(stderr,"filter \"%s\" is too long\n",filter);
+		fprintf(stderr,"        ");
+		maxsz = BASE32_TO_LEN(maxsz);
+		while (--maxsz)
+			fputc(' ',stderr);
+		fprintf(stderr,"^\n");
 		return;
 	}
 	base32_from(bf.f,&bf.mask,filter);
@@ -614,7 +623,7 @@ static void filters_print()
 		*a = 0;
 		fprintf(stderr,"\t%s\n",buf0);
 	}
-	fprintf(stderr,"totally %zu %s\n",l,l == 1 ? "filter" : "filters");
+	fprintf(stderr,"in total, %zu %s\n",l,l == 1 ? "filter" : "filters");
 }
 
 // statistics, if enabled

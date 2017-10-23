@@ -73,7 +73,8 @@ int base16_valid(const char *src,size_t *count)
 {
 	const char *p;
 
-	for (p = src;base16f[(u8)*p] != 0xFF;++p) ;
+	for (p = src;base16f[(u8)*p] != 0xFF;++p)
+		;
 
 	if (count)
 		*count = p - src;
