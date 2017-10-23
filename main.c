@@ -373,8 +373,8 @@ static void filters_add(const char *filter)
 	if (ret > maxsz) {
 		fprintf(stderr,"filter \"%s\" is too long\n",filter);
 		fprintf(stderr,"        ");
-		maxsz = BASE32_TO_LEN(maxsz);
-		while (--maxsz)
+		maxsz = (maxsz * 8) / 5;
+		while (maxsz--)
 			fputc(' ',stderr);
 		fprintf(stderr,"^\n");
 		return;
