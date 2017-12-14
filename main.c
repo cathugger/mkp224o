@@ -33,6 +33,7 @@ static char *workdir = 0;
 static size_t workdirlen = 0;
 
 static int quietflag = 0;
+static int wantdedup = 0;
 
 #define SECRET_LEN 64
 #define PUBLIC_LEN 32
@@ -201,6 +202,8 @@ static int filter_compare(const void *p1,const void *p2)
  *   0x0000800f ^ 0x00008000 -> 0x0000000f <- dmask
  */
 
+static int flattened = 0;
+
 #define EXPVAL(init,j,dmask,smask,ishift,rshift) \
 	((init) | ((((j) & (dmask)) | (((j) << (rshift)) & (smask))) << (ishift)))
 // add expanded set of values
@@ -210,6 +213,7 @@ static void ifilter_addexpanded(
 	IFT dmask,IFT smask,IFT cmask,
 	int ishift,int rshift)
 {
+	flattened = 1;
 	size_t i = VEC_LENGTH(ifilters);
 	VEC_ADDN(ifilters,cmask + 1);
 	for (size_t j = 0;;++j) {
@@ -224,6 +228,7 @@ static void ifilter_addexpanded(
 // allocates needed stuff on its own
 static void ifilter_expand(IFT dmask,IFT smask,IFT cmask,int ishift,int rshift)
 {
+	flattened = 1;
 	size_t len = VEC_LENGTH(ifilters);
 	VEC_ADDN(ifilters,cmask * len);
 	size_t esz = cmask + 1; // size of expanded elements
@@ -404,14 +409,23 @@ static void filters_add(const char *filter)
 #endif // INTFILTER
 }
 
+static void filters_dedup()
+{
+	//TODO
+}
+
 static void filters_prepare()
 {
 	if (!quietflag)
 		fprintf(stderr,"sorting filters...");
 	filter_sort(&filter_compare);
+	if (wantdedup) {
+		if (!quietflag)
+			fprintf(stderr," removing duplicates...");
+		filters_dedup();
+	}
 	if (!quietflag)
 		fprintf(stderr," done.\n");
-	// TODO remove duplicates
 }
 
 static void filters_clean()
@@ -1158,6 +1172,11 @@ int main(int argc,char **argv)
 	if (!filters_count())
 #endif
 		return 0;
+
+#ifdef EXPANDMASK
+	if (numwords > 1 && flattened)
+		fprintf(stderr,"WARNING: -N switch will produce bogus results because we can't know filter width. reconfigure with --enable-besort and recompile.\n");
+#endif
 
 	if (outfile)
 		fout = fopen(outfile, "w");
