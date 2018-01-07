@@ -31,7 +31,7 @@ When to use what:
 
 Please note, that these recomendations may become out of date if more implementations
 are added in the future; use `./configure --help` to obtain all avaiable options.
-When in doubth, benchmark.
+When in doubt, benchmark.
 
 
 Onion filtering settings:
