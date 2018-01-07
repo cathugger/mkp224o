@@ -23,6 +23,7 @@ directory, but that can be overridden with -d switch.
 Use -s switch to enable printing of statistics, which may be useful
 when benchmarking different ed25519 implementations on your machine.
 Use -h switch to obtain all avaiable options.
+I highly recommend reading OPTIMISATION.txt for performance-related tips.
 
 CONTACT:
 For bug reports/questions/whatever else, email cathugger at cock dot li.

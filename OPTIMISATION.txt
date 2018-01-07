@@ -1,0 +1,128 @@
+This document describes configuration options which may help one to generate onions faster.
+First of all, default configuration options are tuned for portability, not performance.
+User is expected to pick optimal settings depending on hardware mkp224o will run on and ammount of filters.
+
+
+ED25519 implementations:
+mkp224o includes multiple implementations of ed25519 code, tuned for different processors.
+Default is ref10 implementation from SUPERCOP, which is suboptimal in many cases.
+Implementation is selected at configuration time, when running `./configure` script.
+If one already configured/compiled code and wants to change options, just re-run
+`./configure` and also run `make clean` to clear compiled files, if any.
+At the time of writing, these implementations are present:
++----------------+-----------------------+-------------------------------------------------+
+| implementation | enable flag           | notes                                           |
+|----------------+-----------------------+-------------------------------------------------+
+| ref10          | --enable-ref10        | SUPERCOP' ref10, pure C, very portable, default |
+| amd64-51-30k   | --enable-amd64-51-30k | SUPERCOP' amd64-51-30k, amd64 assembler,        |
+|                |                       | only works in x86_64 architecture               |
+| amd64-64-24k   | --enable-amd64-64-24k | SUPERCOP' amd64-64-24k, amd64 assembler,        |
+|                |                       | only works in x86_64 architecture               |
+| ed25519-donna  | --enable-donna        | portable, based on amd64-51-30k, but C, not asm |
+| ed25519-donna  | --enable-donna-sse2   | uses SSE2, needs x86 architecture               |
++----------------+-----------------------+-------------------------------------------------+
+When to use what:
+ - on 32-bit x86 architecture "--enable-donna" will probably be fastest, but one should try
+   using "--enable-donna-sse2" too
+ - on 64-bit x86 architecture, it really depends on your processor; "--enable-amd64-51-30k"
+   worked best for me, but you should really benchmark on your own machine
+ - on ARM "--enable-donna" will probably work best
+ - otherwise you should benchmark, but "--enable-donna" will probably win
+
+Please note, that these recomendations may become out of date if more implementations
+are added in the future; use `./configure --help` to obtain all avaiable options.
+When in doubth, benchmark.
+
+
+Onion filtering settings:
+mkp224o supports multiple algorithms and data types for filtering.
+Depending on your use case, picking right settings may increase performance.
+At the time of writing, mkp224o supports 2 algorithms for filter searching:
+sequential and binary search. Sequential search is default, and will probably
+be faster with small ammount of filters. If you have lots of filters (lets say >100),
+then picking binary search algorithm is the right way.
+mkp224o also supports multiple filter types: filters can be represented as integers
+instead of being binary strings, and that can allow better compiler's optimizations
+and faster code (dealing with fixed-size integers instead of variable-length strings is simpler).
+On the other hand, fixed size integers limit length of filters, therefore
+binary strings are used by default.
+
+Current options, at the time of writing:
+  --enable-binsearch      enable binary search algoritm; MUCH faster if there
+                          are a lot of filters. by default, if this isn't enabled,
+                          sequential search is used
+
+  --enable-intfilter[=(32|64|128|native)]
+                          use integers of specific size (in bits) [default=64]
+                          for filtering. faster but limits filter length to:
+                          6 for 32-bit, 12 for 64-bit, 24 for 128-bit. by default,
+                          if this option is not enabled, binary strings are used,
+                          which are slower, but not limited in length.
+
+  --enable-binfilterlen=VAL
+                          set binary string filter length (if you don't use intfilter).
+                          default is 32 (bytes), which is maximum key length.
+                          this may be useful for decreasing memory usage if you
+                          have a lot of short filters, but then using intfilter
+                          may be better idea.
+
+  --enable-besort         force intfilter binsearch case to use big endian
+                          sorting and not omit masks from filters; useful if
+                          your filters aren't of same length.
+                          let me elaborate on this one.
+                          by default, when binary search algorithm is used with integer
+                          filters, we actually omit filter masks and use global mask variable,
+                          because otherwise we couldn't reliably use integer comparision operations
+                          combined with per-filter masks, as sorting order there is unclear.
+                          this is because majority of processors we work with are little-endian.
+                          therefore, to achieve proper filtering in case where filters
+                          aren't of same length, we flatten them by inserting more filters.
+                          binary searching should balance increased overhead here to some extent,
+                          but this is definitelly not optimal and can bloat filtering table
+                          very heavily in some cases (for example if there exists say 1-char filter
+                          and 8-char filter, it will try to flatten 1-char filterto 8 chars
+                          and add 32*32*32*32*32*32*32 filters to table which isn't really good).
+                          this option makes us use big-endian way of integer comparision, which isn't
+                          native for current little-endian processors but should still work much better
+                          than binary strings. we also then are able to have proper per-filter masks,
+                          and don't do stupid flattening tricks which may backfire.
+
+                          TL;DR: its quite good idea to use this if you do "--enable-binsearch --enable-intfilter"
+                          and have some random filters which may have different length.
+
+
+Benchmarking:
+It's always good idea to see if your settings give you desired effect.
+There currently isn't any automated way to benchmark different configuration options, but it's pretty simple to do by hand.
+For example:
+# prepare configuration script
+./autogen.sh
+# try default configuration
+./configure
+# compile
+make
+# benchmark implementation speed
+./mkp224o -s -d res1 neko
+# wait for a while, copy statistics to some text editor
+^C # stop experiment when you've collected enough data
+# try with different settings now
+./configure --enable-amd64-64-24k --enable-intfilter
+# clean old compiled files
+make clean
+# recompile
+make
+# benchmark again
+./mkp224o -s -d res2 neko
+# wait for a while, copy statistics to some text editor
+^C # stop experiment when you've collected enough data
+# configure again, make clean, make, run test again.......
+# until you've got enough data to make decisions
+
+when benchmarking filtering settings, remember to actually use filter files you're going to work with.
+
+
+What options I use:
+For my lappy with old-ish i5 I do `./configure --enable-amd64-51-30k --enable-intfilter` incase I want single onion,
+and `./configure --enable-amd64-51-30k --enable-intfilter --enable-binsearch --enable-besort` when playing with dictionaries.
+For my raspberry pi 2, `./configure --enable-donna --enable-intfilter`
+(and also +=" --enable-binsearch --enable-besort" for dictionaries).
