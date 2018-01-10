@@ -12,7 +12,7 @@ BUILDING:
 `./configure CPPFLAGS="-I/usr/local/include" LDFLAGS="-L/usr/local/lib"`.
 You probably also want to pass something like "--enable-amd64-51-30k"
 or "--enable-donna" to configure script for faster key generation;
-run `./configure --help` to see all avaiable options.
+run `./configure --help` to see all available options.
 Finally, `make` to start building (`gmake` in *BSD platforms).
 
 USAGE:
@@ -22,7 +22,7 @@ for each discovered service. By default root is current
 directory, but that can be overridden with -d switch.
 Use -s switch to enable printing of statistics, which may be useful
 when benchmarking different ed25519 implementations on your machine.
-Use -h switch to obtain all avaiable options.
+Use -h switch to obtain all available options.
 I highly recommend reading OPTIMISATION.txt for performance-related tips.
 
 CONTACT:

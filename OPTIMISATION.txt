@@ -30,7 +30,7 @@ When to use what:
  - otherwise you should benchmark, but "--enable-donna" will probably win
 
 Please note, that these recomendations may become out of date if more implementations
-are added in the future; use `./configure --help` to obtain all avaiable options.
+are added in the future; use `./configure --help` to obtain all available options.
 When in doubt, benchmark.
 
 
