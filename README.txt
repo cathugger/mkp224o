@@ -4,7 +4,7 @@ This tool generates vanity ed25519 (hidden service version 3) onion addresses.
 For context, see <https://gitweb.torproject.org/torspec.git/plain/rend-spec-v3.txt>.
 
 REQUIREMENTS:
-libsodium, GNU autoconf, GNU make, UNIX-like platform (currently tested in Linux and OpenBSD).
+C99 compatible compiler, libsodium, GNU make, GNU autoconf, UNIX-like platform (currently tested in Linux and OpenBSD).
 
 BUILDING:
 `./autogen.sh` to generate configure script, if it's not there already.
