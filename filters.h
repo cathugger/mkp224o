@@ -1,25 +1,45 @@
 // filters stuff
 
+#ifndef INTFILTER
+# define BINFILTER
+#endif
+
 #ifdef INTFILTER
-#ifdef BINSEARCH
-#ifndef BESORT
-#define OMITMASK
-#endif
-#endif
+# ifdef BINSEARCH
+#  ifndef BESORT
+#   define OMITMASK
+#  endif
+# endif
 #endif
 
 #ifdef OMITMASK
-#define EXPANDMASK
+# define EXPANDMASK
 #endif
 
-#ifndef BINFILTERLEN
-#define BINFILTERLEN PUBLIC_LEN
+// whether binfilter struct is needed
+#ifdef BINFILTER
+# define NEEDBINFILTER
 #endif
+#ifdef INTFILTER
+# define NEEDBINFILTER
+#endif
+
+
+#ifdef NEEDBINFILTER
+# ifndef BINFILTERLEN
+#  define BINFILTERLEN PUBLIC_LEN
+# endif
 struct binfilter {
 	u8 f[BINFILTERLEN];
 	size_t len; // real len minus one
 	u8 mask;
 } ;
+#endif // NEEDBINFILTER
+
+
+#ifdef BINFILTER
+VEC_STRUCT(bfiltervec,struct binfilter) filters;
+#endif // BINFILTER
 
 #ifdef INTFILTER
 struct intfilter {
@@ -32,8 +52,6 @@ VEC_STRUCT(ifiltervec,struct intfilter) filters;
 # ifdef OMITMASK
 IFT ifiltermask;
 # endif // BINSEARCH
-#else // INTFILTER
-VEC_STRUCT(bfiltervec,struct binfilter) filters;
 #endif // INTFILTER
 
 static void filters_init()
@@ -42,11 +60,6 @@ static void filters_init()
 }
 
 #ifdef INTFILTER
-
-static void filter_sort(int (*compf)(const void *,const void *))
-{
-	qsort(&VEC_BUF(filters,0),VEC_LENGTH(filters),sizeof(struct intfilter),compf);
-}
 
 static inline size_t filter_len(size_t i)
 {
@@ -74,7 +87,7 @@ static inline size_t filter_len(size_t i)
 
 # ifdef OMITMASK
 
-static int filter_compare(const void *p1,const void *p2)
+static inline int filter_compare(const void *p1,const void *p2)
 {
 	if (((const struct intfilter *)p1)->f < ((const struct intfilter *)p2)->f)
 		return -1;
@@ -222,13 +235,21 @@ static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
  * memcmp is aplicable there too
  * due to struct intfilter layout, it all can be stuffed into one memcmp call
  */
-static int filter_compare(const void *p1,const void *p2)
+static inline int filter_compare(const void *p1,const void *p2)
 {
 	return memcmp(p1,p2,sizeof(struct intfilter));
 }
 
 # endif // OMITMASK
-#else // INTFILTER
+
+static void filter_sort(void)
+{
+	qsort(&VEC_BUF(filters,0),VEC_LENGTH(filters),sizeof(struct intfilter),&filter_compare);
+}
+
+#endif // INTFILTER
+
+#ifdef BINFILTER
 
 static inline size_t filter_len(size_t i)
 {
@@ -244,12 +265,7 @@ static inline size_t filter_len(size_t i)
 	}
 }
 
-static void filter_sort(int (*compf)(const void *,const void *))
-{
-	qsort(&VEC_BUF(filters,0),VEC_LENGTH(filters),sizeof(struct binfilter),compf);
-}
-
-static int filter_compare(const void *p1,const void *p2)
+static inline int filter_compare(const void *p1,const void *p2)
 {
 	const struct binfilter *b1 = (const struct binfilter *)p1;
 	const struct binfilter *b2 = (const struct binfilter *)p2;
@@ -268,7 +284,12 @@ static int filter_compare(const void *p1,const void *p2)
 	return 0;
 }
 
-#endif // INTFILTER
+static void filter_sort(void)
+{
+	qsort(&VEC_BUF(filters,0),VEC_LENGTH(filters),sizeof(struct binfilter),&filter_compare);
+}
+
+#endif // BINFILTER
 
 static void filters_add(const char *filter)
 {
@@ -314,6 +335,7 @@ static void filters_add(const char *filter)
 	}
 	base32_from(bf.f,&bf.mask,filter);
 	bf.len = ret - 1;
+
 #ifdef INTFILTER
 	mc.i = 0;
 	for (size_t i = 0;i < bf.len;++i)
@@ -332,9 +354,11 @@ static void filters_add(const char *filter)
 # else // OMITMASK
 	VEC_ADD(filters,ifltr);
 # endif // OMITMASK
-#else // INTFILTER
-	VEC_ADD(filters,bf);
 #endif // INTFILTER
+
+#ifdef BINFILTER
+	VEC_ADD(filters,bf);
+#endif // BINFILTER
 }
 
 static void filters_dedup()
@@ -346,7 +370,7 @@ static void filters_prepare()
 {
 	if (!quietflag)
 		fprintf(stderr,"sorting filters...");
-	filter_sort(&filter_compare);
+	filter_sort();
 	if (wantdedup) {
 		if (!quietflag)
 			fprintf(stderr," removing duplicates...");
@@ -426,7 +450,10 @@ do { \
 
 # endif // BINSEARCH
 
-#else // INTFILTER
+#endif // INTFILTER
+
+
+#ifdef BINFILTER
 
 # ifndef BINSEARCH
 
@@ -482,7 +509,9 @@ do { \
 
 # endif // BINSEARCH
 
-#endif // INTFILTER
+#endif // BINFILTER
+
+
 
 static void loadfilterfile(const char *fname)
 {
@@ -532,11 +561,13 @@ static void filters_print()
 		while (len < sizeof(IFT) && imraw[len] != 0x00) ++len;
 		u8 mask = imraw[len-1];
 		u8 *ifraw = (u8 *)&VEC_BUF(filters,i).f;
-#else
+#endif // INTFILTER
+
+#ifdef BINFILTER
 		size_t len = VEC_BUF(filters,i).len + 1;
 		u8 mask = VEC_BUF(filters,i).mask;
 		u8 *ifraw = VEC_BUF(filters,i).f;
-#endif
+#endif // BINFILTER
 		base32_to(buf0,ifraw,len);
 		memcpy(bufx,ifraw,len);
 		bufx[len - 1] |= ~mask;
