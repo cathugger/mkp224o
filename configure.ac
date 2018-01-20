@@ -179,7 +179,7 @@ then
 	AC_MSG_CHECKING([whether CC supports -pedantic])
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
 		[AC_MSG_RESULT([yes])]
-		[cstd="$cstd -Wpedantic"],
+		[cstd="$cstd -pedantic"],
 		[AC_MSG_RESULT([no])]
 	)
 fi
