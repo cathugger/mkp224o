@@ -141,7 +141,7 @@ case "$enable_intfilter" in
 native)
 	intfiltertype="size_t"
 	;;
-no)
+no|"")
 	intfiltertype=""
 	;;
 *)
@@ -234,6 +234,43 @@ if test "x$enable_statistics" = "xyes"
 then
 	MYDEFS="$MYDEFS -DSTATISTICS"
 fi
+
+AC_ARG_WITH([pcre2],[AC_HELP_STRING([--with-pcre2],[pcre2-config executable @<:@default=pcre2@:>@])],[],[with_pcre2="pcre2-config"])
+
+AC_ARG_ENABLE([regex],[AC_HELP_STRING([--enable-regex],[whether to enable regex engine. currently possible values are "pcre2" and "yes" which defaults to "pcre2" @<:@default=no@:>@])],[],[enable_regex=no])
+case "$enable_regex" in
+no|"")
+	;;
+yes|pcre2)
+	AC_MSG_CHECKING([pcre2])
+	V=""
+	if test "$with_pcre2" != "yes"
+	then
+		V=`"$with_pcre2" --version 2>/dev/null`
+	fi
+	if test -n "$V"
+	then
+		AC_MSG_RESULT([$V])
+		MYDEFS="$MYDEFS -DPCRE2FILTER"
+		CF=`"$with_pcre2" --cflags`
+		if test -n "$CF"
+		then
+			CFLAGS="$CFLAGS $CF"
+		fi
+		LF=`"$with_pcre2" --libs8`
+		if test -n "$LF"
+		then
+			LDFLAGS="$LDFLAGS $LF"
+		fi
+	else
+		AC_MSG_RESULT([not found])
+		AC_ERROR([pcre2-config cannot be executed])
+	fi
+	;;
+*)
+	AC_MSG_WARN([unrecognised regex engine type: $enable_regex])
+	;;
+esac
 
 AC_SUBST(CSTD,["$cstd"])
 AC_SUBST(ED25519IMPL,["$ed25519impl"])

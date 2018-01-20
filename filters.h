@@ -4,6 +4,11 @@
 # define BINFILTER
 #endif
 
+#ifdef PCRE2FILTER
+# undef BINFILTER
+# undef INTFILTER
+#endif
+
 #ifdef INTFILTER
 # ifdef BINSEARCH
 #  ifndef BESORT
@@ -51,8 +56,21 @@ struct intfilter {
 VEC_STRUCT(ifiltervec,struct intfilter) filters;
 # ifdef OMITMASK
 IFT ifiltermask;
-# endif // BINSEARCH
+# endif
 #endif // INTFILTER
+
+#ifdef PCRE2FILTER
+
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include <pcre2.h>
+
+struct pcre2filter {
+	char *str;
+	pcre2_code *re;
+} ;
+VEC_STRUCT(pfiltervec,struct pcre2filter) filters;
+
+#endif // PCRE2FILTER
 
 static void filters_init()
 {
@@ -291,16 +309,24 @@ static void filter_sort(void)
 
 #endif // BINFILTER
 
+#ifdef PCRE2FILTER
+static size_t filter_len(size_t i)
+{
+	return 0;
+}
+#endif // PCRE2FILTER
+
 static void filters_add(const char *filter)
 {
+#ifdef NEEDBINFILTER
 	struct binfilter bf;
 	size_t ret;
-#ifdef INTFILTER
+# ifdef INTFILTER
 	union intconv {
 		IFT i;
 		u8 b[sizeof(IFT)];
 	} fc,mc;
-#endif
+# endif
 
 	// skip regex start symbol. we do not support regex tho
 	if (*filter == '^')
@@ -319,11 +345,11 @@ static void filters_add(const char *filter)
 	ret = BASE32_FROM_LEN(ret);
 	if (!ret)
 		return;
-#ifdef INTFILTER
+# ifdef INTFILTER
 	size_t maxsz = sizeof(IFT);
-#else
+# else
 	size_t maxsz = sizeof(bf.f);
-#endif
+# endif
 	if (ret > maxsz) {
 		fprintf(stderr,"filter \"%s\" is too long\n",filter);
 		fprintf(stderr,"        ");
@@ -336,7 +362,7 @@ static void filters_add(const char *filter)
 	base32_from(bf.f,&bf.mask,filter);
 	bf.len = ret - 1;
 
-#ifdef INTFILTER
+# ifdef INTFILTER
 	mc.i = 0;
 	for (size_t i = 0;i < bf.len;++i)
 		mc.b[i] = 0xFF;
@@ -345,29 +371,58 @@ static void filters_add(const char *filter)
 	fc.i &= mc.i;
 	struct intfilter ifltr = {
 		.f = fc.i,
-# ifndef OMITMASK
+#  ifndef OMITMASK
 		.m = mc.i,
-# endif
+#  endif
 	};
-# ifdef OMITMASK
+#  ifdef OMITMASK
 	ifilter_addflatten(&ifltr,mc.i);
-# else // OMITMASK
+#  else // OMITMASK
 	VEC_ADD(filters,ifltr);
-# endif // OMITMASK
-#endif // INTFILTER
+#  endif // OMITMASK
+# endif // INTFILTER
 
-#ifdef BINFILTER
+# ifdef BINFILTER
 	VEC_ADD(filters,bf);
-#endif // BINFILTER
+# endif // BINFILTER
+#endif // NEEDBINFILTER
+
+#ifdef PCRE2FILTER
+	int errornum;
+	PCRE2_SIZE erroroffset;
+	pcre2_code *re;
+	re = pcre2_compile((PCRE2_SPTR8)filter,PCRE2_ZERO_TERMINATED,0,&errornum,&erroroffset,0);
+	if (!re) {
+		PCRE2_UCHAR buffer[1024];
+		pcre2_get_error_message(errornum,buffer,sizeof(buffer));
+		fprintf(stderr,"PCRE2 compilation failed at offset %zu: %s\n",
+			(size_t)erroroffset,buffer);
+		return;
+	}
+	// attempt to JIT. ignore error
+	(void)pcre2_jit_compile(re,PCRE2_JIT_COMPLETE);
+	struct pcre2filter f;
+	memset(&f,0,sizeof(f));
+	f.re = re;
+	size_t fl = strlen(filter) + 1;
+	f.str = malloc(fl);
+	if (!f.str)
+		abort();
+	memcpy(f.str,filter,fl);
+	VEC_ADD(filters,f);
+#endif // PCRE2FILTER
 }
 
+#ifdef NEEDBINFILTER
 static void filters_dedup()
 {
 	//TODO
 }
+#endif // NEEDBINFILTER
 
 static void filters_prepare()
 {
+#ifndef PCRE2FILTER
 	if (!quietflag)
 		fprintf(stderr,"sorting filters...");
 	filter_sort();
@@ -378,10 +433,17 @@ static void filters_prepare()
 	}
 	if (!quietflag)
 		fprintf(stderr," done.\n");
+#endif
 }
 
 static void filters_clean()
 {
+#ifdef PCRE2FILTER
+	for (size_t i = 0;i < VEC_LENGTH(filters);++i) {
+		pcre2_code_free(VEC_BUF(filters,i).re);
+		free(VEC_BUF(filters,i).str);
+	}
+#endif
 	VEC_FREE(filters);
 }
 
@@ -450,6 +512,9 @@ do { \
 
 # endif // BINSEARCH
 
+#define PREFILTER
+#define POSTFILTER
+
 #endif // INTFILTER
 
 
@@ -509,8 +574,35 @@ do { \
 
 # endif // BINSEARCH
 
+#define PREFILTER
+#define POSTFILTER
+
 #endif // BINFILTER
 
+
+#ifdef PCRE2FILTER
+
+#define PREFILTER \
+	char pkconvbuf[BASE32_TO_LEN(PUBLIC_LEN) + 1]; \
+	pcre2_match_data *pcre2md = pcre2_match_data_create(128,0);
+
+#define POSTFILTER \
+	pcre2_match_data_free(pcre2md);
+
+#define DOFILTER(it,pk,code) \
+do { \
+	base32_to(pkconvbuf,pk,PUBLIC_LEN); \
+	size_t __l = VEC_LENGTH(filters); \
+	for (it = 0;it < __l;++it) { \
+		int rc = pcre2_match(VEC_BUF(filters,it).re,(PCRE2_SPTR8)pkconvbuf,BASE32_TO_LEN(PUBLIC_LEN),0,0,pcre2md,0); \
+		if (unlikely(rc >= 0)) { \
+			code; \
+			break; \
+		} \
+	} \
+} while (0)
+
+#endif // PCRE2FILTER
 
 
 static void loadfilterfile(const char *fname)
@@ -539,8 +631,10 @@ static void filters_print()
 		fprintf(stderr,"filters:\n");
 
 	for (i = 0;i < l;++i) {
+#ifdef NEEDBINFILTER
 		char buf0[256],buf1[256];
 		u8 bufx[128];
+#endif
 
 		if (i >= 20) {
 			size_t notshown = l - i;
@@ -568,6 +662,7 @@ static void filters_print()
 		u8 mask = VEC_BUF(filters,i).mask;
 		u8 *ifraw = VEC_BUF(filters,i).f;
 #endif // BINFILTER
+#ifdef NEEDBINFILTER
 		base32_to(buf0,ifraw,len);
 		memcpy(bufx,ifraw,len);
 		bufx[len - 1] |= ~mask;
@@ -577,6 +672,10 @@ static void filters_print()
 			++a, ++b;
 		*a = 0;
 		fprintf(stderr,"\t%s\n",buf0);
+#endif // NEEDBINFILTER
+#ifdef PCRE2FILTER
+		fprintf(stderr,"\t%s\n",VEC_BUF(filters,i).str);
+#endif // PCRE2FILTER
 	}
 	fprintf(stderr,"in total, %zu %s\n",l,l == 1 ? "filter" : "filters");
 }

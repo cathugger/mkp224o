@@ -33,7 +33,8 @@ static char *workdir = 0;
 static size_t workdirlen = 0;
 
 static int quietflag = 0;
-static int wantdedup = 0;
+//static int wantdedup = 0;
+#define wantdedup 0
 
 #define SECRET_LEN 64
 #define PUBLIC_LEN 32
@@ -199,6 +200,7 @@ static void *dowork(void *task)
 #ifdef STATISTICS
 	struct statstruct *st = (struct statstruct *)task;
 #endif
+	PREFILTER
 
 	memcpy(secret,skprefix,skprefixlen);
 	wpk[PUBLIC_LEN] = 0;
@@ -267,6 +269,7 @@ next:
 
 end:
 	free(sname);
+	POSTFILTER
 	return 0;
 }
 
@@ -304,6 +307,7 @@ static void *dofastwork(void *task)
 #ifdef STATISTICS
 	struct statstruct *st = (struct statstruct *)task;
 #endif
+	PREFILTER
 
 	memcpy(secret, skprefix, skprefixlen);
 	wpk[PUBLIC_LEN] = 0;
@@ -381,6 +385,7 @@ initseed:
 
 end:
 	free(sname);
+	POSTFILTER
 	return 0;
 }
 
