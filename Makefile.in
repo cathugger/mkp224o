@@ -378,7 +378,7 @@ main.c.o: ed25519/ed25519-donna/modm-donna-64bit.h
 main.c.o: ed25519/ed25519-donna/ed25519-donna-basepoint-table.h
 main.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-tables.h
 main.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-x86.h
-main.c.o: ed25519/ed25519-donna/ed25519-donna-impl-base.h ioutil.h
+main.c.o: ed25519/ed25519-donna/ed25519-donna-impl-base.h ioutil.h filters.h
 test_base16.c.o: types.h base16.h
 test_base32.c.o: types.h base32.h
 test_ed25519.c.o: types.h base16.h ed25519/ed25519.h ed25519/ref10/ed25519.h

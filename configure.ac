@@ -175,8 +175,8 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
 )
 if test "x$c99" = "xyes" -a "x$ed25519impl" != "xdonna" -a "x$enable_intfilter" != "x128"
 then
-	CFLAGS="$cstd -Wpedantic"
-	AC_MSG_CHECKING([whether CC supports -Wpedantic])
+	CFLAGS="$cstd -pedantic"
+	AC_MSG_CHECKING([whether CC supports -pedantic])
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
 		[AC_MSG_RESULT([yes])]
 		[cstd="$cstd -Wpedantic"],
