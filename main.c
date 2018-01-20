@@ -96,34 +96,30 @@ struct intfilter {
 	IFT m;
 # endif
 } ;
-VEC_STRUCT(ifiltervec,struct intfilter) ifilters;
+VEC_STRUCT(ifiltervec,struct intfilter) filters;
 # ifdef OMITMASK
 IFT ifiltermask;
 # endif // BINSEARCH
 #else // INTFILTER
-VEC_STRUCT(bfiltervec,struct binfilter) bfilters;
+VEC_STRUCT(bfiltervec,struct binfilter) filters;
 #endif // INTFILTER
 
 static void filters_init()
 {
-#ifdef INTFILTER
-	VEC_INIT(ifilters);
-#else
-	VEC_INIT(bfilters);
-#endif
+	VEC_INIT(filters);
 }
 
 #ifdef INTFILTER
 
 static void filter_sort(int (*compf)(const void *,const void *))
 {
-	qsort(&VEC_BUF(ifilters,0),VEC_LENGTH(ifilters),sizeof(struct intfilter),compf);
+	qsort(&VEC_BUF(filters,0),VEC_LENGTH(filters),sizeof(struct intfilter),compf);
 }
 
 static inline size_t filter_len(size_t i)
 {
 # ifndef OMITMASK
-	const u8 *m = (const u8 *)&VEC_BUF(ifilters,i).m;
+	const u8 *m = (const u8 *)&VEC_BUF(filters,i).m;
 # else // OMITMASK
 	const u8 *m = (const u8 *)&ifiltermask;
 # endif // OMITMASK
@@ -214,10 +210,10 @@ static void ifilter_addexpanded(
 	int ishift,int rshift)
 {
 	flattened = 1;
-	size_t i = VEC_LENGTH(ifilters);
-	VEC_ADDN(ifilters,cmask + 1);
+	size_t i = VEC_LENGTH(filters);
+	VEC_ADDN(filters,cmask + 1);
 	for (size_t j = 0;;++j) {
-		VEC_BUF(ifilters,i + j).f =
+		VEC_BUF(filters,i + j).f =
 			EXPVAL(ifltr->f,j,dmask,smask,ishift,rshift);
 		if (j == cmask)
 			break;
@@ -229,13 +225,13 @@ static void ifilter_addexpanded(
 static void ifilter_expand(IFT dmask,IFT smask,IFT cmask,int ishift,int rshift)
 {
 	flattened = 1;
-	size_t len = VEC_LENGTH(ifilters);
-	VEC_ADDN(ifilters,cmask * len);
+	size_t len = VEC_LENGTH(filters);
+	VEC_ADDN(filters,cmask * len);
 	size_t esz = cmask + 1; // size of expanded elements
 	for (size_t i = len - 1;;--i) {
 		for (IFT j = 0;;++j) {
-			VEC_BUF(ifilters,i * esz + j).f =
-				EXPVAL(VEC_BUF(ifilters,i).f,j,dmask,smask,ishift,rshift);
+			VEC_BUF(filters,i * esz + j).f =
+				EXPVAL(VEC_BUF(filters,i).f,j,dmask,smask,ishift,rshift);
 			if (j == cmask)
 				break;
 		}
@@ -246,15 +242,15 @@ static void ifilter_expand(IFT dmask,IFT smask,IFT cmask,int ishift,int rshift)
 
 static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
 {
-	if (VEC_LENGTH(ifilters) == 0) {
+	if (VEC_LENGTH(filters) == 0) {
 		// simple
-		VEC_ADD(ifilters,*ifltr);
+		VEC_ADD(filters,*ifltr);
 		ifiltermask = mask;
 		return;
 	}
 	if (ifiltermask == mask) {
 		// lucky
-		VEC_ADD(ifilters,*ifltr);
+		VEC_ADD(filters,*ifltr);
 		return;
 	}
 	IFT cross = ifiltermask ^ mask;
@@ -278,7 +274,7 @@ static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
 	else {
 		ifiltermask = mask;
 		ifilter_expand(dmask,smask,cmask,ishift,rshift);
-		VEC_ADD(ifilters,*ifltr);
+		VEC_ADD(filters,*ifltr);
 	}
 }
 
@@ -304,8 +300,8 @@ static int filter_compare(const void *p1,const void *p2)
 
 static inline size_t filter_len(size_t i)
 {
-	size_t c = VEC_BUF(bfilters,i).len * 8;
-	u8 v = VEC_BUF(bfilters,i).mask;
+	size_t c = VEC_BUF(filters,i).len * 8;
+	u8 v = VEC_BUF(filters,i).mask;
 	for (size_t k = 0;;) {
 		if (!v)
 			return c;
@@ -318,7 +314,7 @@ static inline size_t filter_len(size_t i)
 
 static void filter_sort(int (*compf)(const void *,const void *))
 {
-	qsort(&VEC_BUF(bfilters,0),VEC_LENGTH(bfilters),sizeof(struct binfilter),compf);
+	qsort(&VEC_BUF(filters,0),VEC_LENGTH(filters),sizeof(struct binfilter),compf);
 }
 
 static int filter_compare(const void *p1,const void *p2)
@@ -402,10 +398,10 @@ static void filters_add(const char *filter)
 # ifdef OMITMASK
 	ifilter_addflatten(&ifltr,mc.i);
 # else // OMITMASK
-	VEC_ADD(ifilters,ifltr);
+	VEC_ADD(filters,ifltr);
 # endif // OMITMASK
 #else // INTFILTER
-	VEC_ADD(bfilters,bf);
+	VEC_ADD(filters,bf);
 #endif // INTFILTER
 }
 
@@ -430,20 +426,12 @@ static void filters_prepare()
 
 static void filters_clean()
 {
-#ifdef INTFILTER
-	VEC_FREE(ifilters);
-#else
-	VEC_FREE(bfilters);
-#endif
+	VEC_FREE(filters);
 }
 
 static size_t filters_count()
 {
-#ifdef INTFILTER
-	return VEC_LENGTH(ifilters);
-#else
-	return VEC_LENGTH(bfilters);
-#endif
+	return VEC_LENGTH(filters);
 }
 
 #ifdef STATISTICS
@@ -457,11 +445,11 @@ static size_t filters_count()
 # ifndef BINSEARCH
 
 #define MATCHFILTER(it,pk) \
-	((*(IFT *)(pk) & VEC_BUF(ifilters,it).m) == VEC_BUF(ifilters,it).f)
+	((*(IFT *)(pk) & VEC_BUF(filters,it).m) == VEC_BUF(filters,it).f)
 
 #define DOFILTER(it,pk,code) \
 do { \
-	for (it = 0;it < VEC_LENGTH(ifilters);++it) { \
+	for (it = 0;it < VEC_LENGTH(filters);++it) { \
 		if (unlikely(MATCHFILTER(it,pk))) { \
 			code; \
 			break; \
@@ -476,11 +464,11 @@ do { \
 #define DOFILTER(it,pk,code) \
 do { \
 	register IFT maskedpk = *(IFT *)(pk) & ifiltermask; \
-	for (size_t down = 0,up = VEC_LENGTH(ifilters);down < up;) { \
+	for (size_t down = 0,up = VEC_LENGTH(filters);down < up;) { \
 		it = (up + down) / 2; \
-		if (maskedpk < VEC_BUF(ifilters,it).f) \
+		if (maskedpk < VEC_BUF(filters,it).f) \
 			up = it; \
-		else if (maskedpk > VEC_BUF(ifilters,it).f) \
+		else if (maskedpk > VEC_BUF(filters,it).f) \
 			down = it + 1; \
 		else { \
 			code; \
@@ -493,10 +481,10 @@ do { \
 
 #define DOFILTER(it,pk,code) \
 do { \
-	for (size_t down = 0,up = VEC_LENGTH(ifilters);down < up;) { \
+	for (size_t down = 0,up = VEC_LENGTH(filters);down < up;) { \
 		it = (up + down) / 2; \
-		IFT maskedpk = *(IFT *)(pk) & VEC_BUF(ifilters,it).m; \
-		register int cmp = memcmp(&maskedpk,&VEC_BUF(ifilters,it).f,sizeof(IFT)); \
+		IFT maskedpk = *(IFT *)(pk) & VEC_BUF(filters,it).m; \
+		register int cmp = memcmp(&maskedpk,&VEC_BUF(filters,it).f,sizeof(IFT)); \
 		if (cmp < 0) \
 			up = it; \
 		else if (cmp > 0) \
@@ -517,12 +505,12 @@ do { \
 # ifndef BINSEARCH
 
 #define MATCHFILTER(it,pk) ( \
-	memcmp(pk,VEC_BUF(bfilters,it).f,VEC_BUF(bfilters,it).len) == 0 && \
-	(pk[VEC_BUF(bfilters,it).len] & VEC_BUF(bfilters,it).mask) == VEC_BUF(bfilters,it).f[VEC_BUF(bfilters,it).len])
+	memcmp(pk,VEC_BUF(filters,it).f,VEC_BUF(filters,it).len) == 0 && \
+	(pk[VEC_BUF(filters,it).len] & VEC_BUF(filters,it).mask) == VEC_BUF(filters,it).f[VEC_BUF(filters,it).len])
 
 #define DOFILTER(it,pk,code) \
 do { \
-	for (it = 0;it < VEC_LENGTH(bfilters);++it) { \
+	for (it = 0;it < VEC_LENGTH(filters);++it) { \
 		if (unlikely(MATCHFILTER(it,pk))) { \
 			code; \
 			break; \
@@ -534,10 +522,10 @@ do { \
 
 #define DOFILTER(it,pk,code) \
 do { \
-	for (size_t down = 0,up = VEC_LENGTH(bfilters);down < up;) { \
+	for (size_t down = 0,up = VEC_LENGTH(filters);down < up;) { \
 		it = (up + down) / 2; \
 		{ \
-			register int filterdiff = memcmp(pk,VEC_BUF(bfilters,it).f,VEC_BUF(bfilters,it).len); \
+			register int filterdiff = memcmp(pk,VEC_BUF(filters,it).f,VEC_BUF(filters,it).len); \
 			if (filterdiff < 0) { \
 				up = it; \
 				continue; \
@@ -547,14 +535,14 @@ do { \
 				continue; \
 			} \
 		} \
-		if ((pk[VEC_BUF(bfilters,it).len] & VEC_BUF(bfilters,it).mask) < \
-			VEC_BUF(bfilters,it).f[VEC_BUF(bfilters,it).len]) \
+		if ((pk[VEC_BUF(filters,it).len] & VEC_BUF(filters,it).mask) < \
+			VEC_BUF(filters,it).f[VEC_BUF(filters,it).len]) \
 		{ \
 			up = it; \
 			continue; \
 		} \
-		if ((pk[VEC_BUF(bfilters,it).len] & VEC_BUF(bfilters,it).mask) > \
-			VEC_BUF(bfilters,it).f[VEC_BUF(bfilters,it).len]) \
+		if ((pk[VEC_BUF(filters,it).len] & VEC_BUF(filters,it).mask) > \
+			VEC_BUF(filters,it).f[VEC_BUF(filters,it).len]) \
 		{ \
 			down = it + 1; \
 			continue; \
@@ -591,11 +579,7 @@ static void filters_print()
 	if (quietflag)
 		return;
 	size_t i,l;
-#ifdef INTFILTER
-	l = VEC_LENGTH(ifilters);
-#else
-	l = VEC_LENGTH(bfilters);
-#endif
+	l = VEC_LENGTH(filters);
 	if (l)
 		fprintf(stderr,"filters:\n");
 
@@ -615,17 +599,17 @@ static void filters_print()
 		u8 *imraw;
 
 # ifndef OMITMASK
-		imraw = (u8 *)&VEC_BUF(ifilters,i).m;
+		imraw = (u8 *)&VEC_BUF(filters,i).m;
 # else
 		imraw = (u8 *)&ifiltermask;
 # endif
 		while (len < sizeof(IFT) && imraw[len] != 0x00) ++len;
 		u8 mask = imraw[len-1];
-		u8 *ifraw = (u8 *)&VEC_BUF(ifilters,i).f;
+		u8 *ifraw = (u8 *)&VEC_BUF(filters,i).f;
 #else
-		size_t len = VEC_BUF(bfilters,i).len + 1;
-		u8 mask = VEC_BUF(bfilters,i).mask;
-		u8 *ifraw = VEC_BUF(bfilters,i).f;
+		size_t len = VEC_BUF(filters,i).len + 1;
+		u8 mask = VEC_BUF(filters,i).mask;
+		u8 *ifraw = VEC_BUF(filters,i).f;
 #endif
 		base32_to(buf0,ifraw,len);
 		memcpy(bufx,ifraw,len);
