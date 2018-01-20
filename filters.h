@@ -594,7 +594,8 @@ do { \
 	base32_to(pkconvbuf,pk,PUBLIC_LEN); \
 	size_t __l = VEC_LENGTH(filters); \
 	for (it = 0;it < __l;++it) { \
-		int rc = pcre2_match(VEC_BUF(filters,it).re,(PCRE2_SPTR8)pkconvbuf,BASE32_TO_LEN(PUBLIC_LEN),0,0,pcre2md,0); \
+		int rc = pcre2_match(VEC_BUF(filters,it).re,(PCRE2_SPTR8)pkconvbuf,BASE32_TO_LEN(PUBLIC_LEN),0, \
+			PCRE2_NO_UTF_CHECK,pcre2md,0); \
 		if (unlikely(rc >= 0)) { \
 			code; \
 			break; \
