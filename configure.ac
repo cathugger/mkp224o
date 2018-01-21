@@ -51,6 +51,7 @@ then
 fi
 
 MYDEFS=""
+MAINLIB=""
 
 ed25519impl=""
 AC_ARG_ENABLE([ref10],
@@ -235,7 +236,7 @@ then
 	MYDEFS="$MYDEFS -DSTATISTICS"
 fi
 
-AC_ARG_WITH([pcre2],[AC_HELP_STRING([--with-pcre2],[pcre2-config executable @<:@default=pcre2@:>@])],[],[with_pcre2="pcre2-config"])
+AC_ARG_WITH([pcre2],[AC_HELP_STRING([--with-pcre2],[pcre2-config executable @<:@default=pcre2-config@:>@])],[],[with_pcre2="pcre2-config"])
 
 AC_ARG_ENABLE([regex],[AC_HELP_STRING([--enable-regex],[whether to enable regex engine. currently possible values are "pcre2" and "yes" which defaults to "pcre2" @<:@default=no@:>@])],[],[enable_regex=no])
 case "$enable_regex" in
@@ -260,7 +261,7 @@ yes|pcre2)
 		LF=`"$with_pcre2" --libs8`
 		if test -n "$LF"
 		then
-			LDFLAGS="$LDFLAGS $LF"
+			MAINLIB="$MAINLIB $LF"
 		fi
 	else
 		AC_MSG_RESULT([not found])
@@ -275,5 +276,6 @@ esac
 AC_SUBST(CSTD,["$cstd"])
 AC_SUBST(ED25519IMPL,["$ed25519impl"])
 AC_SUBST(MYDEFS,["$MYDEFS"])
+AC_SUBST(MAINLIB,["$MAINLIB"])
 AC_SUBST(NOPIE,["$nopie"])
 AC_OUTPUT(Makefile)

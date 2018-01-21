@@ -54,7 +54,7 @@ ALLO= $(sort \
 ALLC= $(patsubst %.c.o,%.c,$(filter %.c.o %.c,$(ALLO)))
 CLEANO= $(filter %.o,$(ALLO))
 
-MAINLIB= -lpthread -lsodium
+MAINLIB= -lpthread -lsodium @MAINLIB@
 TEST_ED25519LIB= -lsodium
 
 EXE= mkp224o test_base32 test_base16 test_ed25519
