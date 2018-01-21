@@ -1,2 +1,15 @@
+# output files
+mkp224o
 *.o
+
+# generated onions
 *.onion
+
+# garbage
+configure
+Makefile
+Makefile.in.bak
+config.status
+config.log
+*.cache
+*.swp
