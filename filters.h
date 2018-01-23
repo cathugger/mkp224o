@@ -391,7 +391,8 @@ static void filters_add(const char *filter)
 	int errornum;
 	PCRE2_SIZE erroroffset;
 	pcre2_code *re;
-	re = pcre2_compile((PCRE2_SPTR8)filter,PCRE2_ZERO_TERMINATED,0,&errornum,&erroroffset,0);
+	re = pcre2_compile((PCRE2_SPTR8)filter,PCRE2_ZERO_TERMINATED,
+		PCRE2_NO_UTF_CHECK | PCRE2_ANCHORED,&errornum,&erroroffset,0);
 	if (!re) {
 		PCRE2_UCHAR buffer[1024];
 		pcre2_get_error_message(errornum,buffer,sizeof(buffer));
