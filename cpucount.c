@@ -41,9 +41,15 @@
 #  include <sys/sysctl.h>
 #endif
 
-#include <unistd.h>
 #include <string.h>
 #include <stdio.h>
+
+#ifndef _WIN32
+#include <unistd.h>
+#else
+#define UNICODE 1
+#include <windows.h>
+#endif
 
 #ifdef __linux__
 #include <stdio.h>
