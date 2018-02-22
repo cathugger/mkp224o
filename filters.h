@@ -310,10 +310,9 @@ static void filter_sort(void)
 #endif // BINFILTER
 
 #ifdef PCRE2FILTER
-static size_t filter_len(size_t i)
-{
-	return 0;
-}
+
+#define filter_len(i) ((pcre2ovector[1] - pcre2ovector[0]) * 5)
+
 #endif // PCRE2FILTER
 
 static void filters_add(const char *filter)
@@ -585,7 +584,8 @@ do { \
 
 #define PREFILTER \
 	char pkconvbuf[BASE32_TO_LEN(PUBLIC_LEN) + 1]; \
-	pcre2_match_data *pcre2md = pcre2_match_data_create(128,0);
+	pcre2_match_data *pcre2md = pcre2_match_data_create(128,0); \
+	PCRE2_SIZE *pcre2ovector = 0;
 
 #define POSTFILTER \
 	pcre2_match_data_free(pcre2md);
@@ -598,6 +598,7 @@ do { \
 		int rc = pcre2_match(VEC_BUF(filters,it).re,(PCRE2_SPTR8)pkconvbuf,BASE32_TO_LEN(PUBLIC_LEN),0, \
 			PCRE2_NO_UTF_CHECK,pcre2md,0); \
 		if (unlikely(rc >= 0)) { \
+			pcre2ovector = pcre2_get_ovector_pointer(pcre2md); \
 			code; \
 			break; \
 		} \

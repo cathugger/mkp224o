@@ -699,7 +699,7 @@ int main(int argc,char **argv)
 		clock_gettime(CLOCK_MONOTONIC,&nowtime);
 		inowtime = (1000000 * (u64)nowtime.tv_sec) + (nowtime.tv_nsec / 1000);
 		u64 sumcalc = 0,sumsuccess = 0,sumrestart = 0;
-		for (size_t i = 0;i < numthreads;++i) {
+		for (int i = 0;i < numthreads;++i) {
 			u32 newt,tdiff;
 			// numcalc
 			newt = VEC_BUF(stats,i).numcalc.v;
@@ -736,7 +736,7 @@ int main(int argc,char **argv)
 				(inowtime - istarttime + elapsedoffset) / 1000000.0);
 
 			if (realtimestats) {
-				for (size_t i = 0;i < numthreads;++i) {
+				for (int i = 0;i < numthreads;++i) {
 					VEC_BUF(tstats,i).numcalc = 0;
 					VEC_BUF(tstats,i).numsuccess = 0;
 					VEC_BUF(tstats,i).numrestart = 0;
@@ -746,7 +746,7 @@ int main(int argc,char **argv)
 			}
 		}
 		if (sumcalc > U64_MAX / 2) {
-			for (size_t i = 0;i < numthreads;++i) {
+			for (int i = 0;i < numthreads;++i) {
 				VEC_BUF(tstats,i).numcalc /= 2;
 				VEC_BUF(tstats,i).numsuccess /= 2;
 				VEC_BUF(tstats,i).numrestart /= 2;

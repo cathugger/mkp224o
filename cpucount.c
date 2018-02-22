@@ -98,7 +98,7 @@ static int parsecpuinfo()
 		if (strcasecmp(buf,"processor") == 0 && v) {
 			char *endp = 0;
 			long n = strtol(v,&endp,10);
-			if (endp && endp > v && n >= 0 && n < sizeof(cpubitmap) * 8)
+			if (endp && endp > v && n >= 0 && (size_t)n < sizeof(cpubitmap) * 8)
 				cpubitmap[n / 8] |= 1 << (n % 8);
 		}
 	}
