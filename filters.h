@@ -396,7 +396,7 @@ static void filters_add(const char *filter)
 	if (!re) {
 		PCRE2_UCHAR buffer[1024];
 		pcre2_get_error_message(errornum,buffer,sizeof(buffer));
-		fprintf(stderr,"PCRE2 compilation failed at offset %zu: %s\n",
+		fprintf(stderr,"PCRE2 compilation failed at offset " FSZ ": %s\n",
 			(size_t)erroroffset,buffer);
 		return;
 	}
@@ -640,7 +640,7 @@ static void filters_print()
 
 		if (i >= 20) {
 			size_t notshown = l - i;
-			fprintf(stderr,"[another %zu %s not shown]\n",
+			fprintf(stderr,"[another " FSZ " %s not shown]\n",
 				notshown,notshown == 1 ? "filter" : "filters");
 			break;
 		}
@@ -679,5 +679,5 @@ static void filters_print()
 		fprintf(stderr,"\t%s\n",VEC_BUF(filters,i).str);
 #endif // PCRE2FILTER
 	}
-	fprintf(stderr,"in total, %zu %s\n",l,l == 1 ? "filter" : "filters");
+	fprintf(stderr,"in total, " FSZ " %s\n",l,l == 1 ? "filter" : "filters");
 }

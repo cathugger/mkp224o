@@ -20,6 +20,12 @@
 #include "ed25519/ed25519.h"
 #include "ioutil.h"
 
+#ifndef _WIN32
+#define FSZ "%zu"
+#else
+#define FSZ "%Iu"
+#endif
+
 // additional 0 terminator is added by C
 static const char * const pkprefix = "== ed25519v1-public: type0 ==\0\0";
 #define pkprefixlen (29 + 3)
@@ -664,7 +670,7 @@ int main(int argc,char **argv)
 #endif
 		tret = pthread_create(&VEC_BUF(threads,i),0,fastkeygen ? dofastwork : dowork,tp);
 		if (tret) {
-			fprintf(stderr,"error while making %zuth thread: %d\n",i,tret);
+			fprintf(stderr,"error while making " FSZ "th thread: %d\n",i,tret);
 			exit(1);
 		}
 	}
