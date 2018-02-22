@@ -471,6 +471,7 @@ int main(int argc,char **argv)
 	ge_initeightpoint();
 	filters_init();
 
+	setvbuf(stderr,0,_IONBF,0);
 	fout = stdout;
 	pthread_mutex_init(&keysgenerated_mutex, 0);
 	pthread_mutex_init(&fout_mutex, 0);
