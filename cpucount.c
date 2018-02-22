@@ -131,5 +131,13 @@ int cpucount(void)
 	if (ncpu > 0)
 		return ncpu;
 #endif
+#ifdef _WIN32
+	SYSTEM_INFO sysinfo;
+	GetSystemInfo(&sysinfo);
+	ncpu = (int)sysinfo.dwNumberOfProcessors;
+	if (ncpu > 0)
+		return ncpu;
+#endif
+	(void) ncpu;
 	return -1;
 }
