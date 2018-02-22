@@ -2,6 +2,9 @@
 #include <string.h>
 #include "types.h"
 #include "ioutil.h"
+
+#ifndef _WIN32
+
 #include <errno.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -51,6 +54,52 @@ int closefile(FH fd)
 	return 0;
 }
 
+int createdir(const char *path,int secret)
+{
+	return mkdir(path,secret ? 0700 : 0777);
+}
+
+#else
+
+int writeall(FH fd,const u8 *data,size_t len)
+{
+	DWORD wrote;
+	BOOL success;
+	while (len) {
+		success = WriteFile(fd,data,
+			len <= (DWORD)-1 ? (DWORD)len : (DWORD)-1,&wrote,0);
+		if (!success)
+			return -1;
+		data += wrote;
+		if (len >= wrote)
+			len -= wrote;
+		else
+			len = 0;
+	}
+	return 0;
+}
+
+FH createfile(const char *path,int secret)
+{
+	// XXX no support for non-ascii chars
+	// XXX don't know how to handle secret argument
+	(void) secret;
+	return CreateFileA(path,GENERIC_WRITE,0,0,CREATE_ALWAYS,0,0);
+}
+
+int closefile(FH fd)
+{
+	return CloseHandle(fd) ? 0 : -1;
+}
+
+int createdir(const char *path,int secret)
+{
+	// XXX don't know how to handle secret argument
+	return CreateDirectoryA(path,0) ? 0 : -1;
+}
+
+#endif
+
 int writetofile(const char *path,const u8 *data,size_t len,int secret)
 {
 	FH fd = createfile(path,secret);
@@ -59,9 +108,4 @@ int writetofile(const char *path,const u8 *data,size_t len,int secret)
 	if (cret == -1)
 		return -1;
 	return wret;
-}
-
-int createdir(const char *path,int secret)
-{
-	return mkdir(path,secret ? 0700 : 0777);
 }
