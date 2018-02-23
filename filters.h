@@ -43,7 +43,7 @@ struct binfilter {
 
 
 #ifdef BINFILTER
-VEC_STRUCT(bfiltervec,struct binfilter) filters;
+static VEC_STRUCT(bfiltervec,struct binfilter) filters;
 #endif // BINFILTER
 
 #ifdef INTFILTER
@@ -53,7 +53,7 @@ struct intfilter {
 	IFT m;
 # endif
 } ;
-VEC_STRUCT(ifiltervec,struct intfilter) filters;
+static VEC_STRUCT(ifiltervec,struct intfilter) filters;
 # ifdef OMITMASK
 IFT ifiltermask;
 # endif
@@ -68,7 +68,7 @@ struct pcre2filter {
 	char *str;
 	pcre2_code *re;
 } ;
-VEC_STRUCT(pfiltervec,struct pcre2filter) filters;
+static VEC_STRUCT(pfiltervec,struct pcre2filter) filters;
 
 #endif // PCRE2FILTER
 

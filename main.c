@@ -178,8 +178,8 @@ static inline void shiftpk(u8 *dst,const u8 *src,size_t sbits)
 	size_t i,sbytes = sbits / 8;
 	sbits %= 8;
 	for (i = 0;i + sbytes < PUBLIC_LEN;++i) {
-		dst[i] = (src[i+sbytes] << sbits) |
-			(src[i+sbytes+1] >> (8 - sbits));
+		dst[i] = (u8) ((src[i+sbytes] << sbits) |
+			(src[i+sbytes+1] >> (8 - sbits)));
 	}
 	for(;i < PUBLIC_LEN;++i)
 		dst[i] = 0;
@@ -395,7 +395,7 @@ end:
 	return 0;
 }
 
-void printhelp(const char *progname)
+static void printhelp(const char *progname)
 {
 	fprintf(stderr,
 		"Usage: %s filter [filter...] [options]\n"
@@ -432,7 +432,7 @@ void setworkdir(const char *wd)
 			fprintf(stderr, "unset workdir\n");
 		return;
 	}
-	int needslash = 0;
+	unsigned needslash = 0;
 	if (wd[l-1] != '/')
 		needslash = 1;
 	char *s = malloc(l + needslash + 1);
@@ -683,7 +683,7 @@ int main(int argc,char **argv)
 		fprintf(stderr, "failed to get time\n");
 		exit(1);
 	}
-	istarttime = (1000000 * (u64)nowtime.tv_sec) + (nowtime.tv_nsec / 1000);
+	istarttime = (1000000 * (u64)nowtime.tv_sec) + ((u64)nowtime.tv_nsec / 1000);
 #endif
 	struct timespec ts;
 	memset(&ts,0,sizeof(ts));
@@ -697,7 +697,7 @@ int main(int argc,char **argv)
 
 #ifdef STATISTICS
 		clock_gettime(CLOCK_MONOTONIC,&nowtime);
-		inowtime = (1000000 * (u64)nowtime.tv_sec) + (nowtime.tv_nsec / 1000);
+		inowtime = (1000000 * (u64)nowtime.tv_sec) + ((u64)nowtime.tv_nsec / 1000);
 		u64 sumcalc = 0,sumsuccess = 0,sumrestart = 0;
 		for (int i = 0;i < numthreads;++i) {
 			u32 newt,tdiff;

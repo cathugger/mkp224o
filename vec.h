@@ -20,7 +20,7 @@ do { \
 
 void vec_addn(struct vec_basestruct *ctl,size_t sz,size_t n);
 #define VEC_ADDN(ctl,n) \
-	vec_addn((struct vec_basestruct *)&(ctl),VEC_ELSIZE(ctl),(n))
+	vec_addn((struct vec_basestruct *)&(ctl),VEC_ELSIZE(ctl),(size_t)(n))
 
 #define VEC_REMOVEN(ctl,n,m) \
 do { \
