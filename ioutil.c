@@ -20,7 +20,7 @@ int writeall(FH fd,const u8 *data,size_t len)
 				continue;
 			return -1;
 		}
-		len -= wrote;
+		len -= (size_t) wrote;
 		data += wrote;
 	}
 	return 0;

@@ -77,6 +77,6 @@ int base16_valid(const char *src,size_t *count)
 		;
 
 	if (count)
-		*count = p - src;
+		*count = (size_t) (p - src);
 	return !*p;
 }
