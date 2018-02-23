@@ -42,7 +42,6 @@
 #endif
 
 #include <string.h>
-#include <stdio.h>
 
 #ifndef _WIN32
 #include <unistd.h>
