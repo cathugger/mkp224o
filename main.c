@@ -395,9 +395,9 @@ end:
 	return 0;
 }
 
-static void printhelp(const char *progname)
+static void printhelp(FILE *out,const char *progname)
 {
-	fprintf(stderr,
+	fprintf(out,
 		"Usage: %s filter [filter...] [options]\n"
 		"       %s -f filterfile [options]\n"
 		"Options:\n"
@@ -418,10 +418,11 @@ static void printhelp(const char *progname)
 		"\t-S t  - print statistics every specified ammount of seconds\n"
 		"\t-T  - do not reset statistics counters when printing\n"
 		,progname,progname);
+	fflush(out);
 	exit(1);
 }
 
-void setworkdir(const char *wd)
+static void setworkdir(const char *wd)
 {
 	free(workdir);
 	size_t l = strlen(wd);
@@ -478,7 +479,7 @@ int main(int argc,char **argv)
 
 	const char *progname = argv[0];
 	if (argc <= 1)
-		printhelp(progname);
+		printhelp(stderr,progname);
 	argc--, argv++;
 
 	while (argc--) {
@@ -497,7 +498,7 @@ int main(int argc,char **argv)
 				if (!*arg)
 					ignoreargs = 1;
 				else if (!strcmp(arg, "help"))
-					printhelp(progname);
+					printhelp(stdout,progname);
 				else {
 					fprintf(stderr, "unrecognised argument: --%s\n", arg);
 					exit(1);
@@ -510,7 +511,7 @@ int main(int argc,char **argv)
 				continue;
 			}
 			else if (*arg == 'h')
-				printhelp(progname);
+				printhelp(stdout,progname);
 			else if (*arg == 'f') {
 				if (argc--)
 					loadfilterfile(*argv++);
