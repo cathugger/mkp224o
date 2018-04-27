@@ -54,7 +54,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
-static int parsecpuinfo()
+static int parsecpuinfo(void)
 {
 	unsigned char cpubitmap[128];
 

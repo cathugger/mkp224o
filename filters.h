@@ -400,7 +400,7 @@ static void filters_add(const char *filter)
 		return;
 	}
 	// attempt to JIT. ignore error
-	(void)pcre2_jit_compile(re,PCRE2_JIT_COMPLETE);
+	(void) pcre2_jit_compile(re,PCRE2_JIT_COMPLETE);
 	struct pcre2filter f;
 	memset(&f,0,sizeof(f));
 	f.re = re;
@@ -414,13 +414,13 @@ static void filters_add(const char *filter)
 }
 
 #ifdef NEEDBINFILTER
-static void filters_dedup()
+static void filters_dedup(void)
 {
 	//TODO
 }
 #endif // NEEDBINFILTER
 
-static void filters_prepare()
+static void filters_prepare(void)
 {
 #ifndef PCRE2FILTER
 	if (!quietflag)
@@ -436,7 +436,7 @@ static void filters_prepare()
 #endif
 }
 
-static void filters_clean()
+static void filters_clean(void)
 {
 #ifdef PCRE2FILTER
 	for (size_t i = 0;i < VEC_LENGTH(filters);++i) {
@@ -447,7 +447,7 @@ static void filters_clean()
 	VEC_FREE(filters);
 }
 
-static size_t filters_count()
+static size_t filters_count(void)
 {
 	return VEC_LENGTH(filters);
 }
@@ -624,7 +624,7 @@ static void loadfilterfile(const char *fname)
 	}
 }
 
-static void filters_print()
+static void filters_print(void)
 {
 	if (quietflag)
 		return;

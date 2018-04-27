@@ -57,7 +57,7 @@ struct masktestcase {
 };
 */
 
-int main()
+int main(void)
 {
 	char buf[1024], buf2[1024], mask;
 	size_t r;

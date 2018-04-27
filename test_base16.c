@@ -30,7 +30,7 @@ struct texttestcase {
 	{"foobar", "666F6F626172", "foobar"},
 };
 
-int main()
+int main(void)
 {
 	char buf[1024], buf2[1024], mask;
 	size_t r;

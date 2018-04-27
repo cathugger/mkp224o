@@ -35,7 +35,7 @@ struct pktest {
 #define SECRETKEYBYTES 64
 #define PUBLICKEYBYTES 32
 
-int main()
+int main(void)
 {
 	u8 seedbuf[SEEDBYTES];
 	u8 secretbuf1[SECRETKEYBYTES];
