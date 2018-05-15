@@ -12,4 +12,3 @@ Makefile.in.bak
 config.status
 config.log
 *.cache
-*.swp
