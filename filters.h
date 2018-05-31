@@ -262,7 +262,9 @@ static inline int filter_compare(const void *p1,const void *p2)
 
 static void filter_sort(void)
 {
-	qsort(&VEC_BUF(filters,0),VEC_LENGTH(filters),sizeof(struct intfilter),&filter_compare);
+	size_t len = VEC_LENGTH(filters);
+	if (len > 0)
+		qsort(&VEC_BUF(filters,0),len,sizeof(struct intfilter),&filter_compare);
 }
 
 #endif // INTFILTER
@@ -304,7 +306,9 @@ static inline int filter_compare(const void *p1,const void *p2)
 
 static void filter_sort(void)
 {
-	qsort(&VEC_BUF(filters,0),VEC_LENGTH(filters),sizeof(struct binfilter),&filter_compare);
+	size_t len = VEC_LENGTH(filters);
+	if (len > 0)
+		qsort(&VEC_BUF(filters,0),len,sizeof(struct binfilter),&filter_compare);
 }
 
 #endif // BINFILTER
