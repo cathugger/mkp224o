@@ -10,6 +10,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <sodium/randombytes.h>
+#include <sodium/utils.h>
 
 #include "types.h"
 #include "likely.h"
@@ -111,7 +112,7 @@ VEC_STRUCT(tstatsvec,struct tstatstruct);
 #endif
 
 
-static void onionready(char *sname, const u8 *secret, const u8 *pubonion)
+static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 {
 	if (endwork)
 		return;
@@ -264,7 +265,7 @@ again:
 		// version byte
 		pk[PUBLIC_LEN + 2] = 0x03;
 		// base32
-		strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN), ".onion");
+		strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
 		onionready(sname,secret,pubonion.raw);
 		pk[PUBLIC_LEN] = 0;
 		goto initseed;
@@ -276,6 +277,8 @@ next:
 end:
 	free(sname);
 	POSTFILTER
+	sodium_memzero(secret,sizeof(secret));
+	sodium_memzero(seed,sizeof(seed));
 	return 0;
 }
 
@@ -315,7 +318,7 @@ static void *dofastwork(void *task)
 #endif
 	PREFILTER
 
-	memcpy(secret, skprefix, skprefixlen);
+	memcpy(secret,skprefix,skprefixlen);
 	wpk[PUBLIC_LEN] = 0;
 	memset(&pubonion,0,sizeof(pubonion));
 	memcpy(pubonion.raw,pkprefix,pkprefixlen);
@@ -392,6 +395,8 @@ initseed:
 end:
 	free(sname);
 	POSTFILTER
+	sodium_memzero(secret,sizeof(secret));
+	sodium_memzero(seed,sizeof(seed));
 	return 0;
 }
 
@@ -401,7 +406,7 @@ static void printhelp(FILE *out,const char *progname)
 		"Usage: %s filter [filter...] [options]\n"
 		"       %s -f filterfile [options]\n"
 		"Options:\n"
-		"\t-h  - print help\n"
+		"\t-h  - print help to stdout and quit\n"
 		"\t-f  - instead of specifying filter(s) via commandline, specify filter file which contains filters separated by newlines\n"
 		"\t-q  - do not print diagnostic output to stderr\n"
 		"\t-x  - do not print onion names\n"
@@ -419,8 +424,30 @@ static void printhelp(FILE *out,const char *progname)
 		"\t-T  - do not reset statistics counters when printing\n"
 		,progname,progname);
 	fflush(out);
-	exit(1);
 }
+
+enum {
+	Q_ADDITIONAL = 100,
+	Q_UNRECOGNISED = 101,
+	Q_NOSTATISTICS = 102,
+	Q_FAILOPENOUTPUT = 103,
+	Q_FAILTHREAD = 104,
+	Q_FAILTIME = 105,
+} ;
+
+static void e_additional()
+{
+	fprintf(stderr,"additional argument required\n");
+	exit(Q_ADDITIONAL);
+}
+
+#ifndef STATISTICS
+static void e_nostatistics()
+{
+	fprintf(stderr,"statistics support not compiled in\n");
+	exit(Q_NOSTATISTICS);
+}
+#endif
 
 static void setworkdir(const char *wd)
 {
@@ -430,7 +457,7 @@ static void setworkdir(const char *wd)
 		workdir = 0;
 		workdirlen = 0;
 		if (!quietflag)
-			fprintf(stderr, "unset workdir\n");
+			fprintf(stderr,"unset workdir\n");
 		return;
 	}
 	unsigned needslash = 0;
@@ -439,7 +466,7 @@ static void setworkdir(const char *wd)
 	char *s = malloc(l + needslash + 1);
 	if (!s)
 		abort();
-	memcpy(s, wd, l);
+	memcpy(s,wd,l);
 	if (needslash)
 		s[l++] = '/';
 	s[l] = 0;
@@ -474,13 +501,15 @@ int main(int argc,char **argv)
 
 	setvbuf(stderr,0,_IONBF,0);
 	fout = stdout;
-	pthread_mutex_init(&keysgenerated_mutex, 0);
-	pthread_mutex_init(&fout_mutex, 0);
+	pthread_mutex_init(&keysgenerated_mutex,0);
+	pthread_mutex_init(&fout_mutex,0);
 
 	const char *progname = argv[0];
-	if (argc <= 1)
+	if (argc <= 1) {
 		printhelp(stderr,progname);
-	argc--, argv++;
+		exit(1);
+	}
+	argc--; argv++;
 
 	while (argc--) {
 		arg = *argv++;
@@ -491,17 +520,19 @@ int main(int argc,char **argv)
 			++numargit;
 			if (*arg == '-') {
 				if (numargit > 1) {
-					fprintf(stderr, "unrecognised argument: -\n");
-					exit(1);
+					fprintf(stderr,"unrecognised argument: -\n");
+					exit(Q_UNRECOGNISED);
 				}
 				++arg;
 				if (!*arg)
 					ignoreargs = 1;
-				else if (!strcmp(arg, "help"))
+				else if (!strcmp(arg,"help") || !strcmp(arg,"usage")) {
 					printhelp(stdout,progname);
+					exit(0);
+				}
 				else {
-					fprintf(stderr, "unrecognised argument: --%s\n", arg);
-					exit(1);
+					fprintf(stderr,"unrecognised argument: --%s\n",arg);
+					exit(Q_UNRECOGNISED);
 				}
 				numargit = 0;
 			}
@@ -510,15 +541,15 @@ int main(int argc,char **argv)
 					ignoreargs = 1;
 				continue;
 			}
-			else if (*arg == 'h')
+			else if (*arg == 'h') {
 				printhelp(stdout,progname);
+				exit(0);
+			}
 			else if (*arg == 'f') {
 				if (argc--)
 					loadfilterfile(*argv++);
-				else {
-					fprintf(stderr, "additional argument required\n");
-					exit(1);
-				}
+				else
+					e_additional();
 			}
 			else if (*arg == 'q')
 				++quietflag;
@@ -527,44 +558,34 @@ int main(int argc,char **argv)
 			else if (*arg == 'o') {
 				if (argc--)
 					outfile = *argv++;
-				else {
-					fprintf(stderr, "additional argument required\n");
-					exit(1);
-				}
+				else
+					e_additional();
 			}
 			else if (*arg == 'F')
 				dirnameflag = 1;
 			else if (*arg == 'd') {
-				if (argc--) {
+				if (argc--)
 					setworkdir(*argv++);
-				}
-				else {
-					fprintf(stderr, "additional argument required\n");
-				}
+				else
+					e_additional();
 			}
 			else if (*arg == 't' || *arg == 'j') {
 				if (argc--)
 					numthreads = atoi(*argv++);
-				else {
-					fprintf(stderr, "additional argument required\n");
-					exit(1);
-				}
+				else
+					e_additional();
 			}
 			else if (*arg == 'n') {
 				if (argc--)
 					numneedgenerate = (size_t)atoll(*argv++);
-				else {
-					fprintf(stderr, "additional argument required\n");
-					exit(1);
-				}
+				else
+					e_additional();
 			}
 			else if (*arg == 'N') {
 				if (argc--)
 					numwords = atoi(*argv++);
-				else {
-					fprintf(stderr, "additional argument required\n");
-					exit(1);
-				}
+				else
+					e_additional();
 			}
 			else if (*arg == 'Z')
 				fastkeygen = 0;
@@ -574,34 +595,29 @@ int main(int argc,char **argv)
 #ifdef STATISTICS
 				reportdelay = 10000000;
 #else
-				fprintf(stderr,"statistics support not compiled in\n");
-				exit(1);
+				e_nostatistics();
 #endif
 			}
 			else if (*arg == 'S') {
 #ifdef STATISTICS
 				if (argc--)
 					reportdelay = (u64)atoll(*argv++) * 1000000;
-				else {
-					fprintf(stderr, "additional argument required\n");
-					exit(1);
-				}
+				else
+					e_additional();
 #else
-				fprintf(stderr,"statistics support not compiled in\n");
-				exit(1);
+				e_nostatistics();
 #endif
 			}
 			else if (*arg == 'T') {
 #ifdef STATISTICS
 				realtimestats = 0;
 #else
-				fprintf(stderr,"statistics support not compiled in\n");
-				exit(1);
+				e_nostatistics();
 #endif
 			}
 			else {
-				fprintf(stderr, "unrecognised argument: -%c\n", *arg);
-				exit(1);
+				fprintf(stderr,"unrecognised argument: -%c\n",*arg);
+				exit(Q_UNRECOGNISED);
 			}
 			if (numargit)
 				goto nextarg;
@@ -625,8 +641,13 @@ int main(int argc,char **argv)
 		fprintf(stderr,"WARNING: -N switch will produce bogus results because we can't know filter width. reconfigure with --enable-besort and recompile.\n");
 #endif
 
-	if (outfile)
-		fout = fopen(outfile, "w");
+	if (outfile) {
+		fout = fopen(outfile,"w");
+		if (!fout) {
+			perror("failed to open output file");
+			exit(Q_FAILOPENOUTPUT);
+		}
+	}
 
 	if (workdir)
 		createdir(workdir,1);
@@ -672,8 +693,8 @@ int main(int argc,char **argv)
 #endif
 		tret = pthread_create(&VEC_BUF(threads,i),0,fastkeygen ? dofastwork : dowork,tp);
 		if (tret) {
-			fprintf(stderr,"error while making " FSZ "th thread: %d\n",i,tret);
-			exit(1);
+			fprintf(stderr,"error while making " FSZ "th thread: %d (%s)\n",i,tret,strerror(tret));
+			exit(Q_FAILTHREAD);
 		}
 	}
 
@@ -681,8 +702,8 @@ int main(int argc,char **argv)
 	struct timespec nowtime;
 	u64 istarttime,inowtime,ireporttime = 0,elapsedoffset = 0;
 	if (clock_gettime(CLOCK_MONOTONIC,&nowtime) < 0) {
-		fprintf(stderr, "failed to get time\n");
-		exit(1);
+		perror("failed to get time");
+		exit(Q_FAILTIME);
 	}
 	istarttime = (1000000 * (u64)nowtime.tv_sec) + ((u64)nowtime.tv_nsec / 1000);
 #endif
@@ -760,11 +781,11 @@ int main(int argc,char **argv)
 	}
 
 	if (!quietflag)
-		fprintf(stderr, "waiting for threads to finish...");
+		fprintf(stderr,"waiting for threads to finish...");
 	for (size_t i = 0;i < VEC_LENGTH(threads);++i)
 		pthread_join(VEC_BUF(threads,i),0);
 	if (!quietflag)
-		fprintf(stderr, " done.\n");
+		fprintf(stderr," done.\n");
 
 	pthread_mutex_destroy(&keysgenerated_mutex);
 	pthread_mutex_destroy(&fout_mutex);
