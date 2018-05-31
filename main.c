@@ -481,7 +481,7 @@ VEC_STRUCT(threadvec, pthread_t);
 
 int main(int argc,char **argv)
 {
-	char *outfile = 0;
+	const char *outfile = 0;
 	const char *arg;
 	int ignoreargs = 0;
 	int dirnameflag = 0;
@@ -622,7 +622,16 @@ int main(int argc,char **argv)
 			if (numargit)
 				goto nextarg;
 		}
-		else filters_add(arg);
+		else
+			filters_add(arg);
+	}
+
+	if (outfile) {
+		fout = fopen(outfile,"w");
+		if (!fout) {
+			perror("failed to open output file");
+			exit(Q_FAILOPENOUTPUT);
+		}
 	}
 
 	filters_prepare();
@@ -640,14 +649,6 @@ int main(int argc,char **argv)
 	if (numwords > 1 && flattened)
 		fprintf(stderr,"WARNING: -N switch will produce bogus results because we can't know filter width. reconfigure with --enable-besort and recompile.\n");
 #endif
-
-	if (outfile) {
-		fout = fopen(outfile,"w");
-		if (!fout) {
-			perror("failed to open output file");
-			exit(Q_FAILOPENOUTPUT);
-		}
-	}
 
 	if (workdir)
 		createdir(workdir,1);
