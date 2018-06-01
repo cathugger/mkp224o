@@ -687,16 +687,34 @@ int main(int argc,char **argv)
 	VEC_ZERO(tstats);
 #endif
 
+	pthread_attr_t tattr,*tattrp = &tattr;
+	tret = pthread_attr_init(tattrp);
+	if (tret) {
+		perror("pthread_attr_init");
+		tattrp = 0;
+	}
+	else {
+		tret = pthread_attr_setstacksize(tattrp,20<<10);
+		if (tret)
+			perror("pthread_attr_setstacksize");
+	}
+
 	for (size_t i = 0;i < VEC_LENGTH(threads);++i) {
 		void *tp = 0;
 #ifdef STATISTICS
 		tp = &VEC_BUF(stats,i);
 #endif
-		tret = pthread_create(&VEC_BUF(threads,i),0,fastkeygen ? dofastwork : dowork,tp);
+		tret = pthread_create(&VEC_BUF(threads,i),tattrp,fastkeygen ? dofastwork : dowork,tp);
 		if (tret) {
-			fprintf(stderr,"error while making " FSZ "th thread: %d (%s)\n",i,tret,strerror(tret));
+			fprintf(stderr,"error while making " FSZ "th thread: %s\n",i,strerror(tret));
 			exit(Q_FAILTHREAD);
 		}
+	}
+
+	if (tattrp) {
+		tret = pthread_attr_destroy(tattrp);
+		if (tret)
+			perror("pthread_attr_destroy");
 	}
 
 #ifdef STATISTICS
