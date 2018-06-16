@@ -217,7 +217,7 @@ static void *dowork(void *task)
 	memcpy(hashsrc,checksumstr,checksumstrlen);
 	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
 
-	sname = malloc(workdirlen + ONIONLEN + 63 + 1);
+	sname = (char *) malloc(workdirlen + ONIONLEN + 63 + 1);
 	if (!sname)
 		abort();
 	if (workdir)
@@ -326,7 +326,7 @@ static void *dofastwork(void *task)
 	memcpy(hashsrc,checksumstr,checksumstrlen);
 	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
 
-	sname = malloc(workdirlen + ONIONLEN + 63 + 1);
+	sname = (char *) malloc(workdirlen + ONIONLEN + 63 + 1);
 	if (!sname)
 		abort();
 	if (workdir)
@@ -463,7 +463,7 @@ static void setworkdir(const char *wd)
 	unsigned needslash = 0;
 	if (wd[l-1] != '/')
 		needslash = 1;
-	char *s = malloc(l + needslash + 1);
+	char *s = (char *) malloc(l + needslash + 1);
 	if (!s)
 		abort();
 	memcpy(s,wd,l);

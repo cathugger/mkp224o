@@ -409,7 +409,7 @@ static void filters_add(const char *filter)
 	memset(&f,0,sizeof(f));
 	f.re = re;
 	size_t fl = strlen(filter) + 1;
-	f.str = malloc(fl);
+	f.str = (char *) malloc(fl);
 	if (!f.str)
 		abort();
 	memcpy(f.str,filter,fl);
