@@ -694,7 +694,7 @@ int main(int argc,char **argv)
 		tattrp = 0;
 	}
 	else {
-		tret = pthread_attr_setstacksize(tattrp,20<<10);
+		tret = pthread_attr_setstacksize(tattrp,80<<10);
 		if (tret)
 			perror("pthread_attr_setstacksize");
 	}
