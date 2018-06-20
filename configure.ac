@@ -5,6 +5,8 @@ AC_CONFIG_SRCDIR([main.c])
 oldcflags="$CFLAGS"
 AC_PROG_CC
 
+# NOTE: this script intentionally doesn't check for small details like posix functions and hard dependencies (libsodium) so you may get errors at compilation
+
 if test "x$oldcflags" != "x$CFLAGS"
 then
 	oldcflags="-O3"
