@@ -427,12 +427,12 @@ static void printhelp(FILE *out,const char *progname)
 }
 
 enum {
-	Q_ADDITIONAL = 100,
-	Q_UNRECOGNISED = 101,
-	Q_NOSTATISTICS = 102,
-	Q_FAILOPENOUTPUT = 103,
-	Q_FAILTHREAD = 104,
-	Q_FAILTIME = 105,
+	Q_ADDITIONAL = 101,
+	Q_UNRECOGNISED,
+	Q_NOSTATISTICS,
+	Q_FAILOPENOUTPUT,
+	Q_FAILTHREAD,
+	Q_FAILTIME,
 } ;
 
 static void e_additional()
