@@ -668,10 +668,10 @@ int main(int argc,char **argv)
 		numthreads = cpucount();
 		if (numthreads <= 0)
 			numthreads = 1;
-		if (!quietflag)
-			fprintf(stderr,"using %d %s\n",
-				numthreads,numthreads == 1 ? "thread" : "threads");
 	}
+	if (!quietflag)
+		fprintf(stderr,"using %d %s\n",
+			numthreads,numthreads == 1 ? "thread" : "threads");
 
 	signal(SIGTERM,termhandler);
 	signal(SIGINT,termhandler);
