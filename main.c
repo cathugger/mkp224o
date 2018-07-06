@@ -2,6 +2,7 @@
 #define _POSIX_C_SOURCE 200112L
 #endif
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -16,10 +17,12 @@
 #include "likely.h"
 #include "vec.h"
 #include "base32.h"
+#include "base64.h"
 #include "cpucount.h"
 #include "keccak.h"
 #include "ed25519/ed25519.h"
 #include "ioutil.h"
+#include "constants.h"
 
 #ifndef _WIN32
 #define FSZ "%zu"
@@ -28,12 +31,12 @@
 #endif
 
 // additional 0 terminator is added by C
-static const char * const pkprefix = "== ed25519v1-public: type0 ==\0\0";
-#define pkprefixlen (29 + 3)
-static const char * const skprefix = "== ed25519v1-secret: type0 ==\0\0";
-#define skprefixlen (29 + 3)
-static const char * const checksumstr = ".onion checksum";
-#define checksumstrlen 15
+static const char pkprefix[] = "== ed25519v1-public: type0 ==\0\0";
+#define pkprefixlen (sizeof(pkprefix)) // three null-terminators included
+static const char skprefix[] = "== ed25519v1-secret: type0 ==\0\0";
+#define skprefixlen (sizeof(skprefix)) // three null-terminators included
+static const char checksumstr[] = ".onion checksum";
+#define checksumstrlen (sizeof(checksumstr) - NULLTERM_LEN)
 
 // output directory
 static char *workdir = 0;
@@ -49,7 +52,10 @@ static int quietflag = 0;
 // with checksum + version num
 #define PUBONION_LEN (PUBLIC_LEN + 3)
 // with newline included
-#define ONIONLEN 62
+#define ONION_LEN 62
+
+#define FORMATTED_SECRET_LEN (skprefixlen + SECRET_LEN)
+#define FORMATTED_PUBLIC_LEN (pkprefixlen + PUBLIC_LEN)
 
 static size_t onionendpos;   // end of .onion within string
 static size_t direndpos;     // end of dir before .onion within string
@@ -58,6 +64,7 @@ static size_t printlen;      // precalculated, related to printstartpos
 
 static pthread_mutex_t fout_mutex;
 static FILE *fout;
+const char *outfilekeys = 0;
 static size_t numneedgenerate = 0;
 static int numwords = 1;
 static pthread_mutex_t keysgenerated_mutex;
@@ -111,6 +118,80 @@ struct tstatstruct {
 VEC_STRUCT(tstatsvec,struct tstatstruct);
 #endif
 
+typedef union {
+	u8 raw[pkprefixlen + PUBLIC_LEN + 32];
+	struct {
+		u64 prefix[4];
+		u64 key[4];
+		u64 hash[4];
+	} i;
+} pubonionunion;
+
+
+
+#define BUF_APPEND(buf,offset,src,srclen) strncpy(&buf[offset],src,srclen); offset += srclen;
+#define BUF_APPEND_CSTR(buf,offset,src) BUF_APPEND(buf,offset,src,strlen(src))
+#define BUF_APPEND_CHAR(buf,offet,c) buf[offset++] = c;
+
+static void writekeys(const char *hostname, const u8 *formated_secret, const u8 *formated_public)
+{
+	char keysbuf[KEYS_LEN];
+	size_t offset = 0;
+
+	BUF_APPEND_CSTR(keysbuf, offset, keys_field_generated);
+	BUF_APPEND_CHAR(keysbuf, offset, '\n');
+
+	BUF_APPEND_CSTR(keysbuf, offset, keys_field_hostname);
+	BUF_APPEND(keysbuf, offset, hostname, ONION_LEN);
+	BUF_APPEND_CHAR(keysbuf, offset, '\n');
+
+	BUF_APPEND_CSTR(keysbuf, offset, keys_field_secretkey);
+	char seckeybuf[SECKEY_LEN + NULLTERM_LEN];
+	base64_to(seckeybuf, formated_secret, FORMATTED_SECRET_LEN);
+	BUF_APPEND(keysbuf, offset, seckeybuf, SECKEY_LEN);
+	BUF_APPEND_CHAR(keysbuf, offset, '\n');
+
+	BUF_APPEND_CSTR(keysbuf, offset, keys_field_publickey);
+	char pubkeybuf[PUBKEY_LEN + NULLTERM_LEN];
+	base64_to(pubkeybuf, formated_public, FORMATTED_PUBLIC_LEN);
+	BUF_APPEND(keysbuf, offset, pubkeybuf, PUBKEY_LEN);
+	BUF_APPEND_CHAR(keysbuf, offset, '\n');
+
+	BUF_APPEND_CSTR(keysbuf, offset, keys_field_time);
+	char timebuf[TIME_LEN + NULLTERM_LEN];
+	time_t timer;
+	struct tm* tm_info;
+	time(&timer);
+	tm_info = localtime(&timer);
+	strftime(timebuf, TIME_LEN + NULLTERM_LEN, "%Y-%m-%d %H:%M:%S", tm_info);
+	BUF_APPEND(keysbuf, offset, timebuf, TIME_LEN);
+	BUF_APPEND_CHAR(keysbuf, offset, '\n');
+
+	BUF_APPEND_CHAR(keysbuf, offset, '\n');
+
+	assert(offset == KEYS_LEN);
+
+	pthread_mutex_lock(&fout_mutex);
+	fwrite(keysbuf,sizeof(keysbuf),1,fout);
+	fflush(fout);
+	pthread_mutex_unlock(&fout_mutex);
+}
+
+#undef BUF_APPEND_CHAR
+#undef BUF_APPEND_CSTR
+#undef BUF_APPEND
+
+static void printhostname(const char *hostname)
+{
+	char buf[ONION_LEN + LINEFEED_LEN];
+	strncpy(buf,hostname,ONION_LEN);
+	buf[ONION_LEN] = '\n';
+
+	pthread_mutex_lock(&fout_mutex);
+	fwrite(buf,sizeof(buf),1,fout);
+	fflush(fout);
+	pthread_mutex_unlock(&fout_mutex);
+}
 
 static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 {
@@ -125,17 +206,26 @@ static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 		}
 	}
 
-	if (createdir(sname,1) != 0) {
-		if (numneedgenerate)
-			pthread_mutex_unlock(&keysgenerated_mutex);
-		return;
-	}
-
 	if (numneedgenerate) {
 		++keysgenerated;
 		if (keysgenerated >= numneedgenerate)
 			endwork = 1;
 		pthread_mutex_unlock(&keysgenerated_mutex);
+	}
+
+	if (fout) {
+		if (outfilekeys) {
+			writekeys(&sname[printstartpos],secret,pubonion);
+			return;
+		} else {
+			printhostname(&sname[printstartpos]);
+		}
+	}
+
+	if (createdir(sname,1) != 0) {
+		if (numneedgenerate)
+			pthread_mutex_unlock(&keysgenerated_mutex);
+		return;
 	}
 
 	strcpy(&sname[onionendpos],"/hs_ed25519_secret_key");
@@ -145,20 +235,13 @@ static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 	FILE *hfile = fopen(sname,"w");
 	if (hfile) {
 		sname[onionendpos] = '\n';
-		fwrite(&sname[direndpos],ONIONLEN + 1,1,hfile);
+		fwrite(&sname[direndpos],ONION_LEN + 1,1,hfile);
 		fclose(hfile);
 	}
 
 	strcpy(&sname[onionendpos],"/hs_ed25519_public_key");
 	writetofile(sname,pubonion,pkprefixlen + PUBLIC_LEN,0);
 
-	if (fout) {
-		sname[onionendpos] = '\n';
-		pthread_mutex_lock(&fout_mutex);
-		fwrite(&sname[printstartpos],printlen,1,fout);
-		fflush(fout);
-		pthread_mutex_unlock(&fout_mutex);
-	}
 }
 
 // little endian inc
@@ -188,14 +271,7 @@ static inline void shiftpk(u8 *dst,const u8 *src,size_t sbits)
 
 static void *dowork(void *task)
 {
-	union pubonionunion {
-		u8 raw[pkprefixlen + PUBLIC_LEN + 32];
-		struct {
-			u64 prefix[4];
-			u64 key[4];
-			u64 hash[4];
-		} i;
-	} pubonion;
+	pubonionunion pubonion;
 	u8 * const pk = &pubonion.raw[pkprefixlen];
 	u8 secret[skprefixlen + SECRET_LEN];
 	u8 * const sk = &secret[skprefixlen];
@@ -217,7 +293,7 @@ static void *dowork(void *task)
 	memcpy(hashsrc,checksumstr,checksumstrlen);
 	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
 
-	sname = (char *) malloc(workdirlen + ONIONLEN + 63 + 1);
+	sname = (char *) malloc(workdirlen + ONION_LEN + 63 + 1);
 	if (!sname)
 		abort();
 	if (workdir)
@@ -295,14 +371,7 @@ static void addsztoscalar32(u8 *dst,size_t v)
 
 static void *dofastwork(void *task)
 {
-	union pubonionunion {
-		u8 raw[pkprefixlen + PUBLIC_LEN + 32];
-		struct {
-			u64 prefix[4];
-			u64 key[4];
-			u64 hash[4];
-		} i;
-	} pubonion;
+	pubonionunion pubonion;
 	u8 * const pk = &pubonion.raw[pkprefixlen];
 	u8 secret[skprefixlen + SECRET_LEN];
 	u8 * const sk = &secret[skprefixlen];
@@ -326,7 +395,7 @@ static void *dofastwork(void *task)
 	memcpy(hashsrc,checksumstr,checksumstrlen);
 	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
 
-	sname = (char *) malloc(workdirlen + ONIONLEN + 63 + 1);
+	sname = (char *) malloc(workdirlen + ONION_LEN + 63 + 1);
 	if (!sname)
 		abort();
 	if (workdir)
@@ -338,13 +407,13 @@ initseed:
 #endif
 	randombytes(seed,sizeof(seed));
 	ed25519_seckey_expand(sk,seed);
-	
+
 	ge_scalarmult_base(&ge_public,sk);
 	ge_p3_tobytes(pk,&ge_public);
-	
+
 	for (counter = 0;counter < SIZE_MAX-8;counter += 8) {
 		ge_p1p1 sum;
-		
+
 		if (unlikely(endwork))
 			goto end;
 
@@ -411,6 +480,8 @@ static void printhelp(FILE *out,const char *progname)
 		"\t-q  - do not print diagnostic output to stderr\n"
 		"\t-x  - do not print onion names\n"
 		"\t-o filename  - output onion names to specified file\n"
+		"\t-O filename  - output onion names with base64 encoded keys to specified file\n"
+		"\t-i filename host.onion  - read file with keys and create directory with keys for specified host\n"
 		"\t-F  - include directory names in onion names output\n"
 		"\t-d dirname  - output directory\n"
 		"\t-t numthreads  - specify number of threads (default - auto)\n"
@@ -470,7 +541,7 @@ static void setworkdir(const char *wd)
 	if (needslash)
 		s[l++] = '/';
 	s[l] = 0;
-	
+
 	workdir = s;
 	workdirlen = l;
 	if (!quietflag)
@@ -478,6 +549,164 @@ static void setworkdir(const char *wd)
 }
 
 VEC_STRUCT(threadvec, pthread_t);
+
+
+int parseandcreate(const char *filepath, const char *hostname)
+{
+	if (strlen(hostname) != ONION_LEN) {
+		fprintf(stderr, "Invalid onion address \"%s\".\n", hostname);
+		return 1;
+	}
+
+	char buf[16*1024];
+	memset(buf, 0, sizeof(buf));
+	FILE *fkeys = fopen(filepath, "r");
+	if (fkeys == NULL) {
+		fprintf(stderr, "Cannot open file with keys \"%s\" for reading.\n", filepath);
+		return 2;
+	}
+	int error_number = 1;
+	size_t readbytes = 0;
+	while (1) {
+		const size_t currentread = fread(
+			buf + readbytes,  // Possibly we already partially receive desired onion address
+			sizeof(buf[0]),
+			sizeof(buf) - readbytes - NULLTERM_LEN,
+			fkeys);
+		if (currentread == 0) {
+			fprintf(stderr, "Not found desired hostname \"%s\" in file \"%s\".\n", hostname, filepath);
+			error_number = 3;
+			break;
+		}
+		readbytes += currentread;
+		buf[readbytes] = '\0';
+		char *pfound = strstr(buf, hostname);
+		if (pfound == NULL) {
+			if (readbytes > ONION_LEN) {
+				memmove(buf, buf + readbytes - ONION_LEN, ONION_LEN);
+				readbytes = ONION_LEN;
+			}
+		} else {  // Got it!
+			memmove(buf, pfound, readbytes - (pfound - buf));
+			readbytes -= pfound - buf;
+			buf[readbytes] = '\0';
+			char *pendrecord = NULL;
+			while (1) {
+				const size_t currentread = fread(
+					buf + readbytes,
+					sizeof(buf[0]),
+					sizeof(buf) - readbytes - NULLTERM_LEN,
+					fkeys);
+				readbytes += currentread;
+				buf[readbytes] = '\0';
+				pendrecord = strstr(buf, "\n\n");
+				if (pendrecord != NULL || currentread == 0) {
+					break;
+				}
+			}
+			if (pendrecord == NULL) {
+				fprintf(stderr, "Looks like file with keys \"%s\" is incomplete, found hostname but not keys.\n", filepath);
+				error_number = 4;
+				break;
+			}
+
+			const char *const pfield_sec_begin = strstr(buf, keys_field_secretkey);
+			if (pfield_sec_begin == NULL) {
+				fprintf(stderr, "Cannot find field with secret key within generated section.\n");
+				error_number = 5;
+				break;
+			}
+			const char *const p_sec_begin = pfield_sec_begin + KEYS_FIELD_SECRETKEY_LEN;
+			if (pendrecord - p_sec_begin < BASE64_TO_LEN(FORMATTED_SECRET_LEN)) {
+				fprintf(stderr, "Generated section it too small to keep base64 encoding of secret key.\n");
+				error_number = 6;
+				break;
+			}
+			char secbuf[FORMATTED_SECRET_LEN];
+			if (-1 == base64_from((u8*)secbuf, p_sec_begin, BASE64_TO_LEN(FORMATTED_SECRET_LEN))) {
+				fprintf(stderr, "Invalid base64 encoding of secret key.\n");
+				error_number = 7;
+				break;
+			}
+
+			const char *const pfield_pub_begin = strstr(buf, keys_field_publickey);
+			if (pfield_pub_begin == NULL) {
+				fprintf(stderr, "Cannot find field with public key within generated section.\n");
+				error_number = 8;
+				break;
+			}
+			const char *const p_pub_begin = pfield_pub_begin + KEYS_FIELD_PUBLICKEY_LEN;
+			if (pendrecord - p_pub_begin < BASE64_TO_LEN(KEYS_FIELD_PUBLICKEY_LEN)) {
+				fprintf(stderr, "Generated section it too small to keep base64 encoding of public key.\n");
+				error_number = 9;
+				break;
+			}
+			char pubbuf[FORMATTED_PUBLIC_LEN];
+			if (-1 == base64_from((u8*)pubbuf, p_pub_begin, BASE64_TO_LEN(FORMATTED_PUBLIC_LEN))) {
+				fprintf(stderr, "Invalid base64 encoding of secret key.\n");
+				error_number = 10;
+				break;
+			}
+
+			char pathbuf[1024];
+			const size_t keys_directory_path_len = workdirlen + strlen(hostname);
+			if (keys_directory_path_len >= sizeof(pathbuf)) {
+				fprintf(stderr, "Keys directory path to is too long: %ld, max allowed length is %ld.\n", keys_directory_path_len, sizeof(pathbuf));
+				error_number = 11;
+				break;
+			}
+			strncpy(pathbuf, workdir, workdirlen);
+			strncpy(pathbuf + workdirlen, hostname, strlen(hostname));
+			pathbuf[keys_directory_path_len] = '\0';
+			if (-1 == createdir(pathbuf, use_secret_mode)) {
+				fprintf(stderr, "Cannot create directory \"%s\" for key files.\n", pathbuf);
+				error_number = 12;
+				break;
+			}
+
+			const size_t secretkey_filepath_len = keys_directory_path_len + PATH_SEPARATOR_LEN + strlen(secret_key_filename);
+			if (secretkey_filepath_len >= sizeof(pathbuf)) {
+				fprintf(stderr, "Path to file with secret key is too long %ld, max allowed length is %ld.\n", secretkey_filepath_len, sizeof(pathbuf));
+				error_number = 13;
+				break;
+			}
+			pathbuf[keys_directory_path_len] = '/';
+			strncpy(pathbuf + keys_directory_path_len + PATH_SEPARATOR_LEN, secret_key_filename, strlen(secret_key_filename));
+			pathbuf[secretkey_filepath_len] = '\0';
+			if (-1 == writetofile(pathbuf, (u8*)secbuf, sizeof(secbuf), use_secret_mode)) {
+				fprintf(stderr, "Can't write secret key to file \"%s\".\n", pathbuf);
+				error_number = 14;
+				break;
+			}
+
+			const size_t publickey_filepath_len = keys_directory_path_len + PATH_SEPARATOR_LEN + strlen(public_key_filename);
+			if (publickey_filepath_len >= sizeof(pathbuf)) {
+				fprintf(stderr, "Path to file with public key is too long %ld, max allowed length is %ld.\n", publickey_filepath_len, sizeof(pathbuf));
+				error_number = 15;
+				break;
+			}
+			pathbuf[keys_directory_path_len] = '/';
+			strncpy(pathbuf + keys_directory_path_len + PATH_SEPARATOR_LEN, public_key_filename, strlen(public_key_filename));
+			pathbuf[publickey_filepath_len] = '\0';
+			if (-1 == writetofile(pathbuf, (u8*)pubbuf, sizeof(pubbuf), use_public_mode)) {
+				fprintf(stderr, "Can't write public key to file \"%s\".\n", pathbuf);
+				error_number = 16;
+				break;
+			}
+
+			pathbuf[keys_directory_path_len] = '\0';
+			fprintf(stderr, "Keys successfully exported to directory \"%s\".\n", pathbuf);
+			error_number = 0;
+			break;
+		}
+	}
+
+	if (ferror(fkeys) || error_number) {
+		fprintf(stderr, "Error #%d while parsing generated file \"%s\" or extracting keys.\n", error_number, filepath);
+	}
+	fclose(fkeys);
+	return error_number;
+}
 
 int main(int argc,char **argv)
 {
@@ -561,6 +790,27 @@ int main(int argc,char **argv)
 				else
 					e_additional();
 			}
+			else if (*arg == 'O') {
+				if (argc--)
+					outfilekeys = *argv++;
+				else
+					e_additional();
+			}
+			else if (*arg == 'i') {
+				char * filepath = NULL;
+				char * hostname = NULL;
+				if (argc--) {
+					filepath = *argv++;
+					if (argc--) {
+						hostname = *argv++;
+						return parseandcreate(filepath, hostname);
+					}
+					else
+						e_additional();
+				}
+				else
+					e_additional();
+			}
 			else if (*arg == 'F')
 				dirnameflag = 1;
 			else if (*arg == 'd') {
@@ -626,7 +876,13 @@ int main(int argc,char **argv)
 			filters_add(arg);
 	}
 
-	if (outfile) {
+	if (outfilekeys) {
+		fout = fopen(outfilekeys,"a");
+		if (!fout) {
+			perror("failed to open output file for keys");
+			exit(Q_FAILOPENOUTPUT);
+		}
+	} else if (outfile) {
 		fout = fopen(outfile,"w");
 		if (!fout) {
 			perror("failed to open output file");
@@ -654,11 +910,11 @@ int main(int argc,char **argv)
 		createdir(workdir,1);
 
 	direndpos = workdirlen;
-	onionendpos = workdirlen + ONIONLEN;
+	onionendpos = workdirlen + ONION_LEN;
 
 	if (!dirnameflag) {
 		printstartpos = direndpos;
-		printlen = ONIONLEN + 1;
+		printlen = ONION_LEN + 1;
 	} else {
 		printstartpos = 0;
 		printlen = onionendpos + 1;
