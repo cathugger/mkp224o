@@ -32,6 +32,10 @@ int main(void)
 						 tests0[i].in, buf, tests0[i].out);
 			return 1;
 		}
+		if (!base64_valid(buf,0)) {
+			printf("encoded data is considered invalid\n");
+			return 3;
+		}
 		r = base64_from((u8 *)buf2, buf, strlen(buf));
 		buf2[r] = '\0';
 		if (strcmp(buf2, tests0[i].rev) != 0) {

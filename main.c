@@ -667,22 +667,6 @@ int main(int argc,char **argv)
 		exit(Q_FAILOPENOUTPUT); // define new err code?
 	}
 
-	filters_prepare();
-
-	filters_print();
-
-#ifdef STATISTICS
-	if (!filters_count() && !reportdelay)
-#else
-	if (!filters_count())
-#endif
-		return 0;
-
-#ifdef EXPANDMASK
-	if (numwords > 1 && flattened)
-		fprintf(stderr,"WARNING: -N switch will produce bogus results because we can't know filter width. reconfigure with --enable-besort and recompile.\n");
-#endif
-
 	if (workdir)
 		createdir(workdir,1);
 
@@ -719,6 +703,22 @@ int main(int argc,char **argv)
 
 		goto done;
 	}
+
+	filters_prepare();
+
+	filters_print();
+
+#ifdef STATISTICS
+	if (!filters_count() && !reportdelay)
+#else
+	if (!filters_count())
+#endif
+		return 0;
+
+#ifdef EXPANDMASK
+	if (numwords > 1 && flattened)
+		fprintf(stderr,"WARNING: -N switch will produce bogus results because we can't know filter width. reconfigure with --enable-besort and recompile.\n");
+#endif
 
 	if (yamloutput)
 		yamlout_init();
