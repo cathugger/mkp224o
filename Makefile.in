@@ -22,6 +22,7 @@ ED25519OBJ= $(ED25519_@ED25519IMPL@)
 
 MAINOBJ= \
 	main.c.o \
+	yaml.c.o \
 	vec.c.o \
 	cpucount.c.o \
 	base32_to.c.o \
@@ -394,7 +395,8 @@ main.c.o: ed25519/ed25519-donna/modm-donna-64bit.h
 main.c.o: ed25519/ed25519-donna/ed25519-donna-basepoint-table.h
 main.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-tables.h
 main.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-x86.h
-main.c.o: ed25519/ed25519-donna/ed25519-donna-impl-base.h ioutil.h filters.h
+main.c.o: ed25519/ed25519-donna/ed25519-donna-impl-base.h ioutil.h common.h
+main.c.o: yaml.h filters.h
 test_base16.c.o: types.h base16.h
 test_base32.c.o: types.h base32.h
 test_base64.c.o: types.h base64.h
@@ -417,3 +419,4 @@ test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-tables.h
 test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-x86.h
 test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-impl-base.h
 vec.c.o: vec.h
+yaml.c.o: types.h yaml.h ioutil.h base64.h common.h
