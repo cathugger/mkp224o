@@ -64,7 +64,7 @@ static size_t printlen;      // precalculated, related to printstartpos
 
 static pthread_mutex_t fout_mutex;
 static FILE *fout;
-const char *outfilekeys = 0;
+static int yamloutput = 0;
 static size_t numneedgenerate = 0;
 static int numwords = 1;
 static pthread_mutex_t keysgenerated_mutex;
@@ -214,7 +214,7 @@ static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 	}
 
 	if (fout) {
-		if (outfilekeys) {
+		if (yamloutput) {
 			writekeys(&sname[printstartpos],secret,pubonion);
 			return;
 		} else {
@@ -479,9 +479,8 @@ static void printhelp(FILE *out,const char *progname)
 		"\t-f  - instead of specifying filter(s) via commandline, specify filter file which contains filters separated by newlines\n"
 		"\t-q  - do not print diagnostic output to stderr\n"
 		"\t-x  - do not print onion names\n"
-		"\t-o filename  - output onion names to specified file\n"
-		"\t-O filename  - output onion names with base64 encoded keys to specified file\n"
-		"\t-i filename host.onion  - read file with keys and create directory with keys for specified host\n"
+		"\t-o filename  - output onion names to specified file (append)\n"
+		"\t-O filename  - output onion names to specified file (overwrite)\n"
 		"\t-F  - include directory names in onion names output\n"
 		"\t-d dirname  - output directory\n"
 		"\t-t numthreads  - specify number of threads (default - auto)\n"
@@ -493,6 +492,8 @@ static void printhelp(FILE *out,const char *progname)
 		"\t-s  - print statistics each 10 seconds\n"
 		"\t-S t  - print statistics every specified ammount of seconds\n"
 		"\t-T  - do not reset statistics counters when printing\n"
+		"\t-y  - output generated keys in yaml format instead of dumping them to filesystem\n"
+		"\t-Y filename host.onion  - parse yaml encoded key file and extract key(s) to filesystem\n"
 		,progname,progname);
 	fflush(out);
 }
@@ -716,6 +717,7 @@ int main(int argc,char **argv)
 	int dirnameflag = 0;
 	int numthreads = 0;
 	int fastkeygen = 1;
+	int outfileoverwrite;
 	struct threadvec threads;
 #ifdef STATISTICS
 	struct statsvec stats;
@@ -785,29 +787,16 @@ int main(int argc,char **argv)
 			else if (*arg == 'x')
 				fout = 0;
 			else if (*arg == 'o') {
+				outfileoverwrite = 0;
 				if (argc--)
 					outfile = *argv++;
 				else
 					e_additional();
 			}
 			else if (*arg == 'O') {
+				outfileoverwrite = 1;
 				if (argc--)
-					outfilekeys = *argv++;
-				else
-					e_additional();
-			}
-			else if (*arg == 'i') {
-				char * filepath = NULL;
-				char * hostname = NULL;
-				if (argc--) {
-					filepath = *argv++;
-					if (argc--) {
-						hostname = *argv++;
-						return parseandcreate(filepath, hostname);
-					}
-					else
-						e_additional();
-				}
+					outfile = *argv++;
 				else
 					e_additional();
 			}
@@ -865,6 +854,22 @@ int main(int argc,char **argv)
 				e_nostatistics();
 #endif
 			}
+			else if (*arg == 'y')
+				yamloutput = 1;
+			else if (*arg == 'Y') {
+				const char *filepath = 0, *hostname = 0;
+				if (argc--) {
+					filepath = *argv++;
+					if (argc--) {
+						hostname = *argv++;
+						return parseandcreate(filepath, hostname);
+					}
+					else
+						e_additional();
+				}
+				else
+					e_additional();
+			}
 			else {
 				fprintf(stderr,"unrecognised argument: -%c\n",*arg);
 				exit(Q_UNRECOGNISED);
@@ -876,14 +881,8 @@ int main(int argc,char **argv)
 			filters_add(arg);
 	}
 
-	if (outfilekeys) {
-		fout = fopen(outfilekeys,"a");
-		if (!fout) {
-			perror("failed to open output file for keys");
-			exit(Q_FAILOPENOUTPUT);
-		}
-	} else if (outfile) {
-		fout = fopen(outfile,"w");
+	if (outfile) {
+		fout = fopen(outfile,!outfileoverwrite ? "a" : "w");
 		if (!fout) {
 			perror("failed to open output file");
 			exit(Q_FAILOPENOUTPUT);
