@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <time.h>
 #include <pthread.h>
 #include <signal.h>
 #include <sodium/randombytes.h>
@@ -20,6 +19,8 @@
 #include "keccak.h"
 #include "ed25519/ed25519.h"
 #include "ioutil.h"
+#include "common.h"
+#include "yaml.h"
 
 #ifndef _WIN32
 #define FSZ "%zu"
@@ -29,11 +30,10 @@
 
 // additional 0 terminator is added by C
 static const char * const pkprefix = "== ed25519v1-public: type0 ==\0\0";
-#define pkprefixlen (29 + 3)
 static const char * const skprefix = "== ed25519v1-secret: type0 ==\0\0";
-#define skprefixlen (29 + 3)
-static const char * const checksumstr = ".onion checksum";
-#define checksumstrlen 15
+
+static const char checksumstr[] = ".onion checksum";
+#define checksumstrlen (sizeof(checksumstr) - 1) // 15
 
 // output directory
 static char *workdir = 0;
@@ -43,26 +43,24 @@ static int quietflag = 0;
 //static int wantdedup = 0;
 #define wantdedup 0
 
-#define SECRET_LEN 64
-#define PUBLIC_LEN 32
-#define SEED_LEN   32
-// with checksum + version num
-#define PUBONION_LEN (PUBLIC_LEN + 3)
-// with newline included
-#define ONIONLEN 62
+// 0, direndpos, onionendpos
+// printstartpos = either 0 or direndpos
+// printlen      = either onionendpos + 1 or ONION_LEN + 1 (additional 1 is for newline)
+size_t onionendpos;   // end of .onion within string
+size_t direndpos;     // end of dir before .onion within string
+size_t printstartpos; // where to start printing from
+size_t printlen;      // precalculated, related to printstartpos
 
-static size_t onionendpos;   // end of .onion within string
-static size_t direndpos;     // end of dir before .onion within string
-static size_t printstartpos; // where to start printing from
-static size_t printlen;      // precalculated, related to printstartpos
-
-static pthread_mutex_t fout_mutex;
-static FILE *fout;
-static size_t numneedgenerate = 0;
+static int yamloutput = 0;
 static int numwords = 1;
+static size_t numneedgenerate = 0;
+
 static pthread_mutex_t keysgenerated_mutex;
 static volatile size_t keysgenerated = 0;
 static volatile int endwork = 0;
+
+pthread_mutex_t fout_mutex;
+FILE *fout;
 
 static void termhandler(int sig)
 {
@@ -111,7 +109,6 @@ struct tstatstruct {
 VEC_STRUCT(tstatsvec,struct tstatstruct);
 #endif
 
-
 static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 {
 	if (endwork)
@@ -123,42 +120,60 @@ static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 			pthread_mutex_unlock(&keysgenerated_mutex);
 			return;
 		}
-	}
-
-	if (createdir(sname,1) != 0) {
-		if (numneedgenerate)
-			pthread_mutex_unlock(&keysgenerated_mutex);
-		return;
-	}
-
-	if (numneedgenerate) {
 		++keysgenerated;
-		if (keysgenerated >= numneedgenerate)
+		if (keysgenerated == numneedgenerate)
 			endwork = 1;
 		pthread_mutex_unlock(&keysgenerated_mutex);
 	}
 
-	strcpy(&sname[onionendpos],"/hs_ed25519_secret_key");
-	writetofile(sname,secret,skprefixlen + SECRET_LEN,1);
+	if (!yamloutput) {
+		if (createdir(sname,1) != 0) {
+			pthread_mutex_lock(&fout_mutex);
+			fprintf(stderr,"ERROR: could not create directory for key output\n");
+			pthread_mutex_unlock(&fout_mutex);
+			return;
+		}
 
-	strcpy(&sname[onionendpos],"/hostname");
-	FILE *hfile = fopen(sname,"w");
-	if (hfile) {
+		strcpy(&sname[onionendpos],"/hs_ed25519_secret_key");
+		writetofile(sname,secret,FORMATTED_SECRET_LEN,1);
+
+		strcpy(&sname[onionendpos],"/hs_ed25519_public_key");
+		writetofile(sname,pubonion,FORMATTED_PUBLIC_LEN,0);
+
+		strcpy(&sname[onionendpos],"/hostname");
+		FILE *hfile = fopen(sname,"w");
 		sname[onionendpos] = '\n';
-		fwrite(&sname[direndpos],ONIONLEN + 1,1,hfile);
-		fclose(hfile);
-	}
+		if (hfile) {
+			fwrite(&sname[direndpos],ONION_LEN + 1,1,hfile);
+			fclose(hfile);
+		}
+		if (fout) {
+			pthread_mutex_lock(&fout_mutex);
+			fwrite(&sname[printstartpos],printlen,1,fout);
+			fflush(fout);
+			pthread_mutex_unlock(&fout_mutex);
+		}
+	} else
+		yamlout_writekeys(&sname[direndpos],pubonion,secret);
+}
 
-	strcpy(&sname[onionendpos],"/hs_ed25519_public_key");
-	writetofile(sname,pubonion,pkprefixlen + PUBLIC_LEN,0);
+union pubonionunion {
+	u8 raw[PKPREFIX_SIZE + PUBLIC_LEN + 32];
+	struct {
+		u64 prefix[4];
+		u64 key[4];
+		u64 hash[4];
+	} i;
+} ;
 
-	if (fout) {
-		sname[onionendpos] = '\n';
-		pthread_mutex_lock(&fout_mutex);
-		fwrite(&sname[printstartpos],printlen,1,fout);
-		fflush(fout);
-		pthread_mutex_unlock(&fout_mutex);
-	}
+static char *makesname()
+{
+	char *sname = (char *) malloc(workdirlen + ONION_LEN + 63 + 1);
+	if (!sname)
+		abort();
+	if (workdir)
+		memcpy(sname,workdir,workdirlen);
+	return sname;
 }
 
 // little endian inc
@@ -188,17 +203,10 @@ static inline void shiftpk(u8 *dst,const u8 *src,size_t sbits)
 
 static void *dowork(void *task)
 {
-	union pubonionunion {
-		u8 raw[pkprefixlen + PUBLIC_LEN + 32];
-		struct {
-			u64 prefix[4];
-			u64 key[4];
-			u64 hash[4];
-		} i;
-	} pubonion;
-	u8 * const pk = &pubonion.raw[pkprefixlen];
-	u8 secret[skprefixlen + SECRET_LEN];
-	u8 * const sk = &secret[skprefixlen];
+	union pubonionunion pubonion;
+	u8 * const pk = &pubonion.raw[PKPREFIX_SIZE];
+	u8 secret[SKPREFIX_SIZE + SECRET_LEN];
+	u8 * const sk = &secret[SKPREFIX_SIZE];
 	u8 seed[SEED_LEN];
 	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
 	u8 wpk[PUBLIC_LEN + 1];
@@ -209,19 +217,15 @@ static void *dowork(void *task)
 #endif
 	PREFILTER
 
-	memcpy(secret,skprefix,skprefixlen);
+	memcpy(secret,skprefix,SKPREFIX_SIZE);
 	wpk[PUBLIC_LEN] = 0;
 	memset(&pubonion,0,sizeof(pubonion));
-	memcpy(pubonion.raw,pkprefix,pkprefixlen);
+	memcpy(pubonion.raw,pkprefix,PKPREFIX_SIZE);
 	// write version later as it will be overwritten by hash
 	memcpy(hashsrc,checksumstr,checksumstrlen);
 	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
 
-	sname = (char *) malloc(workdirlen + ONIONLEN + 63 + 1);
-	if (!sname)
-		abort();
-	if (workdir)
-		memcpy(sname,workdir,workdirlen);
+	sname = makesname();
 
 initseed:
 	randombytes(seed,sizeof(seed));
@@ -295,17 +299,10 @@ static void addsztoscalar32(u8 *dst,size_t v)
 
 static void *dofastwork(void *task)
 {
-	union pubonionunion {
-		u8 raw[pkprefixlen + PUBLIC_LEN + 32];
-		struct {
-			u64 prefix[4];
-			u64 key[4];
-			u64 hash[4];
-		} i;
-	} pubonion;
-	u8 * const pk = &pubonion.raw[pkprefixlen];
-	u8 secret[skprefixlen + SECRET_LEN];
-	u8 * const sk = &secret[skprefixlen];
+	union pubonionunion pubonion;
+	u8 * const pk = &pubonion.raw[PKPREFIX_SIZE];
+	u8 secret[SKPREFIX_SIZE + SECRET_LEN];
+	u8 * const sk = &secret[SKPREFIX_SIZE];
 	u8 seed[SEED_LEN];
 	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
 	u8 wpk[PUBLIC_LEN + 1];
@@ -318,19 +315,15 @@ static void *dofastwork(void *task)
 #endif
 	PREFILTER
 
-	memcpy(secret,skprefix,skprefixlen);
+	memcpy(secret,skprefix,SKPREFIX_SIZE);
 	wpk[PUBLIC_LEN] = 0;
 	memset(&pubonion,0,sizeof(pubonion));
-	memcpy(pubonion.raw,pkprefix,pkprefixlen);
+	memcpy(pubonion.raw,pkprefix,PKPREFIX_SIZE);
 	// write version later as it will be overwritten by hash
 	memcpy(hashsrc,checksumstr,checksumstrlen);
 	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
 
-	sname = (char *) malloc(workdirlen + ONIONLEN + 63 + 1);
-	if (!sname)
-		abort();
-	if (workdir)
-		memcpy(sname,workdir,workdirlen);
+	sname = makesname();
 
 initseed:
 #ifdef STATISTICS
@@ -338,13 +331,13 @@ initseed:
 #endif
 	randombytes(seed,sizeof(seed));
 	ed25519_seckey_expand(sk,seed);
-	
+
 	ge_scalarmult_base(&ge_public,sk);
 	ge_p3_tobytes(pk,&ge_public);
-	
+
 	for (counter = 0;counter < SIZE_MAX-8;counter += 8) {
 		ge_p1p1 sum;
-		
+
 		if (unlikely(endwork))
 			goto end;
 
@@ -410,7 +403,8 @@ static void printhelp(FILE *out,const char *progname)
 		"\t-f  - instead of specifying filter(s) via commandline, specify filter file which contains filters separated by newlines\n"
 		"\t-q  - do not print diagnostic output to stderr\n"
 		"\t-x  - do not print onion names\n"
-		"\t-o filename  - output onion names to specified file\n"
+		"\t-o filename  - output onion names to specified file (append)\n"
+		"\t-O filename  - output onion names to specified file (overwrite)\n"
 		"\t-F  - include directory names in onion names output\n"
 		"\t-d dirname  - output directory\n"
 		"\t-t numthreads  - specify number of threads (default - auto)\n"
@@ -422,6 +416,8 @@ static void printhelp(FILE *out,const char *progname)
 		"\t-s  - print statistics each 10 seconds\n"
 		"\t-S t  - print statistics every specified ammount of seconds\n"
 		"\t-T  - do not reset statistics counters when printing\n"
+		"\t-y  - output generated keys in yaml format instead of dumping them to filesystem\n"
+		"\t-Y [filename [host.onion]]  - parse yaml encoded input and extract key(s) to filesystem\n"
 		,progname,progname);
 	fflush(out);
 }
@@ -433,6 +429,7 @@ enum {
 	Q_FAILOPENOUTPUT,
 	Q_FAILTHREAD,
 	Q_FAILTIME,
+	Q_FAILOPENINPUT,
 } ;
 
 static void e_additional()
@@ -470,7 +467,7 @@ static void setworkdir(const char *wd)
 	if (needslash)
 		s[l++] = '/';
 	s[l] = 0;
-	
+
 	workdir = s;
 	workdirlen = l;
 	if (!quietflag)
@@ -482,11 +479,15 @@ VEC_STRUCT(threadvec, pthread_t);
 int main(int argc,char **argv)
 {
 	const char *outfile = 0;
+	const char *infile = 0;
+	const char *hostname = 0;
 	const char *arg;
 	int ignoreargs = 0;
 	int dirnameflag = 0;
 	int numthreads = 0;
 	int fastkeygen = 1;
+	int yamlinput = 0;
+	int outfileoverwrite = 0;
 	struct threadvec threads;
 #ifdef STATISTICS
 	struct statsvec stats;
@@ -501,8 +502,6 @@ int main(int argc,char **argv)
 
 	setvbuf(stderr,0,_IONBF,0);
 	fout = stdout;
-	pthread_mutex_init(&keysgenerated_mutex,0);
-	pthread_mutex_init(&fout_mutex,0);
 
 	const char *progname = argv[0];
 	if (argc <= 1) {
@@ -556,6 +555,14 @@ int main(int argc,char **argv)
 			else if (*arg == 'x')
 				fout = 0;
 			else if (*arg == 'o') {
+				outfileoverwrite = 0;
+				if (argc--)
+					outfile = *argv++;
+				else
+					e_additional();
+			}
+			else if (*arg == 'O') {
+				outfileoverwrite = 1;
 				if (argc--)
 					outfile = *argv++;
 				else
@@ -615,6 +622,27 @@ int main(int argc,char **argv)
 				e_nostatistics();
 #endif
 			}
+			else if (*arg == 'y')
+				yamloutput = 1;
+			else if (*arg == 'Y') {
+				yamlinput = 1;
+				if (argc) {
+					--argc;
+					infile = *argv++;
+					if (!*infile)
+						infile = 0;
+					if (argc) {
+						--argc;
+						hostname = *argv++;
+						if (!*hostname)
+							hostname = 0;
+						if (hostname && strlen(hostname) != ONION_LEN) {
+							fprintf(stderr,"bad onion argument length\n");
+							exit(Q_UNRECOGNISED);
+						}
+					}
+				}
+			}
 			else {
 				fprintf(stderr,"unrecognised argument: -%c\n",*arg);
 				exit(Q_UNRECOGNISED);
@@ -627,11 +655,53 @@ int main(int argc,char **argv)
 	}
 
 	if (outfile) {
-		fout = fopen(outfile,"w");
+		fout = fopen(outfile,!outfileoverwrite ? "a" : "w");
 		if (!fout) {
 			perror("failed to open output file");
 			exit(Q_FAILOPENOUTPUT);
 		}
+	}
+
+	if (!fout && yamloutput) {
+		fprintf(stderr,"nil output with yaml mode does not make sense\n");
+		exit(Q_FAILOPENOUTPUT); // define new err code?
+	}
+
+	if (workdir)
+		createdir(workdir,1);
+
+	direndpos = workdirlen;
+	onionendpos = workdirlen + ONION_LEN;
+
+	if (!dirnameflag) {
+		printstartpos = direndpos;
+		printlen = ONION_LEN + 1; // + '\n'
+	} else {
+		printstartpos = 0;
+		printlen = onionendpos + 1; // + '\n'
+	}
+
+	if (yamlinput) {
+		char *sname = makesname();
+		FILE *fin = stdin;
+		if (infile) {
+			fin = fopen(infile,"r");
+			if (!fin) {
+				fprintf(stderr,"failed to open input file\n");
+				return Q_FAILOPENINPUT;
+			}
+		}
+		tret = yamlin_parseandcreate(fin,sname,hostname);
+		if (infile) {
+			fclose(fin);
+			fin = 0;
+		}
+		free(sname);
+
+		if (tret)
+			return tret;
+
+		goto done;
 	}
 
 	filters_prepare();
@@ -650,19 +720,11 @@ int main(int argc,char **argv)
 		fprintf(stderr,"WARNING: -N switch will produce bogus results because we can't know filter width. reconfigure with --enable-besort and recompile.\n");
 #endif
 
-	if (workdir)
-		createdir(workdir,1);
+	if (yamloutput)
+		yamlout_init();
 
-	direndpos = workdirlen;
-	onionendpos = workdirlen + ONIONLEN;
-
-	if (!dirnameflag) {
-		printstartpos = direndpos;
-		printlen = ONIONLEN + 1;
-	} else {
-		printstartpos = 0;
-		printlen = onionendpos + 1;
-	}
+	pthread_mutex_init(&keysgenerated_mutex,0);
+	pthread_mutex_init(&fout_mutex,0);
 
 	if (numthreads <= 0) {
 		numthreads = cpucount();
@@ -806,8 +868,13 @@ int main(int argc,char **argv)
 	if (!quietflag)
 		fprintf(stderr," done.\n");
 
+	if (yamloutput)
+		yamlout_clean();
+
 	pthread_mutex_destroy(&keysgenerated_mutex);
 	pthread_mutex_destroy(&fout_mutex);
+
+done:
 	filters_clean();
 
 	if (outfile)
