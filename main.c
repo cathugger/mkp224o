@@ -417,7 +417,7 @@ static void printhelp(FILE *out,const char *progname)
 		"\t-S t  - print statistics every specified ammount of seconds\n"
 		"\t-T  - do not reset statistics counters when printing\n"
 		"\t-y  - output generated keys in yaml format instead of dumping them to filesystem\n"
-		"\t-Y filename host.onion  - parse yaml encoded key file and extract key(s) to filesystem\n"
+		"\t-Y [filename [host.onion]]  - parse yaml encoded input and extract key(s) to filesystem\n"
 		,progname,progname);
 	fflush(out);
 }

@@ -207,7 +207,6 @@ int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 					hashost = 1;
 				} else
 					skipthis = 1;
-
 				break;
 			case PUB:
 				if (len != PUBKEY_LEN || !base64_valid(p,0)) {
