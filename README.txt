@@ -36,3 +36,4 @@ keccak.c is based on <https://github.com/gvanas/KeccakCodePackage/blob/master/St
 ed25519/{ref10,amd64-51-30k,amd64-64-24k} are adopted from SUPERCOP <https://bench.cr.yp.to/supercop.html>.
 ed25519/ed25519-donna adopted from <https://github.com/floodyberry/ed25519-donna>.
 Idea used in main.c' dofastwork() is stolen from <https://github.com/Yawning/horse25519>.
+base64 routines and initial YAML processing work contributed by Alexander Khristoforov <heios@protonmail.com>.
