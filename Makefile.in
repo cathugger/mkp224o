@@ -419,4 +419,4 @@ test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-tables.h
 test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-x86.h
 test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-impl-base.h
 vec.c.o: vec.h
-yaml.c.o: types.h yaml.h ioutil.h base64.h common.h
+yaml.c.o: types.h yaml.h ioutil.h base32.h base64.h common.h

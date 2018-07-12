@@ -10,6 +10,7 @@
 #include "types.h"
 #include "yaml.h"
 #include "ioutil.h"
+#include "base32.h"
 #include "base64.h"
 #include "common.h"
 
@@ -122,7 +123,7 @@ void yamlout_writekeys(const char *hostname,const u8 *formated_public,const u8 *
 int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 {
 	char line[256];
-	size_t len;
+	size_t len,cnt;
 	u8 pubbuf[FORMATTED_PUBLIC_LEN];
 	u8 secbuf[FORMATTED_SECRET_LEN];
 	int hashost = 0,haspub = 0,hassec = 0,skipthis = 0;
@@ -198,7 +199,9 @@ int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 		len = strlen(p);
 		switch (keyt) {
 			case HOST:
-				if (len != ONION_LEN) {
+				if (len != ONION_LEN || base32_valid(p,&cnt) || cnt != BASE32_TO_LEN(PUBONION_LEN) ||
+					strcmp(&p[cnt],&hostname_example[cnt]) != 0)
+				{
 					fprintf(stderr,"ERROR: invalid hostname syntax\n");
 					return 1;
 				}
