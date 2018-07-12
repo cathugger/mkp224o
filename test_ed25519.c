@@ -61,6 +61,6 @@ int main(void)
 			fprintf(stderr, "expected: %s got %s\n", str1, str2);
 		}
 	}
-	
+
 	return 0;
 }

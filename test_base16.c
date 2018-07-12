@@ -45,6 +45,6 @@ int main(void)
 		//fprintf(stderr, "%s -- %s\n", buf2, tests0[i].rev);
 		assert(strcmp(buf2, tests0[i].rev) == 0);
 	}
-	
+
 	return 0;
 }

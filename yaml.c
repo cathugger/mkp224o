@@ -139,17 +139,17 @@ int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 	while (!feof(fin) && !ferror(fin)) {
 		if (!fgets(line,sizeof(line),fin))
 			break;
-		
+
 		len = strlen(line);
-		
+
 		// trim whitespace from the end
 		while (len != 0 && (line[len-1] == ' ' || line[len-1] == '\n' || line[len-1] == '\r'))
 			line[--len] = '\0';
-		
+
 		// skip empty lines
 		if (len == 0)
 			continue;
-		
+
 		if (len >= 3 && line[0] == '-' && line[1] == '-' && line[2] == '-') {
 			// end of document indicator
 			if (!skipthis && (hashost || haspub || hassec)) {
@@ -159,10 +159,10 @@ int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 			hashost = haspub = hassec = skipthis = 0;
 			continue;
 		}
-		
+
 		if (skipthis)
 			continue;
-		
+
 		char *start = line;
 		// trim whitespace
 		while (len != 0 && *start == ' ') {

@@ -23,7 +23,7 @@ struct texttestcase {
 
 /*
 r:0, mask:FF
- -- 
+ --
 r:2, mask:C0
 f -- f
 r:3, mask:F0
@@ -75,10 +75,10 @@ int main(void)
 		//fprintf(stderr, "%s -- %s\n", buf2, tests0[i].rev);
 		assert(strcmp(buf2, tests0[i].rev) == 0);
 	}
-	
+
 	//randombytes_buf(buf, 128);
 	//base32_to(buf2, (const u8 *)buf, 128);
 	//fprintf(stderr, ">%s\n", buf2);
-	
+
 	return 0;
 }
