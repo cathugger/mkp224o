@@ -131,8 +131,8 @@ int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 {
 	char line[256];
 	size_t len,cnt;
-	u8 pubbuf[FORMATTED_PUBLIC_LEN];
-	u8 secbuf[FORMATTED_SECRET_LEN];
+	u8 pubbuf[BASE64_DATA_ALIGN(FORMATTED_PUBLIC_LEN)];
+	u8 secbuf[BASE64_DATA_ALIGN(FORMATTED_SECRET_LEN)];
 	int hashost = 0,haspub = 0,hassec = 0,skipthis = 0;
 	enum keytype { HOST, PUB, SEC } keyt;
 
@@ -219,19 +219,21 @@ int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 					skipthis = 1;
 				break;
 			case PUB:
-				if (len != PUBKEY_LEN || !base64_valid(p,0)) {
+				if (len != PUBKEY_LEN || !base64_valid(p,0) ||
+					base64_from(pubbuf,p,len) != FORMATTED_PUBLIC_LEN)
+				{
 					fprintf(stderr,"ERROR: invalid pubkey syntax\n");
 					return 1;
 				}
-				base64_from(pubbuf,p,len);
 				haspub = 1;
 				break;
 			case SEC:
-				if (len != SECKEY_LEN || !base64_valid(p,0)) {
+				if (len != SECKEY_LEN || !base64_valid(p,0) ||
+					base64_from(secbuf,p,len) != FORMATTED_SECRET_LEN)
+				{
 					fprintf(stderr,"ERROR: invalid seckey syntax\n");
 					return 1;
 				}
-				base64_from(secbuf,p,len);
 				hassec = 1;
 				break;
 		}
@@ -273,16 +275,16 @@ int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 			skipthis = 1;
 		}
 	}
-	
+
 	if (!feof(fin)) {
 		fprintf(stderr,"error while reading input\n");
 		return 1;
 	}
-	
+
 	if (hostname) {
 		fprintf(stderr,"hostname wasn't found in input\n");
 		return 1;
 	}
-	
+
 	return 0;
 }

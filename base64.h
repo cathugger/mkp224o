@@ -9,3 +9,5 @@ size_t base64_from(u8 *dst,const char *src,size_t slen);
 // validates base32 string and optionally stores length of valid data
 // returns 1 if whole string is good, 0 if string contains invalid data
 int base64_valid(const char *src,size_t *count);
+// aligns data length to something base64 can represent without padding
+#define BASE64_DATA_ALIGN(l) (((l + 2) / 3) * 3)
