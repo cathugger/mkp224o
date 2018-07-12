@@ -1,3 +1,6 @@
+#ifdef __linux__
+#define _POSIX_C_SOURCE 200112L
+#endif
 
 #include <assert.h>
 #include <stdio.h>
@@ -6,6 +9,10 @@
 #include <string.h>
 #include <time.h>
 #include <pthread.h>
+
+#ifndef _WIN32
+#include <signal.h>
+#endif
 
 #include "types.h"
 #include "yaml.h"
@@ -229,6 +236,13 @@ int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 				break;
 		}
 		if (hashost && haspub && hassec) {
+#ifndef _WIN32
+			sigset_t nset,oset;
+			sigemptyset(&nset);
+			sigaddset(&nset,SIGINT);
+			sigaddset(&nset,SIGTERM);
+			sigprocmask(SIG_BLOCK,&nset,&oset);
+#endif
 			if (createdir(sname,1) != 0) {
 				fprintf(stderr,"ERROR: could not create directory for key output\n");
 				return 1;
@@ -251,6 +265,9 @@ int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 				fwrite(&sname[printstartpos],printlen,1,fout);
 				fflush(fout);
 			}
+#ifndef _WIN32
+			sigprocmask(SIG_SETMASK,&oset,0);
+#endif
 			if (hostname)
 				return 0; // finished
 			skipthis = 1;
