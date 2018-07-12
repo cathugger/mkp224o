@@ -42,16 +42,16 @@ static const char pubkey_example[]   = "PT0gZWQyNTUxOXYxLXB1YmxpYzogdHlwZTAgPT0A
 static const char seckey_example[]   = "PT0gZWQyNTUxOXYxLXNlY3JldDogdHlwZTAgPT0AAACwCPMr6rvBRtkW7ZzZ8P7Ne4acRZrhPrN/EF6AETRraFGvdrkW5es4WXB2UxrbuUf8zPoIKkXK5cpdakYdUeM3";
 static const char time_example[]     = "2018-07-04 21:31:20 Z";
 
-#define HOSTNAME_LEN (sizeof(hostname_example) - NULLTERM_LEN)
-#define PUBKEY_LEN   (sizeof(pubkey_example)   - NULLTERM_LEN)
-#define SECKEY_LEN   (sizeof(seckey_example)   - NULLTERM_LEN)
-#define TIME_LEN     (sizeof(time_example)     - NULLTERM_LEN)
+#define HOSTNAME_LEN   (sizeof(hostname_example) - NULLTERM_LEN)
+#define B64_PUBKEY_LEN (sizeof(pubkey_example)   - NULLTERM_LEN)
+#define B64_SECKEY_LEN (sizeof(seckey_example)   - NULLTERM_LEN)
+#define TIME_LEN       (sizeof(time_example)     - NULLTERM_LEN)
 
 #define KEYS_LEN ( \
 	KEYS_FIELD_GENERATED_LEN + LINEFEED_LEN + \
 	KEYS_FIELD_HOSTNAME_LEN + HOSTNAME_LEN + LINEFEED_LEN + \
-	KEYS_FIELD_PUBLICKEY_LEN + PUBKEY_LEN + LINEFEED_LEN + \
-	KEYS_FIELD_SECRETKEY_LEN + SECKEY_LEN + LINEFEED_LEN + \
+	KEYS_FIELD_PUBLICKEY_LEN + B64_PUBKEY_LEN + LINEFEED_LEN + \
+	KEYS_FIELD_SECRETKEY_LEN + B64_SECKEY_LEN + LINEFEED_LEN + \
 	KEYS_FIELD_TIME_LEN + TIME_LEN + LINEFEED_LEN \
 )
 
@@ -78,8 +78,8 @@ do { \
 void yamlout_writekeys(const char *hostname,const u8 *formated_public,const u8 *formated_secret)
 {
 	char keysbuf[KEYS_LEN];
-	char pubkeybuf[PUBKEY_LEN + NULLTERM_LEN];
-	char seckeybuf[SECKEY_LEN + NULLTERM_LEN];
+	char pubkeybuf[B64_PUBKEY_LEN + NULLTERM_LEN];
+	char seckeybuf[B64_SECKEY_LEN + NULLTERM_LEN];
 	char timebuf[TIME_LEN + NULLTERM_LEN];
 	size_t offset = 0;
 
@@ -92,12 +92,12 @@ void yamlout_writekeys(const char *hostname,const u8 *formated_public,const u8 *
 
 	BUF_APPEND(keysbuf,offset,keys_field_publickey,KEYS_FIELD_PUBLICKEY_LEN);
 	base64_to(pubkeybuf,formated_public,FORMATTED_PUBLIC_LEN);
-	BUF_APPEND(keysbuf,offset,pubkeybuf,PUBKEY_LEN);
+	BUF_APPEND(keysbuf,offset,pubkeybuf,B64_PUBKEY_LEN);
 	BUF_APPEND_CHAR(keysbuf,offset,'\n');
 
 	BUF_APPEND(keysbuf,offset,keys_field_secretkey,KEYS_FIELD_SECRETKEY_LEN);
 	base64_to(seckeybuf,formated_secret,FORMATTED_SECRET_LEN);
-	BUF_APPEND(keysbuf,offset,seckeybuf,SECKEY_LEN);
+	BUF_APPEND(keysbuf,offset,seckeybuf,B64_SECKEY_LEN);
 	BUF_APPEND_CHAR(keysbuf,offset,'\n');
 
 	BUF_APPEND(keysbuf,offset,keys_field_time,KEYS_FIELD_TIME_LEN);
@@ -219,7 +219,7 @@ int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 					skipthis = 1;
 				break;
 			case PUB:
-				if (len != PUBKEY_LEN || !base64_valid(p,0) ||
+				if (len != B64_PUBKEY_LEN || !base64_valid(p,0) ||
 					base64_from(pubbuf,p,len) != FORMATTED_PUBLIC_LEN)
 				{
 					fprintf(stderr,"ERROR: invalid pubkey syntax\n");
@@ -228,7 +228,7 @@ int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 				haspub = 1;
 				break;
 			case SEC:
-				if (len != SECKEY_LEN || !base64_valid(p,0) ||
+				if (len != B64_SECKEY_LEN || !base64_valid(p,0) ||
 					base64_from(secbuf,p,len) != FORMATTED_SECRET_LEN)
 				{
 					fprintf(stderr,"ERROR: invalid seckey syntax\n");
