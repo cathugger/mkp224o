@@ -84,10 +84,10 @@ int base64_valid(const char *src,size_t *count)
 	for (p = src;base64f[(u8)*p] != 0xFF;++p)
 		;
 
-	for (;*p == '=';++p)
+	for (;((size_t) (p - src)) % 4 != 0 && *p == '=';++p)
 		;
 
 	if (count)
 		*count = (size_t) (p - src);
-	return !*p;
+	return !*p && ((size_t) (p - src)) % 4 == 0;
 }
