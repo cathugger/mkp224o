@@ -27,6 +27,7 @@ I highly recommend reading OPTIMISATION.txt for performance-related tips.
 
 CONTACT:
 For bug reports/questions/whatever else, email cathugger at cock dot li.
+PGP key, if needed, can be found at <http://cathug2kyi4ilneggumrenayhuhsvrgn6qv2y47bgeet42iivkpynqad.onion/contact.html>.
 
 ACKNOWLEDGEMENTS & LEGAL:
 To the extent possible under law, the author(s) have dedicated all copyright and related and neighboring rights to this software to the public domain worldwide. This software is distributed without any warranty.
