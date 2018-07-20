@@ -1,6 +1,6 @@
 mkp224o - vanity address generator for ed25519 onion services
 
-This tool generates vanity ed25519 (hidden service version 3) onion addresses.
+This tool generates vanity ed25519 (hidden service version 3, formely known as proposal 224) onion addresses.
 For context, see <https://gitweb.torproject.org/torspec.git/plain/rend-spec-v3.txt>.
 
 REQUIREMENTS:
