@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <time.h>
 #include <pthread.h>
 #include <signal.h>
 #include <sodium/randombytes.h>
