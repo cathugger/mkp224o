@@ -9,6 +9,7 @@
 #include <time.h>
 #include <pthread.h>
 #include <signal.h>
+#include <sodium/core.h>
 #include <sodium/randombytes.h>
 #include <sodium/utils.h>
 
@@ -498,6 +499,10 @@ int main(int argc,char **argv)
 #endif
 	int tret;
 
+	if (sodium_init() < 0) {
+		fprintf(stderr,"sodium_init() failed\n");
+		return 1;
+	}
 	ge_initeightpoint();
 	filters_init();
 
