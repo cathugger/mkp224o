@@ -424,27 +424,17 @@ static void printhelp(FILE *out,const char *progname)
 	fflush(out);
 }
 
-enum {
-	Q_ADDITIONAL = 101,
-	Q_UNRECOGNISED,
-	Q_NOSTATISTICS,
-	Q_FAILOPENOUTPUT,
-	Q_FAILTHREAD,
-	Q_FAILTIME,
-	Q_FAILOPENINPUT,
-} ;
-
 static void e_additional()
 {
 	fprintf(stderr,"additional argument required\n");
-	exit(Q_ADDITIONAL);
+	exit(1);
 }
 
 #ifndef STATISTICS
 static void e_nostatistics()
 {
 	fprintf(stderr,"statistics support not compiled in\n");
-	exit(Q_NOSTATISTICS);
+	exit(1);
 }
 #endif
 
@@ -526,7 +516,7 @@ int main(int argc,char **argv)
 			if (*arg == '-') {
 				if (numargit > 1) {
 					fprintf(stderr,"unrecognised argument: -\n");
-					exit(Q_UNRECOGNISED);
+					exit(1);
 				}
 				++arg;
 				if (!*arg)
@@ -537,7 +527,7 @@ int main(int argc,char **argv)
 				}
 				else {
 					fprintf(stderr,"unrecognised argument: --%s\n",arg);
-					exit(Q_UNRECOGNISED);
+					exit(1);
 				}
 				numargit = 0;
 			}
@@ -644,14 +634,14 @@ int main(int argc,char **argv)
 							hostname = 0;
 						if (hostname && strlen(hostname) != ONION_LEN) {
 							fprintf(stderr,"bad onion argument length\n");
-							exit(Q_UNRECOGNISED);
+							exit(1);
 						}
 					}
 				}
 			}
 			else {
 				fprintf(stderr,"unrecognised argument: -%c\n",*arg);
-				exit(Q_UNRECOGNISED);
+				exit(1);
 			}
 			if (numargit)
 				goto nextarg;
@@ -664,13 +654,13 @@ int main(int argc,char **argv)
 		fout = fopen(outfile,!outfileoverwrite ? "a" : "w");
 		if (!fout) {
 			perror("failed to open output file");
-			exit(Q_FAILOPENOUTPUT);
+			exit(1);
 		}
 	}
 
 	if (!fout && yamloutput) {
 		fprintf(stderr,"nil output with yaml mode does not make sense\n");
-		exit(Q_FAILOPENOUTPUT); // define new err code?
+		exit(1);
 	}
 
 	if (workdir)
@@ -694,7 +684,7 @@ int main(int argc,char **argv)
 			fin = fopen(infile,"r");
 			if (!fin) {
 				fprintf(stderr,"failed to open input file\n");
-				return Q_FAILOPENINPUT;
+				return 1;
 			}
 		}
 		tret = yamlin_parseandcreate(fin,sname,hostname);
@@ -775,7 +765,7 @@ int main(int argc,char **argv)
 		tret = pthread_create(&VEC_BUF(threads,i),tattrp,fastkeygen ? dofastwork : dowork,tp);
 		if (tret) {
 			fprintf(stderr,"error while making " FSZ "th thread: %s\n",i,strerror(tret));
-			exit(Q_FAILTHREAD);
+			exit(1);
 		}
 	}
 
@@ -790,7 +780,7 @@ int main(int argc,char **argv)
 	u64 istarttime,inowtime,ireporttime = 0,elapsedoffset = 0;
 	if (clock_gettime(CLOCK_MONOTONIC,&nowtime) < 0) {
 		perror("failed to get time");
-		exit(Q_FAILTIME);
+		exit(1);
 	}
 	istarttime = (1000000 * (u64)nowtime.tv_sec) + ((u64)nowtime.tv_nsec / 1000);
 #endif
