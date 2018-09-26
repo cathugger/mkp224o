@@ -42,8 +42,10 @@ static char *workdir = 0;
 static size_t workdirlen = 0;
 
 static int quietflag = 0;
-//static int wantdedup = 0;
-#define wantdedup 0
+static int verboseflag = 0;
+#ifndef PCRE2FILTER
+static int wantdedup = 0;
+#endif
 
 // 0, direndpos, onionendpos
 // printstartpos = either 0 or direndpos
@@ -402,9 +404,11 @@ static void printhelp(FILE *out,const char *progname)
 		"       %s -f filterfile [options]\n"
 		"Options:\n"
 		"\t-h  - print help to stdout and quit\n"
-		"\t-f  - instead of specifying filter(s) via commandline, specify filter file which contains filters separated by newlines\n"
+		"\t-f  - specify filter file which contains filters separated by newlines\n"
+		"\t-D  - deduplicate filters\n"
 		"\t-q  - do not print diagnostic output to stderr\n"
 		"\t-x  - do not print onion names\n"
+		"\t-v  - print more diagnostic data\n"
 		"\t-o filename  - output onion names to specified file (append)\n"
 		"\t-O filename  - output onion names to specified file (overwrite)\n"
 		"\t-F  - include directory names in onion names output\n"
@@ -546,10 +550,19 @@ int main(int argc,char **argv)
 				else
 					e_additional();
 			}
+			else if (*arg == 'D') {
+#ifndef PCRE2FILTER
+				wantdedup = 1;
+#else
+				fprintf(stderr,"WARNING: deduplication isn't supported with regex filters\n");
+#endif
+			}
 			else if (*arg == 'q')
 				++quietflag;
 			else if (*arg == 'x')
 				fout = 0;
+			else if (*arg == 'v')
+				verboseflag = 1;
 			else if (*arg == 'o') {
 				outfileoverwrite = 0;
 				if (argc--)

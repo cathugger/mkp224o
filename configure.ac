@@ -176,6 +176,13 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
     [cstd="$cstd -Wall"],
     [AC_MSG_RESULT([no])]
 )
+CFLAGS="$cstd -Wno-maybe-uninitialized"
+AC_MSG_CHECKING([whether CC supports -Wno-maybe-uninitialized])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+    [AC_MSG_RESULT([yes])]
+    [cstd="$cstd -Wno-maybe-uninitialized"],
+    [AC_MSG_RESULT([no])]
+)
 if test "x$c99" = "xyes" -a "x$ed25519impl" != "xdonna" -a "x$enable_intfilter" != "x128"
 then
 	CFLAGS="$cstd -pedantic"

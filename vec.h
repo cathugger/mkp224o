@@ -22,6 +22,11 @@ void vec_addn(struct vec_basestruct *ctl,size_t sz,size_t n);
 #define VEC_ADDN(ctl,n) \
 	vec_addn((struct vec_basestruct *)&(ctl),VEC_ELSIZE(ctl),(size_t)(n))
 
+#define VEC_SETLENGTH(ctl,n) \
+do { \
+	(ctl).len = n; \
+} while (0)
+
 #define VEC_REMOVEN(ctl,n,m) \
 do { \
 	(ctl).len -= m; \

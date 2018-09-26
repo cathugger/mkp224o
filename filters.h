@@ -31,14 +31,17 @@
 
 
 #ifdef NEEDBINFILTER
+
 # ifndef BINFILTERLEN
 #  define BINFILTERLEN PUBLIC_LEN
 # endif
+
 struct binfilter {
 	u8 f[BINFILTERLEN];
 	size_t len; // real len minus one
 	u8 mask;
 } ;
+
 #endif // NEEDBINFILTER
 
 
@@ -117,6 +120,14 @@ static inline int filter_compare(const void *p1,const void *p2)
 #  ifdef EXPANDMASK
 
 /*
+ * for mask expansion, we need to figure out how much bits
+ * we need to fill in with different values.
+ * while in big endian machines this is quite easy,
+ * representation we use for little endian ones may
+ * leave gap of bits we don't want to touch.
+ *
+ * initial idea draft:
+ *
  * raw representation -- FF.FF.F0.00
  * big endian         -- 0xFFFFF000
  * little endian      -- 0x00F0FFFF
@@ -153,12 +164,24 @@ static inline int filter_compare(const void *p1,const void *p2)
  * or..
  * realmask <- (val & 0x000000dd) | ((val << relshiftval) & 0x0sss0000)
  * ...
+ *
  * above method doesn't work in some cases. better way:
+ *
  * l: 0x80ffFFff ^ 0x00f0FFff -> 0x800f0000
  *   0x800f0000 >> 16 -> 0x0000800f
  *   0x0000800f + 1 -> 0x00008010
  *   0x0000800f & 0x00008010 -> 0x00008000 <- smask
  *   0x0000800f ^ 0x00008000 -> 0x0000000f <- dmask
+ *
+ * cross <- difference between mask we desire and mask we currently have
+ * shift cross to left variable ammount of times to eliminate zeros
+ *   save shift ammount as ishift (initial shift)
+ * then, we eliminate first area of ones; if there was no gap, result is already all zeros
+ *   save this thing as smask. it's only higher bits.
+ * XOR smask and cross; result is only lower bits.
+ * shift smask to left variable ammount of times until gap is eliminated.
+ *   save resulting mask as cmask;
+ *   save resulting shift value as rshift.
  */
 
 static int flattened = 0;
@@ -289,18 +312,29 @@ static inline int filter_compare(const void *p1,const void *p2)
 {
 	const struct binfilter *b1 = (const struct binfilter *)p1;
 	const struct binfilter *b2 = (const struct binfilter *)p2;
+
 	size_t l = b1->len <= b2->len ? b1->len : b2->len;
+
 	int cmp = memcmp(b1->f,b2->f,l);
-	if (cmp)
+	if (cmp != 0)
 		return cmp;
+
 	if (b1->len < b2->len)
 		return -1;
 	if (b1->len > b2->len)
-		return 1;
+		return +1;
+
+	u8 cmask = b1->mask & b2->mask;
+	if ((b1->f[l] & cmask) < (b2->f[l] & cmask))
+		return -1;
+	if ((b1->f[l] & cmask) > (b2->f[l] & cmask))
+		return +1;
+
 	if (b1->mask < b2->mask)
 		return -1;
 	if (b1->mask > b2->mask)
-		return 1;
+		return +1;
+
 	return 0;
 }
 
@@ -345,6 +379,7 @@ static void filters_add(const char *filter)
 		fprintf(stderr,"^\n");
 		return;
 	}
+
 	ret = BASE32_FROM_LEN(ret);
 	if (!ret)
 		return;
@@ -372,12 +407,14 @@ static void filters_add(const char *filter)
 	mc.b[bf.len] = bf.mask;
 	memcpy(fc.b,bf.f,sizeof(fc.b));
 	fc.i &= mc.i;
+
 	struct intfilter ifltr = {
 		.f = fc.i,
 #  ifndef OMITMASK
 		.m = mc.i,
 #  endif
 	};
+
 #  ifdef OMITMASK
 	ifilter_addflatten(&ifltr,mc.i);
 #  else // OMITMASK
@@ -394,6 +431,7 @@ static void filters_add(const char *filter)
 	int errornum;
 	PCRE2_SIZE erroroffset;
 	pcre2_code *re;
+
 	re = pcre2_compile((PCRE2_SPTR8)filter,PCRE2_ZERO_TERMINATED,
 		PCRE2_NO_UTF_CHECK | PCRE2_ANCHORED,&errornum,&erroroffset,0);
 	if (!re) {
@@ -403,8 +441,10 @@ static void filters_add(const char *filter)
 			(size_t)erroroffset,buffer);
 		return;
 	}
+
 	// attempt to JIT. ignore error
 	(void) pcre2_jit_compile(re,PCRE2_JIT_COMPLETE);
+
 	struct pcre2filter f;
 	memset(&f,0,sizeof(f));
 	f.re = re;
@@ -417,12 +457,73 @@ static void filters_add(const char *filter)
 #endif // PCRE2FILTER
 }
 
-#ifdef NEEDBINFILTER
+#ifndef PCRE2FILTER
+static inline int filters_a_includes_b(size_t a,size_t b)
+{
+# ifdef INTFILTER
+#  ifdef OMITMASK
+	return VEC_BUF(filters,a).f == VEC_BUF(filters,b).f;
+#  else // OMITMASK
+	return VEC_BUF(filters,a).f == (VEC_BUF(filters,b).f & VEC_BUF(filters,a).m);
+#  endif // OMITMASK
+# else // INTFILTER
+	const struct binfilter *fa = &VEC_BUF(filters,a);
+	const struct binfilter *fb = &VEC_BUF(filters,b);
+
+	if (fa->len > fb->len)
+		return 0;
+	size_t l = fa->len;
+
+	int cmp = memcmp(fa->f,fb->f,l);
+	if (cmp != 0)
+		return 0;
+
+	if (fa->len < fb->len)
+		return 1;
+
+	if (fa->mask > fb->mask)
+		return 0;
+
+	return fa->f[l] == (fb->f[l] & fa->mask);
+# endif // INTFILTER
+}
+
 static void filters_dedup(void)
 {
-	//TODO
+	size_t last = ~(size_t)0; // index after last matching element
+	size_t chk;               // element to compare against
+	size_t st;                // start of area to destroy
+
+	size_t len = VEC_LENGTH(filters);
+	for (size_t i = 1;i < len;++i) {
+		if (last != i) {
+			if (filters_a_includes_b(i - 1,i)) {
+				if (last != ~(size_t)0) {
+					memmove(&VEC_BUF(filters,st),
+						&VEC_BUF(filters,last),
+						(i - last) * VEC_ELSIZE(filters));
+					st += i - last;
+				}
+				else
+					st = i;
+				chk = i - 1;
+				last = i + 1;
+			}
+		}
+		else {
+			if (filters_a_includes_b(chk,i))
+				last = i + 1;
+		}
+	}
+	if (last != ~(size_t)0) {
+		memmove(&VEC_BUF(filters,st),
+			&VEC_BUF(filters,last),
+			(len - last) * VEC_ELSIZE(filters));
+		st += len - last;
+		VEC_SETLENGTH(filters,st);
+	}
 }
-#endif // NEEDBINFILTER
+#endif // !PCRE2FILTER
 
 static void filters_prepare(void)
 {
@@ -643,7 +744,7 @@ static void filters_print(void)
 		u8 bufx[128];
 #endif
 
-		if (i >= 20) {
+		if (!verboseflag && i >= 20) {
 			size_t notshown = l - i;
 			fprintf(stderr,"[another " FSZ " %s not shown]\n",
 				notshown,notshown == 1 ? "filter" : "filters");
