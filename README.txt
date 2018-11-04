@@ -16,7 +16,7 @@ run `./configure --help` to see all available options.
 Finally, `make` to start building (`gmake` in *BSD platforms).
 
 USAGE:
-Generator needs one of more filters to work.
+Generator needs one or more filters to work.
 It makes directory with secret/public keys and hostname
 for each discovered service. By default root is current
 directory, but that can be overridden with -d switch.
