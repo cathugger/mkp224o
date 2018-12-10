@@ -413,7 +413,7 @@ static void printhelp(FILE *out,const char *progname)
 		"\t-O filename  - output onion names to specified file (overwrite)\n"
 		"\t-F  - include directory names in onion names output\n"
 		"\t-d dirname  - output directory\n"
-		"\t-t numthreads  - specify number of threads (default - auto)\n"
+		"\t-t numthreads  - specify number of threads to utilise (default - CPU core count or 1)\n"
 		"\t-j numthreads  - same as -t\n"
 		"\t-n numkeys  - specify number of keys (default - 0 - unlimited)\n"
 		"\t-N numwords  - specify number of words per key (default - 1)\n"
