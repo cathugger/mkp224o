@@ -11,6 +11,9 @@
 #include <signal.h>
 #include <sodium/core.h>
 #include <sodium/randombytes.h>
+#ifdef PASSPHRASE
+#include <sodium/crypto_pwhash.h>
+#endif
 #include <sodium/utils.h>
 
 #include "types.h"
@@ -62,6 +65,11 @@ static size_t numneedgenerate = 0;
 static pthread_mutex_t keysgenerated_mutex;
 static volatile size_t keysgenerated = 0;
 static volatile int endwork = 0;
+
+#ifdef PASSPHRASE
+static pthread_mutex_t determseed_mutex;
+static u8 determseed[SEED_LEN];
+#endif
 
 pthread_mutex_t fout_mutex;
 FILE *fout;
@@ -129,6 +137,14 @@ static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 			endwork = 1;
 		pthread_mutex_unlock(&keysgenerated_mutex);
 	}
+
+	// Sanity check that the public key matches the private one.
+	ge_p3 point;
+	u8 testpk[PUBLIC_LEN];
+	ge_scalarmult_base(&point, secret);
+	ge_p3_tobytes(testpk, &point);
+	if (!memcmp(testpk, pubonion, PUBLIC_LEN))
+		abort();
 
 	if (!yamloutput) {
 		if (createdir(sname,1) != 0) {
@@ -397,6 +413,108 @@ end:
 	return 0;
 }
 
+#ifdef PASSPHRASE
+static void *dofastworkdeterministic(void *task)
+{
+	union pubonionunion pubonion;
+	u8 * const pk = &pubonion.raw[PKPREFIX_SIZE];
+	u8 secret[SKPREFIX_SIZE + SECRET_LEN];
+	u8 * const sk = &secret[SKPREFIX_SIZE];
+	u8 seed[SEED_LEN];
+	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
+	u8 wpk[PUBLIC_LEN + 1];
+	ge_p3 ge_public;
+	size_t counter, delta;
+	size_t i;
+	char *sname;
+#ifdef STATISTICS
+	struct statstruct *st = (struct statstruct *)task;
+#endif
+	PREFILTER
+
+	memcpy(secret,skprefix,SKPREFIX_SIZE);
+	wpk[PUBLIC_LEN] = 0;
+	memset(&pubonion,0,sizeof(pubonion));
+	memcpy(pubonion.raw,pkprefix,PKPREFIX_SIZE);
+	// write version later as it will be overwritten by hash
+	memcpy(hashsrc,checksumstr,checksumstrlen);
+	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
+
+	sname = makesname();
+
+initseed:
+	pthread_mutex_lock(&determseed_mutex);
+	for (int i = 0; i < SEED_LEN; i++)
+		if (++determseed[i])
+			break;
+	memcpy(seed, determseed, SEED_LEN);
+	pthread_mutex_unlock(&determseed_mutex);
+	ed25519_seckey_expand(sk,seed);
+#ifdef STATISTICS
+	++st->numrestart.v;
+#endif
+
+	ge_scalarmult_base(&ge_public,sk);
+	ge_p3_tobytes(pk,&ge_public);
+
+	for (delta = counter = 0;counter < DETERMINISTIC_LOOP_COUNT; counter += 8, delta += 8) {
+		ge_p1p1 sum;
+
+		if (unlikely(endwork))
+			goto end;
+
+		DOFILTER(i,pk,{
+			if (numwords > 1) {
+				shiftpk(wpk,pk,filter_len(i));
+				size_t j;
+				for (int w = 1;;) {
+					DOFILTER(j,wpk,goto secondfind);
+					goto next;
+				secondfind:
+					if (++w >= numwords)
+						break;
+					shiftpk(wpk,wpk,filter_len(j));
+				}
+			}
+			// found!
+			// update secret key with accumulated delta of this counter
+			addsztoscalar32(sk,delta);
+			delta = 0;
+			// sanity check
+			if ((sk[0] & 248) != sk[0] || ((sk[31] & 63) | 64) != sk[31])
+				goto initseed;
+
+			ADDNUMSUCCESS;
+
+			// calc checksum
+			memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
+			FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
+			// version byte
+			pk[PUBLIC_LEN + 2] = 0x03;
+			// full name
+			strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
+			onionready(sname,secret,pubonion.raw);
+			pk[PUBLIC_LEN] = 0;
+		});
+	next:
+		ge_add(&sum, &ge_public,&ge_eightpoint);
+		ge_p1p1_to_p3(&ge_public,&sum);
+		ge_p3_tobytes(pk,&ge_public);
+#ifdef STATISTICS
+		++st->numcalc.v;
+#endif
+	}
+	goto initseed;
+
+end:
+	free(sname);
+	POSTFILTER
+	sodium_memzero(secret,sizeof(secret));
+	sodium_memzero(seed,sizeof(seed));
+	return 0;
+}
+#endif
+
 static void printhelp(FILE *out,const char *progname)
 {
 	fprintf(out,
@@ -424,6 +542,9 @@ static void printhelp(FILE *out,const char *progname)
 		"\t-T  - do not reset statistics counters when printing\n"
 		"\t-y  - output generated keys in YAML format instead of dumping them to filesystem\n"
 		"\t-Y [filename [host.onion]]  - parse YAML encoded input and extract key(s) to filesystem\n"
+#ifdef PASSPHRASE
+		"\t-p passphrase  - use passphrase to initialize the random seed with\n"
+#endif
 		,progname,progname);
 	fflush(out);
 }
@@ -483,6 +604,9 @@ int main(int argc,char **argv)
 	int numthreads = 0;
 	int fastkeygen = 1;
 	int yamlinput = 0;
+#ifdef PASSPHRASE
+	int deterministic = 0;
+#endif
 	int outfileoverwrite = 0;
 	struct threadvec threads;
 #ifdef STATISTICS
@@ -651,6 +775,29 @@ int main(int argc,char **argv)
 						}
 					}
 				}
+#ifdef PASSPHRASE
+			} else if (*arg == 'p') {
+				if (argc--) {
+					static unsigned char salt[crypto_pwhash_SALTBYTES] = {0};
+					const char *phrase = *argv;
+					if (!strcmp(phrase, "@")) {
+						phrase = getenv("PASSPHRASE");
+						if (phrase == NULL) {
+							fprintf(stderr, "store passphrase in PASSPHRASE environment variable\n");
+							exit(1);
+						}
+					}
+					deterministic = 1;
+					fprintf(stderr, "expanding passphrase..."); fflush(stderr);
+					if (crypto_pwhash(determseed, sizeof(determseed), phrase, strlen(phrase), salt,
+								PWHASH_OPSLIMIT, PWHASH_MEMLIMIT, PWHASH_ALG)) {
+						fprintf(stderr, "out of memory\n");
+					}
+					fprintf(stderr, "ok\n");
+					argv++;
+				} else
+					e_additional();
+#endif
 			}
 			else {
 				fprintf(stderr,"unrecognised argument: -%c\n",*arg);
@@ -733,6 +880,9 @@ int main(int argc,char **argv)
 		yamlout_init();
 
 	pthread_mutex_init(&keysgenerated_mutex,0);
+#ifdef PASSPHRASE
+	pthread_mutex_init(&determseed_mutex,0);
+#endif
 	pthread_mutex_init(&fout_mutex,0);
 
 	if (numthreads <= 0) {
@@ -775,7 +925,11 @@ int main(int argc,char **argv)
 #ifdef STATISTICS
 		tp = &VEC_BUF(stats,i);
 #endif
-		tret = pthread_create(&VEC_BUF(threads,i),tattrp,fastkeygen ? dofastwork : dowork,tp);
+		tret = pthread_create(&VEC_BUF(threads,i),tattrp,
+#ifdef PASSPHRASE
+				deterministic?dofastworkdeterministic:
+#endif
+				(fastkeygen ? dofastwork : dowork),tp);
 		if (tret) {
 			fprintf(stderr,"error while making " FSZ "th thread: %s\n",i,strerror(tret));
 			exit(1);
