@@ -1036,6 +1036,9 @@ int main(int argc,char **argv)
 
 	pthread_mutex_destroy(&keysgenerated_mutex);
 	pthread_mutex_destroy(&fout_mutex);
+#ifdef PASSPHRASE
+	pthread_attr_destroy(&determseed_mutex);
+#endif
 
 done:
 	filters_clean();
