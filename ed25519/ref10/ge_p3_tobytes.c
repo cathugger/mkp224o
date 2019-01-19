@@ -1,6 +1,6 @@
 #include "ge.h"
 
-void ge_p3_tobytes(unsigned char *s,const ge_p3 *h)
+void ge_p3_tobytes(bytes32 s,const ge_p3 *h)
 {
   fe recip;
   fe x;

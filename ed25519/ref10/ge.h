@@ -50,6 +50,8 @@ typedef struct {
   fe T2d;
 } ge_cached;
 
+typedef unsigned char bytes32[32];
+
 #define ge_frombytes_negate_vartime crypto_sign_ed25519_ref10_ge_frombytes_negate_vartime
 #define ge_tobytes crypto_sign_ed25519_ref10_ge_tobytes
 #define ge_p3_tobytes crypto_sign_ed25519_ref10_ge_p3_tobytes

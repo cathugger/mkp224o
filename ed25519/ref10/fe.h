@@ -53,7 +53,7 @@ extern void fe_sq(fe,const fe);
 extern void fe_sq2(fe,const fe);
 extern void fe_mul121666(fe,const fe);
 extern void fe_invert(fe,const fe);
-extern void fe_batchinvert(fe out[],fe tmp[],const fe in[], size_t num);
+extern void fe_batchinvert(fe *out[],fe tmp[],const fe *in[], size_t num);
 extern void fe_pow22523(fe,const fe);
 
 #endif
