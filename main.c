@@ -581,7 +581,8 @@ initseed:
 			ge_add(&sum,&ge_public,&ge_eightpoint);
 			ge_p1p1_to_p3(&ge_public,&sum);
 		}
-		ge_p3_batchtobytes_destructive(pk_batch,ge_batch,batchgez,tmp_batch,BATCHNUM);
+		// NOTE: leaves unfinished
+		ge_p3_batchtobytes_destructive_1(pk_batch,ge_batch,batchgez,tmp_batch,BATCHNUM);
 
 #ifdef STATISTICS
 		st->numcalc.v += BATCHNUM;
@@ -602,6 +603,8 @@ initseed:
 					}
 				}
 				// found!
+				// finish it up
+				ge_p3_batchtobytes_destructive_finish(pk_batch[b],&ge_batch[b]);
 				// copy public key
 				memcpy(pk,pk_batch[b],PUBLIC_LEN);
 				// update secret key with counter

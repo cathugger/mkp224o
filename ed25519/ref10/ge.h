@@ -55,7 +55,8 @@ typedef unsigned char bytes32[32];
 #define ge_frombytes_negate_vartime crypto_sign_ed25519_ref10_ge_frombytes_negate_vartime
 #define ge_tobytes crypto_sign_ed25519_ref10_ge_tobytes
 #define ge_p3_tobytes crypto_sign_ed25519_ref10_ge_p3_tobytes
-#define ge_p3_batchtobytes_destructive crypto_sign_ed25519_ref10_ge_p3_batchtobytes_destructive
+#define ge_p3_batchtobytes_destructive_1 crypto_sign_ed25519_ref10_ge_p3_batchtobytes_destructive_1
+#define ge_p3_batchtobytes_destructive_finish crypto_sign_ed25519_ref10_ge_p3_batchtobytes_destructive_finish
 
 #define ge_p2_0 crypto_sign_ed25519_ref10_ge_p2_0
 #define ge_p3_0 crypto_sign_ed25519_ref10_ge_p3_0
@@ -76,7 +77,8 @@ typedef unsigned char bytes32[32];
 
 extern void ge_tobytes(unsigned char *,const ge_p2 *);
 extern void ge_p3_tobytes(unsigned char *,const ge_p3 *);
-extern void ge_p3_batchtobytes_destructive(bytes32 out[],const ge_p3 in[],fe *inz[],fe tmp[],size_t num);
+extern void ge_p3_batchtobytes_destructive_1(bytes32 out[],ge_p3 in[],fe *inz[],fe tmp[],size_t num);
+extern void ge_p3_batchtobytes_destructive_finish(bytes32 out,ge_p3 *unf);
 extern int ge_frombytes_negate_vartime(ge_p3 *,const unsigned char *);
 
 extern void ge_p2_0(ge_p2 *);
