@@ -2,7 +2,7 @@
 
 // tmp MUST != out
 // in MAY == out
-void fe_batchinvert(fe *out[],fe tmp[],const fe *in[], size_t num)
+void fe_batchinvert(fe *out[],fe tmp[],fe * const in[], size_t num)
 {
   fe acc;
   fe tmpacc;
