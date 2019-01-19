@@ -211,6 +211,7 @@ ed25519/amd64-64-24k/batch.c.o: ed25519/amd64-51-30k/ge25519.h
 ed25519/amd64-64-24k/batch.c.o: ed25519/amd64-51-30k/fe25519.h
 ed25519/amd64-64-24k/batch.c.o: ed25519/amd64-51-30k/sc25519.h
 ed25519/amd64-64-24k/batch.c.o: ed25519/amd64-51-30k/hram.h
+ed25519/amd64-64-24k/fe25519_batchinvert.c.o: ed25519/amd64-51-30k/fe25519.h
 ed25519/amd64-64-24k/fe25519_getparity.c.o: ed25519/amd64-51-30k/fe25519.h
 ed25519/amd64-64-24k/fe25519_invert.c.o: ed25519/amd64-51-30k/fe25519.h
 ed25519/amd64-64-24k/fe25519_iseq.c.o: ed25519/amd64-51-30k/fe25519.h
@@ -226,6 +227,9 @@ ed25519/amd64-64-24k/ge25519_add.c.o: ed25519/amd64-51-30k/sc25519.h
 ed25519/amd64-64-24k/ge25519_base.c.o: ed25519/amd64-51-30k/ge25519.h
 ed25519/amd64-64-24k/ge25519_base.c.o: ed25519/amd64-51-30k/fe25519.h
 ed25519/amd64-64-24k/ge25519_base.c.o: ed25519/amd64-51-30k/sc25519.h
+ed25519/amd64-64-24k/ge25519_batchpack.c.o: ed25519/amd64-51-30k/fe25519.h
+ed25519/amd64-64-24k/ge25519_batchpack.c.o: ed25519/amd64-51-30k/ge25519.h
+ed25519/amd64-64-24k/ge25519_batchpack.c.o: ed25519/amd64-51-30k/sc25519.h
 ed25519/amd64-64-24k/ge25519_double.c.o: ed25519/amd64-51-30k/ge25519.h
 ed25519/amd64-64-24k/ge25519_double.c.o: ed25519/amd64-51-30k/fe25519.h
 ed25519/amd64-64-24k/ge25519_double.c.o: ed25519/amd64-51-30k/sc25519.h
@@ -286,6 +290,8 @@ ed25519/amd64-64-24k/sign.c.o: ed25519/amd64-51-30k/sc25519.h
 ed25519/ref10/fe_0.c.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_1.c.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_add.c.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
+ed25519/ref10/fe_batchinvert.c.o: ed25519/ref10/fe.h
+ed25519/ref10/fe_batchinvert.c.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_cmov.c.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_copy.c.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_frombytes.c.o: ed25519/ref10/fe.h
@@ -336,6 +342,8 @@ ed25519/ref10/ge_p2_dbl.c.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/ge_p2_dbl.c.o: ed25519/ref10/ge_p2_dbl.h
 ed25519/ref10/ge_p3_0.c.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_p3_0.c.o: ed25519/ref10/crypto_int32.h
+ed25519/ref10/ge_p3_batchtobytes.c.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
+ed25519/ref10/ge_p3_batchtobytes.c.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/ge_p3_dbl.c.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_p3_dbl.c.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/ge_p3_to_cached.c.o: ed25519/ref10/ge.h ed25519/ref10/fe.h

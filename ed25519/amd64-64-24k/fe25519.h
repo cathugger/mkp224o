@@ -1,6 +1,8 @@
 #ifndef FE25519_H
 #define FE25519_H
 
+#include <stddef.h>
+
 #define fe25519                crypto_sign_ed25519_amd64_64_fe25519
 #define fe25519_freeze         crypto_sign_ed25519_amd64_64_fe25519_freeze
 #define fe25519_unpack         crypto_sign_ed25519_amd64_64_fe25519_unpack
@@ -17,6 +19,7 @@
 #define fe25519_mul121666      crypto_sign_ed25519_amd64_64_fe25519_mul121666
 #define fe25519_square         crypto_sign_ed25519_amd64_64_fe25519_square
 #define fe25519_invert         crypto_sign_ed25519_amd64_64_fe25519_invert
+#define fe25519_batchinvert    crypto_sign_ed25519_amd64_64_fe25519_batchinvert
 #define fe25519_pow2523        crypto_sign_ed25519_amd64_64_fe25519_pow2523
 
 typedef struct 
@@ -58,6 +61,8 @@ void fe25519_square(fe25519 *r, const fe25519 *x);
 void fe25519_pow(fe25519 *r, const fe25519 *x, const unsigned char *e);
 
 void fe25519_invert(fe25519 *r, const fe25519 *x);
+
+void fe25519_batchinvert(fe25519 *out[],fe25519 tmp[],fe25519 * const in[], size_t num);
 
 void fe25519_pow2523(fe25519 *r, const fe25519 *x);
 

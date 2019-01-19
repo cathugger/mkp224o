@@ -519,7 +519,9 @@ end:
 
 #ifdef BATCHKEYGEN
 
+#ifndef BATCHNUM
 #define BATCHNUM 64
+#endif
 
 static void *dobatchwork(void *task)
 {
@@ -728,7 +730,9 @@ int main(int argc,char **argv)
 	int dirnameflag = 0;
 	int numthreads = 0;
 	int fastkeygen = 1;
+#ifdef BATCHKEYGEN
 	int batchkeygen = 0;
+#endif
 	int yamlinput = 0;
 #ifdef PASSPHRASE
 	int deterministic = 0;

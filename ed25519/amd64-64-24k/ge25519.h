@@ -64,6 +64,8 @@ typedef struct
   fe25519 t2d;
 } ge25519_pniels;
 
+typedef unsigned char bytes32[32];
+
 extern void ge25519_p1p1_to_p2(ge25519_p2 *r, const ge25519_p1p1 *p);
 extern void ge25519_p1p1_to_p3(ge25519_p3 *r, const ge25519_p1p1 *p);
 extern void ge25519_add_p1p1(ge25519_p1p1 *r, const ge25519_p3 *p, const ge25519_p3 *q);
