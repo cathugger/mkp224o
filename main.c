@@ -306,6 +306,7 @@ end:
 	return 0;
 }
 
+// in little-endian order, 32 bytes aka 256 bits
 static void addsztoscalar32(u8 *dst,size_t v)
 {
 	int i;
@@ -424,7 +425,7 @@ static void *dofastworkdeterministic(void *task)
 	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
 	u8 wpk[PUBLIC_LEN + 1];
 	ge_p3 ge_public;
-	size_t counter, delta;
+	size_t counter,oldcounter;
 	size_t i;
 	char *sname;
 #ifdef STATISTICS
@@ -457,7 +458,7 @@ initseed:
 	ge_scalarmult_base(&ge_public,sk);
 	ge_p3_tobytes(pk,&ge_public);
 
-	for (delta = counter = 0;counter < DETERMINISTIC_LOOP_COUNT; counter += 8, delta += 8) {
+	for (counter = oldcounter = 0;counter < DETERMINISTIC_LOOP_COUNT;counter += 8) {
 		ge_p1p1 sum;
 
 		if (unlikely(endwork))
@@ -477,9 +478,9 @@ initseed:
 				}
 			}
 			// found!
-			// update secret key with accumulated delta of this counter
-			addsztoscalar32(sk,delta);
-			delta = 0;
+			// update secret key with delta since last hit (if any)
+			addsztoscalar32(sk,counter-oldcounter);
+			oldcounter = counter;
 			// sanity check
 			if ((sk[0] & 248) != sk[0] || ((sk[31] & 63) | 64) != sk[31])
 				goto initseed;
@@ -495,6 +496,7 @@ initseed:
 			strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
 			onionready(sname,secret,pubonion.raw);
 			pk[PUBLIC_LEN] = 0; // what is this for?
+			// TODO reseed right half of key
 		});
 	next:
 		ge_add(&sum, &ge_public,&ge_eightpoint);
