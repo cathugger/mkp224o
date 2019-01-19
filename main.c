@@ -291,7 +291,7 @@ again:
 		// base32
 		strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
 		onionready(sname,secret,pubonion.raw);
-		pk[PUBLIC_LEN] = 0;
+		pk[PUBLIC_LEN] = 0; // what is this for?
 		goto initseed;
 	});
 next:
@@ -391,7 +391,7 @@ initseed:
 			// full name
 			strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
 			onionready(sname,secret,pubonion.raw);
-			pk[PUBLIC_LEN] = 0;
+			pk[PUBLIC_LEN] = 0; // what is this for?
 			// don't reuse same seed
 			goto initseed;
 		});
@@ -494,7 +494,7 @@ initseed:
 			// full name
 			strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
 			onionready(sname,secret,pubonion.raw);
-			pk[PUBLIC_LEN] = 0;
+			pk[PUBLIC_LEN] = 0; // what is this for?
 		});
 	next:
 		ge_add(&sum, &ge_public,&ge_eightpoint);

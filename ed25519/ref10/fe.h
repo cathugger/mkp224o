@@ -2,6 +2,7 @@
 #define FE_H
 
 #include "crypto_int32.h"
+#include <stddef.h>
 
 typedef crypto_int32 fe[10];
 
@@ -30,6 +31,7 @@ Bounds on each t[i] vary depending on context.
 #define fe_sq2 crypto_sign_ed25519_ref10_fe_sq2
 #define fe_mul121666 crypto_sign_ed25519_ref10_fe_mul121666
 #define fe_invert crypto_sign_ed25519_ref10_fe_invert
+#define fe_batchinvert crypto_sign_ed25519_ref10_fe_batchinvert
 #define fe_pow22523 crypto_sign_ed25519_ref10_fe_pow22523
 
 extern void fe_frombytes(fe,const unsigned char *);
@@ -51,6 +53,7 @@ extern void fe_sq(fe,const fe);
 extern void fe_sq2(fe,const fe);
 extern void fe_mul121666(fe,const fe);
 extern void fe_invert(fe,const fe);
+extern void fe_batchinvert(fe out[],fe tmp[],const fe in[], size_t num);
 extern void fe_pow22523(fe,const fe);
 
 #endif
