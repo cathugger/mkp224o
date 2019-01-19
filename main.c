@@ -520,7 +520,7 @@ end:
 #ifdef BATCHKEYGEN
 
 #ifndef BATCHNUM
-#define BATCHNUM 64
+#define BATCHNUM 256
 #endif
 
 static void *dobatchwork(void *task)
@@ -547,7 +547,7 @@ static void *dobatchwork(void *task)
 #endif
 
 	for (size_t b = 0;b < BATCHNUM;++b)
-		batchgez[b] = &ge_batch[b].Z;
+		batchgez[b] = &GEZ(ge_batch[b]);
 
 	PREFILTER
 
