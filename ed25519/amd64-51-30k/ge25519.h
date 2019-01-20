@@ -73,6 +73,8 @@ typedef struct
   fe25519 t2d;
 } ge25519_pniels;
 
+typedef unsigned char bytes32[32];
+
 extern void ge25519_p1p1_to_p2(ge25519_p2 *r, const ge25519_p1p1 *p);
 extern void ge25519_p1p1_to_p3(ge25519_p3 *r, const ge25519_p1p1 *p);
 extern void ge25519_p1p1_to_pniels(ge25519_pniels *r, const ge25519_p1p1 *p);
@@ -89,6 +91,9 @@ extern const ge25519 ge25519_base;
 extern int ge25519_unpackneg_vartime(ge25519 *r, const unsigned char p[32]);
 
 extern void ge25519_pack(unsigned char r[32], const ge25519 *p);
+
+extern void ge25519_batchpack_destructive_1(bytes32 out[], ge25519_p3 in[], fe25519 *inz[], fe25519 tmp[], size_t num);
+extern void ge25519_batchpack_destructive_finish(bytes32 out, ge25519_p3 *unf);
 
 extern int ge25519_isneutral_vartime(const ge25519 *p);
 

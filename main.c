@@ -520,7 +520,7 @@ end:
 #ifdef BATCHKEYGEN
 
 #ifndef BATCHNUM
-#define BATCHNUM 256
+#define BATCHNUM 2048
 #endif
 
 static void *dobatchwork(void *task)
@@ -1045,6 +1045,7 @@ int main(int argc,char **argv)
 	VEC_ZERO(tstats);
 #endif
 
+#if 0
 	pthread_attr_t tattr,*tattrp = &tattr;
 	tret = pthread_attr_init(tattrp);
 	if (tret) {
@@ -1056,13 +1057,14 @@ int main(int argc,char **argv)
 		if (tret)
 			perror("pthread_attr_setstacksize");
 	}
+#endif
 
 	for (size_t i = 0;i < VEC_LENGTH(threads);++i) {
 		void *tp = 0;
 #ifdef STATISTICS
 		tp = &VEC_BUF(stats,i);
 #endif
-		tret = pthread_create(&VEC_BUF(threads,i),tattrp,
+		tret = pthread_create(&VEC_BUF(threads,i),0,
 #ifdef PASSPHRASE
 				deterministic ? dofastworkdeterministic :
 #endif
@@ -1076,11 +1078,13 @@ int main(int argc,char **argv)
 		}
 	}
 
+#if 0
 	if (tattrp) {
 		tret = pthread_attr_destroy(tattrp);
 		if (tret)
 			perror("pthread_attr_destroy");
 	}
+#endif
 
 #ifdef STATISTICS
 	struct timespec nowtime;
