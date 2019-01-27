@@ -48,6 +48,46 @@ curve25519_recip(bignum25519 out, const bignum25519 z) {
 	/* 2^255 - 21 */ curve25519_mul_noinline(out, b, a);
 }
 
+const static unsigned char curve25519_packedone[32] = {
+	1, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+};
+
+static void
+curve25519_setone(bignum25519 out) {
+	// (cathugger) this hopefuly will get inlined by compiler because im lazy
+	curve25519_expand(out, curve25519_packedone);
+}
+
+/*
+ * (cathugger)
+ * idk if recip is same as invert but I hope it is
+ * if that's the case then we're doing batch invert there
+ */
+static void
+curve25519_batchrecip(bignum25519 *out[], bignum25519 tmp[], bignum25519 * const in[], size_t num) {
+	bignum25519 ALIGN(16) acc, tmpacc;
+	size_t i;
+
+	curve25519_setone(acc);
+
+	for (i = 0; i < num; ++i) {
+		curve25519_copy(tmp[i], acc);
+		curve25519_mul(acc, acc, *in[i]);
+	}
+
+	curve25519_recip(acc, acc);
+
+	i = num;
+	while (i--) {
+		curve25519_mul(tmpacc, acc, *in[i]);
+		curve25519_mul(*out[i], acc, tmp[i]);
+		curve25519_copy(acc, tmpacc);
+	}
+}
+
 /*
  * z^((p-5)/8) = z^(2^252 - 3)
  */
