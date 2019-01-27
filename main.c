@@ -517,8 +517,6 @@ end:
 }
 #endif // PASSPHRASE
 
-#ifdef BATCHKEYGEN
-
 #ifndef BATCHNUM
 #define BATCHNUM 2048
 #endif
@@ -640,7 +638,6 @@ end:
 	sodium_memzero(seed,sizeof(seed));
 	return 0;
 }
-#endif // BATCHKEYGEN
 
 static void printhelp(FILE *out,const char *progname)
 {
@@ -662,11 +659,9 @@ static void printhelp(FILE *out,const char *progname)
 		"\t-j numthreads  - same as -t\n"
 		"\t-n numkeys  - specify number of keys (default - 0 - unlimited)\n"
 		"\t-N numwords  - specify number of words per key (default - 1)\n"
-		"\t-z  - use faster key generation method. this is now default\n"
+		"\t-z  - use faster key generation method; this is now default\n"
 		"\t-Z  - use slower key generation method\n"
-#ifdef BATCHKEYGEN
-		"\t-B  - use batching key generation\n"
-#endif
+		"\t-B  - use batching key generation method (>10x faster than -z, experimental)\n"
 		"\t-s  - print statistics each 10 seconds\n"
 		"\t-S t  - print statistics every specified ammount of seconds\n"
 		"\t-T  - do not reset statistics counters when printing\n"
@@ -733,9 +728,7 @@ int main(int argc,char **argv)
 	int dirnameflag = 0;
 	int numthreads = 0;
 	int fastkeygen = 1;
-#ifdef BATCHKEYGEN
 	int batchkeygen = 0;
-#endif
 	int yamlinput = 0;
 #ifdef PASSPHRASE
 	int deterministic = 0;
@@ -864,10 +857,8 @@ int main(int argc,char **argv)
 				fastkeygen = 0;
 			else if (*arg == 'z')
 				fastkeygen = 1;
-#ifdef BATCHKEYGEN
 			else if (*arg == 'B')
 				batchkeygen = 1;
-#endif
 			else if (*arg == 's') {
 #ifdef STATISTICS
 				reportdelay = 10000000;
@@ -1068,9 +1059,7 @@ int main(int argc,char **argv)
 #ifdef PASSPHRASE
 				deterministic ? dofastworkdeterministic :
 #endif
-#ifdef BATCHKEYGEN
 				batchkeygen ? dobatchwork :
-#endif
 				(fastkeygen ? dofastwork : dowork),tp);
 		if (tret) {
 			fprintf(stderr,"error while making " FSZ "th thread: %s\n",i,strerror(tret));
