@@ -94,6 +94,8 @@ typedef struct ge25519_pniels_t {
 	bignum25519 ysubx, xaddy, z, t2d;
 } ge25519_pniels;
 
+typedef unsigned char bytes32[32];
+
 #include "ed25519-donna-basepoint-table.h"
 
 #if defined(ED25519_64BIT)

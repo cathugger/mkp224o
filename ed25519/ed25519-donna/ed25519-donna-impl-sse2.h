@@ -217,6 +217,30 @@ ge25519_pack(unsigned char r[32], const ge25519 *p) {
 	r[31] ^= ((parity[0] & 1) << 7);
 }
 
+// assumes inz[] points to things in in[]
+// NOTE: leaves in unfinished state
+static void
+ge25519_batchpack_destructive_1(bytes32 out[], ge25519 in[], bignum25519 *inz[], bignum25519 tmp[], size_t num) {
+  bignum25519 ALIGN(16) ty;
+
+  curve25519_batchrecip(inz, tmp, inz, num);
+
+  for (size_t i = 0; i < num; ++i) {
+    curve25519_mul(ty, in[i].y, in[i].z);
+    curve25519_contract(out[i], ty);
+  }
+}
+
+static void
+ge25519_batchpack_destructive_finish(bytes32 out, ge25519 *unf) {
+  bignum25519 ALIGN(16) tx;
+  unsigned char parity[32];
+  // z of unfinished is inverted
+  curve25519_mul(tx, unf->x, unf->z);
+  curve25519_contract(parity, tx);
+  out[31] ^= ((parity[0] & 1) << 7);
+}
+
 
 static int
 ge25519_unpack_negative_vartime(ge25519 *r, const unsigned char p[32]) {
