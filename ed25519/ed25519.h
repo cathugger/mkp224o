@@ -179,12 +179,18 @@ static int ed25519_keypair(unsigned char *pk,unsigned char *sk)
 	return 0;
 }
 // hacky, but works for current stuff in main.c
+#define fe            bignum25519 ALIGN(16)
 #define ge_p1p1       ge25519_p1p1 ALIGN(16)
 #define ge_p3         ge25519 ALIGN(16)
 #define ge_cached     ge25519_pniels ALIGN(16)
 
 #define ge_p1p1_to_p3 ge25519_p1p1_to_full
 #define ge_p3_tobytes ge25519_pack
+
+#define ge_p3_batchtobytes_destructive_1      ge25519_batchpack_destructive_1
+#define ge_p3_batchtobytes_destructive_finish ge25519_batchpack_destructive_finish
+
+#define GEZ(x) ((x).z)
 
 DONNA_INLINE static void ge_add(ge25519_p1p1 *r,const ge25519 *p,const ge25519_pniels *q)
 {
