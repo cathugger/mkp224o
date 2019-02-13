@@ -158,6 +158,16 @@ then
 	MYDEFS="$MYDEFS -DINTFILTER -DIFT='$intfiltertype'"
 fi
 
+AC_ARG_ENABLE([batchnum],
+	[AS_HELP_STRING([--enable-batchnum=number],
+		[number of elements to batch when using -B @<:@default=2048@:>@])],
+	[], []
+)
+if test -n "$enable_batchnum" -a x"$enable_batchnum" != x"no"
+then
+	MYDEFS="$MYDEFS -DBATCHNUM=$enable_batchnum"
+fi
+
 cstd=""
 c99=""
 oldcflags="$CFLAGS"
