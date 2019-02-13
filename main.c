@@ -12,6 +12,7 @@
 #include <sodium/core.h>
 #include <sodium/randombytes.h>
 #ifdef PASSPHRASE
+#include <sodium/crypto_hash_sha256.h>
 #include <sodium/crypto_pwhash.h>
 #endif
 #include <sodium/utils.h>
@@ -415,6 +416,19 @@ end:
 }
 
 #ifdef PASSPHRASE
+static void reseedright(u8 sk[SECRET_LEN])
+{
+	crypto_hash_sha256_state state;
+	crypto_hash_sha256_init(&state);
+	// old right side
+	crypto_hash_sha256_update(&state,&sk[32],32);
+	// new random data
+	randombytes(&sk[32],32);
+	crypto_hash_sha256_update(&state,&sk[32],32);
+	// put result in right side
+	crypto_hash_sha256_final(&state,&sk[32]);
+}
+
 static void *dofastworkdeterministic(void *task)
 {
 	union pubonionunion pubonion;
@@ -451,6 +465,10 @@ initseed:
 	memcpy(seed, determseed, SEED_LEN);
 	pthread_mutex_unlock(&determseed_mutex);
 	ed25519_seckey_expand(sk,seed);
+
+	// reseed right half of key with some random data to have more entropy
+	reseedright(sk);
+
 #ifdef STATISTICS
 	++st->numrestart.v;
 #endif
@@ -496,7 +514,9 @@ initseed:
 			strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
 			onionready(sname,secret,pubonion.raw);
 			pk[PUBLIC_LEN] = 0; // what is this for?
-			// TODO reseed right half of key
+
+			// reseed right half of key to avoid reuse, it won't change public key anyway
+			reseedright(sk);
 		});
 	next:
 		ge_add(&sum, &ge_public,&ge_eightpoint);
@@ -1008,10 +1028,10 @@ int main(int argc,char **argv)
 		yamlout_init();
 
 	pthread_mutex_init(&keysgenerated_mutex,0);
+	pthread_mutex_init(&fout_mutex,0);
 #ifdef PASSPHRASE
 	pthread_mutex_init(&determseed_mutex,0);
 #endif
-	pthread_mutex_init(&fout_mutex,0);
 
 	if (numthreads <= 0) {
 		numthreads = cpucount();
@@ -1167,11 +1187,11 @@ int main(int argc,char **argv)
 	if (yamloutput)
 		yamlout_clean();
 
-	pthread_mutex_destroy(&keysgenerated_mutex);
-	pthread_mutex_destroy(&fout_mutex);
 #ifdef PASSPHRASE
-	pthread_attr_destroy(&determseed_mutex);
+	pthread_mutex_destroy(&determseed_mutex);
 #endif
+	pthread_mutex_destroy(&fout_mutex);
+	pthread_mutex_destroy(&keysgenerated_mutex);
 
 done:
 	filters_clean();

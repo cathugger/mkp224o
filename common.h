@@ -19,7 +19,7 @@
 // Argon2 hashed passphrase stretching settings
 #define PWHASH_OPSLIMIT 256
 #define PWHASH_MEMLIMIT 64 * 1024 * 1024
-#define PWHASH_ALG 	crypto_pwhash_ALG_ARGON2ID13
+#define PWHASH_ALG      crypto_pwhash_ALG_ARGON2ID13
 
 extern pthread_mutex_t fout_mutex;
 extern FILE *fout;
