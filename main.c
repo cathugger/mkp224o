@@ -926,26 +926,27 @@ int main(int argc,char **argv)
 #ifdef PASSPHRASE
 			} else if (*arg == 'p') {
 				if (argc--) {
+					const char *phrase = *argv++;
+
+					deterministic = 1;
 					static unsigned char salt[crypto_pwhash_SALTBYTES] = {0};
-					const char *phrase = *argv;
-					if (!strcmp(phrase, "@")) {
+					if (!strcmp(phrase,"@")) {
 						phrase = getenv("PASSPHRASE");
 						if (phrase == NULL) {
-							fprintf(stderr, "store passphrase in PASSPHRASE environment variable\n");
+							fprintf(stderr,"store passphrase in PASSPHRASE environment variable\n");
 							exit(1);
 						}
 					}
-					deterministic = 1;
-					fprintf(stderr, "expanding passphrase..."); fflush(stderr);
-					if (crypto_pwhash(determseed, sizeof(determseed),
-								phrase, strlen(phrase), salt,
-								PWHASH_OPSLIMIT, PWHASH_MEMLIMIT, PWHASH_ALG)) {
 
-						fprintf(stderr, " out of memory!\n");
+					fprintf(stderr,"expanding passphrase...");
+					if (crypto_pwhash(determseed,sizeof(determseed),
+								phrase,strlen(phrase),salt,
+								PWHASH_OPSLIMIT,PWHASH_MEMLIMIT,PWHASH_ALG) != 0)
+					{
+						fprintf(stderr," out of memory!\n");
 						exit(1);
 					}
-					fprintf(stderr, " done.\n");
-					argv++;
+					fprintf(stderr," done.\n");
 				} else
 					e_additional();
 #endif
