@@ -940,8 +940,8 @@ int main(int argc,char **argv)
 
 					fprintf(stderr,"expanding passphrase...");
 					if (crypto_pwhash(determseed,sizeof(determseed),
-								phrase,strlen(phrase),salt,
-								PWHASH_OPSLIMIT,PWHASH_MEMLIMIT,PWHASH_ALG) != 0)
+						phrase,strlen(phrase),salt,
+						PWHASH_OPSLIMIT,PWHASH_MEMLIMIT,PWHASH_ALG) != 0)
 					{
 						fprintf(stderr," out of memory!\n");
 						exit(1);
