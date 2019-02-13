@@ -17,7 +17,7 @@
 #define DETERMINISTIC_LOOP_COUNT 1<<24
 
 // Argon2 hashed passphrase stretching settings
-#define PWHASH_OPSLIMIT 256
+#define PWHASH_OPSLIMIT 128
 #define PWHASH_MEMLIMIT 64 * 1024 * 1024
 #define PWHASH_ALG      crypto_pwhash_ALG_ARGON2ID13
 

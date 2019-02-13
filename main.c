@@ -937,11 +937,14 @@ int main(int argc,char **argv)
 					}
 					deterministic = 1;
 					fprintf(stderr, "expanding passphrase..."); fflush(stderr);
-					if (crypto_pwhash(determseed, sizeof(determseed), phrase, strlen(phrase), salt,
+					if (crypto_pwhash(determseed, sizeof(determseed),
+								phrase, strlen(phrase), salt,
 								PWHASH_OPSLIMIT, PWHASH_MEMLIMIT, PWHASH_ALG)) {
-						fprintf(stderr, "out of memory\n");
+
+						fprintf(stderr, " out of memory!\n");
+						exit(1);
 					}
-					fprintf(stderr, "ok\n");
+					fprintf(stderr, " done.\n");
 					argv++;
 				} else
 					e_additional();
