@@ -41,6 +41,15 @@ static const char * const skprefix = "== ed25519v1-secret: type0 ==\0\0";
 static const char checksumstr[] = ".onion checksum";
 #define checksumstrlen (sizeof(checksumstr) - 1) // 15
 
+// How many times we loop before a reseed
+#define DETERMINISTIC_LOOP_COUNT 1<<24
+
+// Argon2 hashed passphrase stretching settings
+#define PWHASH_OPSLIMIT 64
+#define PWHASH_MEMLIMIT 64 * 1024 * 1024
+#define PWHASH_ALG      crypto_pwhash_ALG_ARGON2ID13
+
+
 // output directory
 static char *workdir = 0;
 static size_t workdirlen = 0;
