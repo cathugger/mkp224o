@@ -475,9 +475,6 @@ initseed:
 	pthread_mutex_unlock(&determseed_mutex);
 	ed25519_seckey_expand(sk,seed);
 
-	// reseed right half of key with some random data to have more entropy
-	reseedright(sk);
-
 #ifdef STATISTICS
 	++st->numrestart.v;
 #endif
@@ -512,6 +509,9 @@ initseed:
 			if ((sk[0] & 248) != sk[0] || ((sk[31] & 63) | 64) != sk[31])
 				goto initseed;
 
+			// reseed right half of key to avoid reuse, it won't change public key anyway
+			reseedright(sk);
+
 			ADDNUMSUCCESS;
 
 			// calc checksum
@@ -523,9 +523,6 @@ initseed:
 			strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
 			onionready(sname,secret,pubonion.raw);
 			pk[PUBLIC_LEN] = 0; // what is this for?
-
-			// reseed right half of key to avoid reuse, it won't change public key anyway
-			reseedright(sk);
 		});
 	next:
 		ge_add(&sum, &ge_public,&ge_eightpoint);
