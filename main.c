@@ -695,6 +695,7 @@ static void printhelp(FILE *out,const char *progname)
 		"\t-Y [filename [host.onion]]  - parse YAML encoded input and extract key(s) to filesystem\n"
 #ifdef PASSPHRASE
 		"\t-p passphrase  - use passphrase to initialize the random seed with\n"
+		"\t-P  - same as -p, but takes passphrase from PASSPHRASE environment variable\n"
 #endif
 		,progname,progname);
 	fflush(out);
@@ -741,6 +742,22 @@ static void setworkdir(const char *wd)
 	if (!quietflag)
 		fprintf(stderr,"set workdir: %s\n",workdir);
 }
+
+#ifdef PASSPHRASE
+static void setpassphrase(const char *pass)
+{
+	static u8 salt[crypto_pwhash_SALTBYTES] = {0};
+	fprintf(stderr,"expanding passphrase (may take a while)...");
+	if (crypto_pwhash(determseed,sizeof(determseed),
+		pass,strlen(pass),salt,
+		PWHASH_OPSLIMIT,PWHASH_MEMLIMIT,PWHASH_ALG) != 0)
+	{
+		fprintf(stderr," out of memory!\n");
+		exit(1);
+	}
+	fprintf(stderr," done.\n");
+}
+#endif
 
 VEC_STRUCT(threadvec, pthread_t);
 
@@ -929,34 +946,26 @@ int main(int argc,char **argv)
 						}
 					}
 				}
-#ifdef PASSPHRASE
-			} else if (*arg == 'p') {
-				if (argc--) {
-					const char *phrase = *argv++;
-
-					deterministic = 1;
-					static unsigned char salt[crypto_pwhash_SALTBYTES] = {0};
-					if (!strcmp(phrase,"@")) {
-						phrase = getenv("PASSPHRASE");
-						if (phrase == NULL) {
-							fprintf(stderr,"store passphrase in PASSPHRASE environment variable\n");
-							exit(1);
-						}
-					}
-
-					fprintf(stderr,"expanding passphrase...");
-					if (crypto_pwhash(determseed,sizeof(determseed),
-						phrase,strlen(phrase),salt,
-						PWHASH_OPSLIMIT,PWHASH_MEMLIMIT,PWHASH_ALG) != 0)
-					{
-						fprintf(stderr," out of memory!\n");
-						exit(1);
-					}
-					fprintf(stderr," done.\n");
-				} else
-					e_additional();
-#endif
 			}
+#ifdef PASSPHRASE
+			else if (*arg == 'p') {
+				if (argc--) {
+					setpassphrase(*argv++);
+					deterministic = 1;
+				}
+				else
+					e_additional();
+			}
+			else if (*arg == 'P') {
+				const char *pass = getenv("PASSPHRASE");
+				if (!pass) {
+					fprintf(stderr,"store passphrase in PASSPHRASE environment variable\n");
+					exit(1);
+				}
+				setpassphrase(pass);
+				deterministic = 1;
+			}
+#endif // PASSPHRASE
 			else {
 				fprintf(stderr,"unrecognised argument: -%c\n",*arg);
 				exit(1);
@@ -1051,6 +1060,11 @@ int main(int argc,char **argv)
 	if (!quietflag)
 		fprintf(stderr,"using %d %s\n",
 			numthreads,numthreads == 1 ? "thread" : "threads");
+
+#ifdef PASSPHRASE
+	if (!quietflag && deterministic && numneedgenerate != 1)
+		fprintf(stderr,"CAUTION: avoid using keys generated with same password for unrelated services, as single leaked key may help attacker to regenerate related keys.\n");
+#endif
 
 	signal(SIGTERM,termhandler);
 	signal(SIGINT,termhandler);
