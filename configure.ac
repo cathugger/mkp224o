@@ -206,7 +206,7 @@ then
 fi
 if test "x$ed25519impl" = "xdonna"
 then
-	CFLAGS="$cstd -Wno-unused-function"
+	CFLAGS="$cstd -Wno-unused-function -Werror"
 	AC_MSG_CHECKING([whether CC supports -Wno-unused-function])
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
 		[AC_MSG_RESULT([yes])]
