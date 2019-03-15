@@ -37,19 +37,13 @@ static const char keys_field_time[]      = "time: ";
 #define KEYS_FIELD_SECRETKEY_LEN (sizeof(keys_field_secretkey) - NULLTERM_LEN)
 #define KEYS_FIELD_TIME_LEN      (sizeof(keys_field_time)      - NULLTERM_LEN)
 
-static const char hostname_example[] = "xxxxxvsjzke274nisktdqcl3eqm5ve3m6iur6vwme7m5p6kxivrvjnyd.onion";
-static const char pubkey_example[]   = "PT0gZWQyNTUxOXYxLXB1YmxpYzogdHlwZTAgPT0AAAC973vWScqJr/GokqY4CXskGdqTbPIpH1bMJ9nX+VdFYw==";
-static const char seckey_example[]   = "PT0gZWQyNTUxOXYxLXNlY3JldDogdHlwZTAgPT0AAACwCPMr6rvBRtkW7ZzZ8P7Ne4acRZrhPrN/EF6AETRraFGvdrkW5es4WXB2UxrbuUf8zPoIKkXK5cpdakYdUeM3";
-static const char time_example[]     = "2018-07-04 21:31:20 Z";
-
-#define HOSTNAME_LEN   (sizeof(hostname_example) - NULLTERM_LEN)
-#define B64_PUBKEY_LEN (sizeof(pubkey_example)   - NULLTERM_LEN)
-#define B64_SECKEY_LEN (sizeof(seckey_example)   - NULLTERM_LEN)
-#define TIME_LEN       (sizeof(time_example)     - NULLTERM_LEN)
+#define B64_PUBKEY_LEN (BASE64_TO_LEN(FORMATTED_PUBLIC_LEN))
+#define B64_SECKEY_LEN (BASE64_TO_LEN(FORMATTED_SECRET_LEN))
+#define TIME_LEN       (21 * sizeof(char)) // strlen("2018-07-04 21:31:20 Z")
 
 #define KEYS_LEN ( \
 	KEYS_FIELD_GENERATED_LEN + LINEFEED_LEN + \
-	KEYS_FIELD_HOSTNAME_LEN + HOSTNAME_LEN + LINEFEED_LEN + \
+	KEYS_FIELD_HOSTNAME_LEN + ONION_LEN + LINEFEED_LEN + \
 	KEYS_FIELD_PUBLICKEY_LEN + B64_PUBKEY_LEN + LINEFEED_LEN + \
 	KEYS_FIELD_SECRETKEY_LEN + B64_SECKEY_LEN + LINEFEED_LEN + \
 	KEYS_FIELD_TIME_LEN + TIME_LEN + LINEFEED_LEN \
@@ -206,8 +200,10 @@ int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 		len = strlen(p);
 		switch (keyt) {
 			case HOST:
-				if (len != ONION_LEN || base32_valid(p,&cnt) || cnt != BASE32_TO_LEN(PUBONION_LEN) ||
-					strcmp(&p[cnt],&hostname_example[cnt]) != 0)
+				if (len != ONION_LEN ||
+					base32_valid(p,&cnt) ||
+					cnt != BASE32_TO_LEN(PUBONION_LEN) ||
+					strcmp(&p[cnt],".onion") != 0)
 				{
 					fprintf(stderr,"ERROR: invalid hostname syntax\n");
 					return 1;

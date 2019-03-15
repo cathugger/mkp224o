@@ -10,7 +10,7 @@
 #define FORMATTED_PUBLIC_LEN (PKPREFIX_SIZE + PUBLIC_LEN)
 #define FORMATTED_SECRET_LEN (SKPREFIX_SIZE + SECRET_LEN)
 
-// full onion address, WITHOUT newline
+// full onion address, WITHOUT newline or terminating nil char
 #define ONION_LEN 62
 
 extern pthread_mutex_t fout_mutex;
