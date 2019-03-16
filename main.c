@@ -240,8 +240,10 @@ static void *dowork(void *task)
 	u8 seed[SEED_LEN];
 	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
 	u8 wpk[PUBLIC_LEN + 1];
-	size_t i;
 	char *sname;
+
+	size_t i;
+
 #ifdef STATISTICS
 	struct statstruct *st = (struct statstruct *)task;
 #endif
@@ -338,12 +340,15 @@ static void *dofastwork(void *task)
 	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
 	u8 wpk[PUBLIC_LEN + 1];
 	ge_p3 ge_public;
+	char *sname;
+
 	size_t counter;
 	size_t i;
-	char *sname;
+
 #ifdef STATISTICS
 	struct statstruct *st = (struct statstruct *)task;
 #endif
+
 	PREFILTER
 
 	memcpy(secret,skprefix,SKPREFIX_SIZE);
@@ -448,12 +453,15 @@ static void *dofastworkdeterministic(void *task)
 	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
 	u8 wpk[PUBLIC_LEN + 1];
 	ge_p3 ge_public;
+	char *sname;
+
 	size_t counter,oldcounter;
 	size_t i;
-	char *sname;
+
 #ifdef STATISTICS
 	struct statstruct *st = (struct statstruct *)task;
 #endif
+
 	PREFILTER
 
 	memcpy(secret,skprefix,SKPREFIX_SIZE);
@@ -557,6 +565,7 @@ static void *dobatchwork(void *task)
 	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
 	u8 wpk[PUBLIC_LEN + 1];
 	ge_p3 ge_public;
+	char *sname;
 
 	ge_p3 ge_batch[BATCHNUM];
 	fe *(batchgez)[BATCHNUM];
@@ -565,7 +574,7 @@ static void *dobatchwork(void *task)
 
 	size_t counter;
 	size_t i;
-	char *sname;
+
 #ifdef STATISTICS
 	struct statstruct *st = (struct statstruct *)task;
 #endif
