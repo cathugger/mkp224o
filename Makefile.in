@@ -22,6 +22,7 @@ ED25519OBJ= $(ED25519_@ED25519IMPL@)
 
 MAINOBJ= \
 	main.c.o \
+	worker.c.o \
 	yaml.c.o \
 	vec.c.o \
 	cpucount.c.o \
@@ -392,23 +393,8 @@ ed25519/ref10/sign.c.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/sign.c.o: ed25519/ref10/crypto_int32.h ed25519/ref10/sc.h
 ioutil.c.o: types.h ioutil.h
 keccak.c.o: types.h keccak.h
-main.c.o: types.h likely.h vec.h base32.h cpucount.h keccak.h
-main.c.o: ed25519/ed25519.h ed25519/ref10/ed25519.h ed25519/ref10/ge.h
-main.c.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
-main.c.o: ed25519/amd64-51-30k/ed25519.h ed25519/amd64-51-30k/ge25519.h
-main.c.o: ed25519/amd64-51-30k/fe25519.h ed25519/amd64-51-30k/sc25519.h
-main.c.o: ed25519/amd64-64-24k/ed25519.h ed25519/amd64-64-24k/ge25519.h
-main.c.o: ed25519/ed25519-donna/ed25519-donna.h
-main.c.o: ed25519/ed25519-donna/ed25519-donna-portable.h
-main.c.o: ed25519/ed25519-donna/ed25519-donna-portable-identify.h
-main.c.o: ed25519/ed25519-donna/curve25519-donna-64bit.h
-main.c.o: ed25519/ed25519-donna/curve25519-donna-helpers.h
-main.c.o: ed25519/ed25519-donna/modm-donna-64bit.h
-main.c.o: ed25519/ed25519-donna/ed25519-donna-basepoint-table.h
-main.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-tables.h
-main.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-x86.h
-main.c.o: ed25519/ed25519-donna/ed25519-donna-impl-base.h ioutil.h common.h
-main.c.o: yaml.h filters.h
+main.c.o: types.h vec.h cpucount.h keccak.h ioutil.h common.h yaml.h
+main.c.o: filters.h worker.h filters_main.inc.h filters_common.inc.h
 test_base16.c.o: types.h base16.h
 test_base32.c.o: types.h base32.h
 test_base64.c.o: types.h base64.h
@@ -431,4 +417,23 @@ test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-tables.h
 test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-x86.h
 test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-impl-base.h
 vec.c.o: vec.h
+worker.c.o: types.h likely.h vec.h base32.h keccak.h ed25519/ed25519.h
+worker.c.o: ed25519/ref10/ed25519.h ed25519/ref10/ge.h ed25519/ref10/fe.h
+worker.c.o: ed25519/ref10/crypto_int32.h ed25519/amd64-51-30k/ed25519.h
+worker.c.o: ed25519/amd64-51-30k/ge25519.h ed25519/amd64-51-30k/fe25519.h
+worker.c.o: ed25519/amd64-51-30k/sc25519.h ed25519/amd64-64-24k/ed25519.h
+worker.c.o: ed25519/amd64-64-24k/ge25519.h
+worker.c.o: ed25519/ed25519-donna/ed25519-donna.h
+worker.c.o: ed25519/ed25519-donna/ed25519-donna-portable.h
+worker.c.o: ed25519/ed25519-donna/ed25519-donna-portable-identify.h
+worker.c.o: ed25519/ed25519-donna/curve25519-donna-64bit.h
+worker.c.o: ed25519/ed25519-donna/curve25519-donna-helpers.h
+worker.c.o: ed25519/ed25519-donna/modm-donna-64bit.h
+worker.c.o: ed25519/ed25519-donna/ed25519-donna-basepoint-table.h
+worker.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-tables.h
+worker.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-x86.h
+worker.c.o: ed25519/ed25519-donna/ed25519-donna-impl-base.h ioutil.h common.h
+worker.c.o: yaml.h worker.h filters.h filters_worker.inc.h
+worker.c.o: filters_common.inc.h worker_slow.inc.h worker_fast.inc.h
+worker.c.o: worker_fast_pass.inc.h worker_batch.inc.h
 yaml.c.o: types.h yaml.h ioutil.h base32.h base64.h common.h

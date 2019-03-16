@@ -12,21 +12,21 @@
 #include <sodium/core.h>
 #include <sodium/randombytes.h>
 #ifdef PASSPHRASE
-#include <sodium/crypto_hash_sha256.h>
 #include <sodium/crypto_pwhash.h>
 #endif
 #include <sodium/utils.h>
 
 #include "types.h"
-#include "likely.h"
 #include "vec.h"
-#include "base32.h"
 #include "cpucount.h"
 #include "keccak.h"
-#include "ed25519/ed25519.h"
 #include "ioutil.h"
 #include "common.h"
 #include "yaml.h"
+
+#include "filters.h"
+
+#include "worker.h"
 
 #ifndef _WIN32
 #define FSZ "%zu"
@@ -34,25 +34,10 @@
 #define FSZ "%Iu"
 #endif
 
-// additional 0 terminator is added by C
-static const char * const pkprefix = "== ed25519v1-public: type0 ==\0\0";
-static const char * const skprefix = "== ed25519v1-secret: type0 ==\0\0";
-
-static const char checksumstr[] = ".onion checksum";
-#define checksumstrlen (sizeof(checksumstr) - 1) // 15
-
-// How many times we loop before a reseed
-#define DETERMINISTIC_LOOP_COUNT 1<<24
-
 // Argon2 hashed passphrase stretching settings
 #define PWHASH_OPSLIMIT 64
 #define PWHASH_MEMLIMIT 64 * 1024 * 1024
 #define PWHASH_ALG      crypto_pwhash_ALG_ARGON2ID13
-
-
-// output directory
-static char *workdir = 0;
-static size_t workdirlen = 0;
 
 static int quietflag = 0;
 static int verboseflag = 0;
@@ -68,19 +53,6 @@ size_t direndpos;     // end of dir before .onion within string
 size_t printstartpos; // where to start printing from
 size_t printlen;      // precalculated, related to printstartpos
 
-static int yamloutput = 0;
-static int numwords = 1;
-static size_t numneedgenerate = 0;
-
-static pthread_mutex_t keysgenerated_mutex;
-static volatile size_t keysgenerated = 0;
-static volatile int endwork = 0;
-
-#ifdef PASSPHRASE
-static pthread_mutex_t determseed_mutex;
-static u8 determseed[SEED_LEN];
-#endif
-
 pthread_mutex_t fout_mutex;
 FILE *fout;
 
@@ -94,32 +66,7 @@ static void termhandler(int sig)
 	}
 }
 
-#include "filters.h"
-
 #ifdef STATISTICS
-#define ADDNUMSUCCESS ++st->numsuccess.v
-#else
-#define ADDNUMSUCCESS do ; while (0)
-#endif
-
-// statistics, if enabled
-#ifdef STATISTICS
-struct statstruct {
-	union {
-		u32 v;
-		size_t align;
-	} numcalc;
-	union {
-		u32 v;
-		size_t align;
-	} numsuccess;
-	union {
-		u32 v;
-		size_t align;
-	} numrestart;
-} ;
-VEC_STRUCT(statsvec,struct statstruct);
-
 struct tstatstruct {
 	u64 numcalc;
 	u64 numsuccess;
@@ -130,549 +77,6 @@ struct tstatstruct {
 } ;
 VEC_STRUCT(tstatsvec,struct tstatstruct);
 #endif
-
-static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
-{
-	if (endwork)
-		return;
-
-	if (numneedgenerate) {
-		pthread_mutex_lock(&keysgenerated_mutex);
-		if (keysgenerated >= numneedgenerate) {
-			pthread_mutex_unlock(&keysgenerated_mutex);
-			return;
-		}
-		++keysgenerated;
-		if (keysgenerated == numneedgenerate)
-			endwork = 1;
-		pthread_mutex_unlock(&keysgenerated_mutex);
-	}
-
-	// Sanity check that the public key matches the private one.
-	ge_p3 point;
-	u8 testpk[PUBLIC_LEN];
-	ge_scalarmult_base(&point, secret);
-	ge_p3_tobytes(testpk, &point);
-	if (!memcmp(testpk, pubonion, PUBLIC_LEN))
-		abort();
-
-	if (!yamloutput) {
-		if (createdir(sname,1) != 0) {
-			pthread_mutex_lock(&fout_mutex);
-			fprintf(stderr,"ERROR: could not create directory for key output\n");
-			pthread_mutex_unlock(&fout_mutex);
-			return;
-		}
-
-		strcpy(&sname[onionendpos],"/hs_ed25519_secret_key");
-		writetofile(sname,secret,FORMATTED_SECRET_LEN,1);
-
-		strcpy(&sname[onionendpos],"/hs_ed25519_public_key");
-		writetofile(sname,pubonion,FORMATTED_PUBLIC_LEN,0);
-
-		strcpy(&sname[onionendpos],"/hostname");
-		FILE *hfile = fopen(sname,"w");
-		sname[onionendpos] = '\n';
-		if (hfile) {
-			fwrite(&sname[direndpos],ONION_LEN + 1,1,hfile);
-			fclose(hfile);
-		}
-		if (fout) {
-			pthread_mutex_lock(&fout_mutex);
-			fwrite(&sname[printstartpos],printlen,1,fout);
-			fflush(fout);
-			pthread_mutex_unlock(&fout_mutex);
-		}
-	} else
-		yamlout_writekeys(&sname[direndpos],pubonion,secret);
-}
-
-union pubonionunion {
-	u8 raw[PKPREFIX_SIZE + PUBLIC_LEN + 32];
-	struct {
-		u64 prefix[4];
-		u64 key[4];
-		u64 hash[4];
-	} i;
-} ;
-
-static char *makesname()
-{
-	char *sname = (char *) malloc(workdirlen + ONION_LEN + 63 + 1);
-	if (!sname)
-		abort();
-	if (workdir)
-		memcpy(sname,workdir,workdirlen);
-	return sname;
-}
-
-// little endian inc
-static void addsk32(u8 *sk)
-{
-	register unsigned int c = 8;
-	for (size_t i = 0;i < 32;++i) {
-		c = (unsigned int)sk[i] + c; sk[i] = c & 0xFF; c >>= 8;
-		// unsure if needed
-		if (!c) break;
-	}
-}
-
-// 0123 4567 xxxx --3--> 3456 7xxx
-// 0123 4567 xxxx --1--> 1234 567x
-static inline void shiftpk(u8 *dst,const u8 *src,size_t sbits)
-{
-	size_t i,sbytes = sbits / 8;
-	sbits %= 8;
-	for (i = 0;i + sbytes < PUBLIC_LEN;++i) {
-		dst[i] = (u8) ((src[i+sbytes] << sbits) |
-			(src[i+sbytes+1] >> (8 - sbits)));
-	}
-	for(;i < PUBLIC_LEN;++i)
-		dst[i] = 0;
-}
-
-static void *dowork(void *task)
-{
-	union pubonionunion pubonion;
-	u8 * const pk = &pubonion.raw[PKPREFIX_SIZE];
-	u8 secret[SKPREFIX_SIZE + SECRET_LEN];
-	u8 * const sk = &secret[SKPREFIX_SIZE];
-	u8 seed[SEED_LEN];
-	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
-	u8 wpk[PUBLIC_LEN + 1];
-	char *sname;
-
-	size_t i;
-
-#ifdef STATISTICS
-	struct statstruct *st = (struct statstruct *)task;
-#endif
-	PREFILTER
-
-	memcpy(secret,skprefix,SKPREFIX_SIZE);
-	wpk[PUBLIC_LEN] = 0;
-	memset(&pubonion,0,sizeof(pubonion));
-	memcpy(pubonion.raw,pkprefix,PKPREFIX_SIZE);
-	// write version later as it will be overwritten by hash
-	memcpy(hashsrc,checksumstr,checksumstrlen);
-	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
-
-	sname = makesname();
-
-initseed:
-	randombytes(seed,sizeof(seed));
-	ed25519_seckey_expand(sk,seed);
-#ifdef STATISTICS
-	++st->numrestart.v;
-#endif
-
-again:
-	if (unlikely(endwork))
-		goto end;
-
-	ed25519_pubkey(pk,sk);
-
-#ifdef STATISTICS
-	++st->numcalc.v;
-#endif
-
-	DOFILTER(i,pk,{
-		if (numwords > 1) {
-			shiftpk(wpk,pk,filter_len(i));
-			size_t j;
-			for (int w = 1;;) {
-				DOFILTER(j,wpk,goto secondfind);
-				goto next;
-			secondfind:
-				if (++w >= numwords)
-					break;
-				shiftpk(wpk,wpk,filter_len(j));
-			}
-		}
-		// sanity check
-		if ((sk[0] & 248) != sk[0] || ((sk[31] & 63) | 64) != sk[31])
-			goto initseed;
-
-		ADDNUMSUCCESS;
-
-		// calc checksum
-		memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
-		FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
-		// version byte
-		pk[PUBLIC_LEN + 2] = 0x03;
-		// base32
-		strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
-		onionready(sname,secret,pubonion.raw);
-		pk[PUBLIC_LEN] = 0; // what is this for?
-		goto initseed;
-	});
-next:
-	addsk32(sk);
-	goto again;
-
-end:
-	free(sname);
-	POSTFILTER
-	sodium_memzero(secret,sizeof(secret));
-	sodium_memzero(seed,sizeof(seed));
-	return 0;
-}
-
-// in little-endian order, 32 bytes aka 256 bits
-static void addsztoscalar32(u8 *dst,size_t v)
-{
-	int i;
-	u32 c = 0;
-	for (i = 0;i < 32;++i) {
-		c += *dst + (v & 0xFF); *dst = c & 0xFF; c >>= 8;
-		v >>= 8;
-		++dst;
-	}
-}
-
-static void *dofastwork(void *task)
-{
-	union pubonionunion pubonion;
-	u8 * const pk = &pubonion.raw[PKPREFIX_SIZE];
-	u8 secret[SKPREFIX_SIZE + SECRET_LEN];
-	u8 * const sk = &secret[SKPREFIX_SIZE];
-	u8 seed[SEED_LEN];
-	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
-	u8 wpk[PUBLIC_LEN + 1];
-	ge_p3 ge_public;
-	char *sname;
-
-	size_t counter;
-	size_t i;
-
-#ifdef STATISTICS
-	struct statstruct *st = (struct statstruct *)task;
-#endif
-
-	PREFILTER
-
-	memcpy(secret,skprefix,SKPREFIX_SIZE);
-	wpk[PUBLIC_LEN] = 0;
-	memset(&pubonion,0,sizeof(pubonion));
-	memcpy(pubonion.raw,pkprefix,PKPREFIX_SIZE);
-	// write version later as it will be overwritten by hash
-	memcpy(hashsrc,checksumstr,checksumstrlen);
-	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
-
-	sname = makesname();
-
-initseed:
-#ifdef STATISTICS
-	++st->numrestart.v;
-#endif
-	randombytes(seed,sizeof(seed));
-	ed25519_seckey_expand(sk,seed);
-
-	ge_scalarmult_base(&ge_public,sk);
-	ge_p3_tobytes(pk,&ge_public);
-
-	for (counter = 0;counter < SIZE_MAX-8;counter += 8) {
-		ge_p1p1 sum;
-
-		if (unlikely(endwork))
-			goto end;
-
-		DOFILTER(i,pk,{
-			if (numwords > 1) {
-				shiftpk(wpk,pk,filter_len(i));
-				size_t j;
-				for (int w = 1;;) {
-					DOFILTER(j,wpk,goto secondfind);
-					goto next;
-				secondfind:
-					if (++w >= numwords)
-						break;
-					shiftpk(wpk,wpk,filter_len(j));
-				}
-			}
-			// found!
-			// update secret key with counter
-			addsztoscalar32(sk,counter);
-			// sanity check
-			if ((sk[0] & 248) != sk[0] || ((sk[31] & 63) | 64) != sk[31])
-				goto initseed;
-
-			ADDNUMSUCCESS;
-
-			// calc checksum
-			memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
-			FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
-			// version byte
-			pk[PUBLIC_LEN + 2] = 0x03;
-			// full name
-			strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
-			onionready(sname,secret,pubonion.raw);
-			pk[PUBLIC_LEN] = 0; // what is this for?
-			// don't reuse same seed
-			goto initseed;
-		});
-	next:
-		ge_add(&sum,&ge_public,&ge_eightpoint);
-		ge_p1p1_to_p3(&ge_public,&sum);
-		ge_p3_tobytes(pk,&ge_public);
-#ifdef STATISTICS
-		++st->numcalc.v;
-#endif
-	}
-	goto initseed;
-
-end:
-	free(sname);
-	POSTFILTER
-	sodium_memzero(secret,sizeof(secret));
-	sodium_memzero(seed,sizeof(seed));
-	return 0;
-}
-
-#ifdef PASSPHRASE
-static void reseedright(u8 sk[SECRET_LEN])
-{
-	crypto_hash_sha256_state state;
-	crypto_hash_sha256_init(&state);
-	// old right side
-	crypto_hash_sha256_update(&state,&sk[32],32);
-	// new random data
-	randombytes(&sk[32],32);
-	crypto_hash_sha256_update(&state,&sk[32],32);
-	// put result in right side
-	crypto_hash_sha256_final(&state,&sk[32]);
-}
-
-static void *dofastworkdeterministic(void *task)
-{
-	union pubonionunion pubonion;
-	u8 * const pk = &pubonion.raw[PKPREFIX_SIZE];
-	u8 secret[SKPREFIX_SIZE + SECRET_LEN];
-	u8 * const sk = &secret[SKPREFIX_SIZE];
-	u8 seed[SEED_LEN];
-	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
-	u8 wpk[PUBLIC_LEN + 1];
-	ge_p3 ge_public;
-	char *sname;
-
-	size_t counter,oldcounter;
-	size_t i;
-
-#ifdef STATISTICS
-	struct statstruct *st = (struct statstruct *)task;
-#endif
-
-	PREFILTER
-
-	memcpy(secret,skprefix,SKPREFIX_SIZE);
-	wpk[PUBLIC_LEN] = 0;
-	memset(&pubonion,0,sizeof(pubonion));
-	memcpy(pubonion.raw,pkprefix,PKPREFIX_SIZE);
-	// write version later as it will be overwritten by hash
-	memcpy(hashsrc,checksumstr,checksumstrlen);
-	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
-
-	sname = makesname();
-
-initseed:
-	pthread_mutex_lock(&determseed_mutex);
-	for (int i = 0; i < SEED_LEN; i++)
-		if (++determseed[i])
-			break;
-	memcpy(seed, determseed, SEED_LEN);
-	pthread_mutex_unlock(&determseed_mutex);
-	ed25519_seckey_expand(sk,seed);
-
-#ifdef STATISTICS
-	++st->numrestart.v;
-#endif
-
-	ge_scalarmult_base(&ge_public,sk);
-	ge_p3_tobytes(pk,&ge_public);
-
-	for (counter = oldcounter = 0;counter < DETERMINISTIC_LOOP_COUNT;counter += 8) {
-		ge_p1p1 sum;
-
-		if (unlikely(endwork))
-			goto end;
-
-		DOFILTER(i,pk,{
-			if (numwords > 1) {
-				shiftpk(wpk,pk,filter_len(i));
-				size_t j;
-				for (int w = 1;;) {
-					DOFILTER(j,wpk,goto secondfind);
-					goto next;
-				secondfind:
-					if (++w >= numwords)
-						break;
-					shiftpk(wpk,wpk,filter_len(j));
-				}
-			}
-			// found!
-			// update secret key with delta since last hit (if any)
-			addsztoscalar32(sk,counter-oldcounter);
-			oldcounter = counter;
-			// sanity check
-			if ((sk[0] & 248) != sk[0] || ((sk[31] & 63) | 64) != sk[31])
-				goto initseed;
-
-			// reseed right half of key to avoid reuse, it won't change public key anyway
-			reseedright(sk);
-
-			ADDNUMSUCCESS;
-
-			// calc checksum
-			memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
-			FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
-			// version byte
-			pk[PUBLIC_LEN + 2] = 0x03;
-			// full name
-			strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
-			onionready(sname,secret,pubonion.raw);
-			pk[PUBLIC_LEN] = 0; // what is this for?
-		});
-	next:
-		ge_add(&sum, &ge_public,&ge_eightpoint);
-		ge_p1p1_to_p3(&ge_public,&sum);
-		ge_p3_tobytes(pk,&ge_public);
-#ifdef STATISTICS
-		++st->numcalc.v;
-#endif
-	}
-	goto initseed;
-
-end:
-	free(sname);
-	POSTFILTER
-	sodium_memzero(secret,sizeof(secret));
-	sodium_memzero(seed,sizeof(seed));
-	return 0;
-}
-#endif // PASSPHRASE
-
-#ifndef BATCHNUM
-#define BATCHNUM 2048
-#endif
-
-static void *dobatchwork(void *task)
-{
-	union pubonionunion pubonion;
-	u8 * const pk = &pubonion.raw[PKPREFIX_SIZE];
-	u8 secret[SKPREFIX_SIZE + SECRET_LEN];
-	u8 * const sk = &secret[SKPREFIX_SIZE];
-	u8 seed[SEED_LEN];
-	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
-	u8 wpk[PUBLIC_LEN + 1];
-	ge_p3 ge_public;
-	char *sname;
-
-	ge_p3 ge_batch[BATCHNUM];
-	fe *(batchgez)[BATCHNUM];
-	fe tmp_batch[BATCHNUM];
-	bytes32 pk_batch[BATCHNUM];
-
-	size_t counter;
-	size_t i;
-
-#ifdef STATISTICS
-	struct statstruct *st = (struct statstruct *)task;
-#endif
-
-	for (size_t b = 0;b < BATCHNUM;++b)
-		batchgez[b] = &GEZ(ge_batch[b]);
-
-	PREFILTER
-
-	memcpy(secret,skprefix,SKPREFIX_SIZE);
-	wpk[PUBLIC_LEN] = 0;
-	memset(&pubonion,0,sizeof(pubonion));
-	memcpy(pubonion.raw,pkprefix,PKPREFIX_SIZE);
-	// write version later as it will be overwritten by hash
-	memcpy(hashsrc,checksumstr,checksumstrlen);
-	hashsrc[checksumstrlen + PUBLIC_LEN] = 0x03; // version
-
-	sname = makesname();
-
-initseed:
-#ifdef STATISTICS
-	++st->numrestart.v;
-#endif
-	randombytes(seed,sizeof(seed));
-	ed25519_seckey_expand(sk,seed);
-
-	ge_scalarmult_base(&ge_public,sk);
-
-	for (counter = 0;counter < SIZE_MAX-(8*BATCHNUM);counter += 8*BATCHNUM) {
-		ge_p1p1 sum;
-
-		if (unlikely(endwork))
-			goto end;
-
-		for (size_t b = 0;b < BATCHNUM;++b) {
-			ge_batch[b] = ge_public;
-			ge_add(&sum,&ge_public,&ge_eightpoint);
-			ge_p1p1_to_p3(&ge_public,&sum);
-		}
-		// NOTE: leaves unfinished
-		ge_p3_batchtobytes_destructive_1(pk_batch,ge_batch,batchgez,tmp_batch,BATCHNUM);
-
-#ifdef STATISTICS
-		st->numcalc.v += BATCHNUM;
-#endif
-
-		for (size_t b = 0;b < BATCHNUM;++b) {
-			DOFILTER(i,pk_batch[b],{
-				if (numwords > 1) {
-					shiftpk(wpk,pk_batch[b],filter_len(i));
-					size_t j;
-					for (int w = 1;;) {
-						DOFILTER(j,wpk,goto secondfind);
-						goto next;
-					secondfind:
-						if (++w >= numwords)
-							break;
-						shiftpk(wpk,wpk,filter_len(j));
-					}
-				}
-				// found!
-				// finish it up
-				ge_p3_batchtobytes_destructive_finish(pk_batch[b],&ge_batch[b]);
-				// copy public key
-				memcpy(pk,pk_batch[b],PUBLIC_LEN);
-				// update secret key with counter
-				addsztoscalar32(sk,counter + (b * 8));
-				// sanity check
-				if ((sk[0] & 248) != sk[0] || ((sk[31] & 63) | 64) != sk[31])
-					goto initseed;
-
-				ADDNUMSUCCESS;
-
-				// calc checksum
-				memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
-				FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
-				// version byte
-				pk[PUBLIC_LEN + 2] = 0x03;
-				// full name
-				strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
-				onionready(sname,secret,pubonion.raw);
-				pk[PUBLIC_LEN] = 0; // what is this for?
-				// don't reuse same seed
-				goto initseed;
-			});
-		next:
-			;
-		}
-	}
-	goto initseed;
-
-end:
-	free(sname);
-	POSTFILTER
-	sodium_memzero(secret,sizeof(secret));
-	sodium_memzero(seed,sizeof(seed));
-	return 0;
-}
 
 static void printhelp(FILE *out,const char *progname)
 {
@@ -770,6 +174,8 @@ static void setpassphrase(const char *pass)
 
 VEC_STRUCT(threadvec, pthread_t);
 
+#include "filters_main.inc.h"
+
 int main(int argc,char **argv)
 {
 	const char *outfile = 0;
@@ -799,7 +205,7 @@ int main(int argc,char **argv)
 		fprintf(stderr,"sodium_init() failed\n");
 		return 1;
 	}
-	ge_initeightpoint();
+	worker_init();
 	filters_init();
 
 	setvbuf(stderr,0,_IONBF,0);
@@ -1110,10 +516,10 @@ int main(int argc,char **argv)
 #endif
 		tret = pthread_create(&VEC_BUF(threads,i),0,
 #ifdef PASSPHRASE
-				deterministic ? dofastworkdeterministic :
+				deterministic ? worker_fast_pass :
 #endif
-				batchkeygen ? dobatchwork :
-				(fastkeygen ? dofastwork : dowork),tp);
+				batchkeygen ? worker_batch :
+				(fastkeygen ? worker_fast : worker_slow),tp);
 		if (tret) {
 			fprintf(stderr,"error while making " FSZ "th thread: %s\n",i,strerror(tret));
 			exit(1);

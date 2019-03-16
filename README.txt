@@ -36,5 +36,6 @@ You should have received a copy of the CC0 Public Domain Dedication along with t
 keccak.c is based on <https://github.com/gvanas/KeccakCodePackage/blob/master/Standalone/CompactFIPS202/Keccak-more-compact.c>.
 ed25519/{ref10,amd64-51-30k,amd64-64-24k} are adopted from SUPERCOP <https://bench.cr.yp.to/supercop.html>.
 ed25519/ed25519-donna adopted from <https://github.com/floodyberry/ed25519-donna>.
-Idea used in main.c' dofastwork() is stolen from <https://github.com/Yawning/horse25519>.
+Idea used in worker_fast() is stolen from <https://github.com/Yawning/horse25519>.
 base64 routines and initial YAML processing work contributed by Alexander Khristoforov <heios@protonmail.com>.
+Passphrase-based generation code and idea used in worker_batch() contributed by <https://github.com/foobar2019>.
