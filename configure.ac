@@ -293,9 +293,13 @@ yes|pcre2)
 	;;
 esac
 
+# recreate dir tree, because otherwise gcc will fuck up
+(cd "$srcdir" && find ed25519 -type d) | xargs mkdir -p
+
 AC_SUBST(CSTD,["$cstd"])
 AC_SUBST(ED25519IMPL,["$ed25519impl"])
 AC_SUBST(MYDEFS,["$MYDEFS"])
 AC_SUBST(MAINLIB,["$MAINLIB"])
 AC_SUBST(NOPIE,["$nopie"])
+AC_SUBST(SRCDIR,["$srcdir"])
 AC_OUTPUT(Makefile)

@@ -10,13 +10,13 @@ LDFLAGS= @NOPIE@ @LDFLAGS@
 MV= mv
 
 ED25519_DEFS= -DED25519_ref10 -DED25519_amd64_51_30k -DED25519_amd64_64_24k -DED25519_donna
-ED25519_ref10= $(patsubst %.c,%.c.o,$(wildcard ed25519/ref10/*.c))
+ED25519_ref10= $(patsubst @SRCDIR@/%.c,%.c.o,$(wildcard @SRCDIR@/ed25519/ref10/*.c))
 ED25519_amd64_51_30k= \
-	$(patsubst %.c,%.c.o,$(wildcard ed25519/amd64-51-30k/*.c)) \
-	$(patsubst %.s,%.s.o,$(wildcard ed25519/amd64-51-30k/*.s))
+	$(patsubst @SRCDIR@/%.c,%.c.o,$(wildcard @SRCDIR@/ed25519/amd64-51-30k/*.c)) \
+	$(patsubst @SRCDIR@/%.s,%.s.o,$(wildcard @SRCDIR@/ed25519/amd64-51-30k/*.s))
 ED25519_amd64_64_24k= \
-	$(patsubst %.c,%.c.o,$(wildcard ed25519/amd64-64-24k/*.c)) \
-	$(patsubst %.s,%.s.o,$(wildcard ed25519/amd64-64-24k/*.s))
+	$(patsubst @SRCDIR@/%.c,%.c.o,$(wildcard @SRCDIR@/ed25519/amd64-64-24k/*.c)) \
+	$(patsubst @SRCDIR@/%.s,%.s.o,$(wildcard @SRCDIR@/ed25519/amd64-64-24k/*.s))
 ED25519_donna=
 ED25519OBJ= $(ED25519_@ED25519IMPL@)
 
@@ -64,6 +64,7 @@ ALLO= $(sort \
 	$(ED25519_ref10) \
 	$(ED25519_amd64_51_30k) \
 	$(ED25519_amd64_64_24k))
+
 ALLC= $(patsubst %.c.o,%.c,$(filter %.c.o %.c,$(ALLO)))
 CLEANO= $(filter %.o,$(ALLO))
 
@@ -71,6 +72,8 @@ MAINLIB= -lpthread -lsodium @MAINLIB@
 TEST_ED25519LIB= -lsodium
 
 EXE= mkp224o test_base64 test_base32 test_base16 test_ed25519
+
+.PHONY: default all clean distclean depend
 
 default: mkp224o
 
@@ -91,12 +94,6 @@ test_base16: $(TEST_BASE16OBJ)
 test_ed25519: $(TEST_ED25519OBJ)
 	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ $(TEST_ED25519LIB) && $(MV) $@.tmp $@
 
-%.c.o: %.c
-	$(CC) $(CFLAGS) -c -o $@.tmp $< && $(MV) $@.tmp $@
-
-%.s.o: %.s
-	$(CC) $(ASFLAGS) -c -o $@.tmp $< && $(MV) $@.tmp $@
-
 clean:
 	$(RM) $(CLEANO)
 	$(RM) $(EXE)
@@ -109,7 +106,15 @@ distclean:
 	$(RM) Makefile
 
 depend:
-	makedepend -Y -fMakefile.in -o.c.o -- $(CSTD) $(ED25519_DEFS) -- $(ALLC)
+	(cd "@SRCDIR@" && makedepend -Y -fMakefile.in -o.c.o -- $(CSTD) $(ED25519_DEFS) -- $(ALLC))
+
+VPATH=@SRCDIR@
+
+%.c.o: %.c
+	$(CC) $(CFLAGS) -c -o $@.tmp $< && $(MV) $@.tmp $@
+
+%.s.o: %.s
+	$(CC) $(ASFLAGS) -c -o $@.tmp $< && $(MV) $@.tmp $@
 
 # DO NOT DELETE THIS LINE
 
@@ -393,7 +398,7 @@ ed25519/ref10/sign.c.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/sign.c.o: ed25519/ref10/crypto_int32.h ed25519/ref10/sc.h
 ioutil.c.o: types.h ioutil.h
 keccak.c.o: types.h keccak.h
-main.c.o: types.h vec.h cpucount.h keccak.h ioutil.h common.h yaml.h
+main.c.o: types.h vec.h base32.h cpucount.h keccak.h ioutil.h common.h yaml.h
 main.c.o: filters.h worker.h filters_main.inc.h filters_common.inc.h
 test_base16.c.o: types.h base16.h
 test_base32.c.o: types.h base32.h

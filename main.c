@@ -18,6 +18,7 @@
 
 #include "types.h"
 #include "vec.h"
+#include "base32.h"
 #include "cpucount.h"
 #include "keccak.h"
 #include "ioutil.h"
