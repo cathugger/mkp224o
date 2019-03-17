@@ -106,7 +106,7 @@ distclean:
 	$(RM) Makefile
 
 depend:
-	(cd "@SRCDIR@" && makedepend -Y -fMakefile.in -o.c.o -- $(CSTD) $(ED25519_DEFS) -- $(ALLC))
+	cd "@SRCDIR@" && makedepend -Y -fMakefile.in -o.c.o -- $(CSTD) $(ED25519_DEFS) -- $(ALLC)
 
 VPATH=@SRCDIR@
 
