@@ -98,9 +98,7 @@ clean:
 	$(RM) $(CLEANO)
 	$(RM) $(EXE)
 
-distclean:
-	$(RM) $(CLEANO)
-	$(RM) $(EXE)
+distclean: clean
 	$(RM) -r autom4te.cache
 	$(RM) configure config.status config.log
 	$(RM) Makefile
