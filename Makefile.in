@@ -73,7 +73,7 @@ ALLEXE= $(patsubst %,%@EXEEXT@,$(ALLTGTS))
 
 .PHONY: default all clean distclean depend
 
-default: mkp224o
+default: mkp224o@EXEEXT@
 
 all: $(ALLEXE)
 
