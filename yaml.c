@@ -1,4 +1,4 @@
-#ifdef __linux__
+#ifdef __GLIBC__
 #define _POSIX_C_SOURCE 200112L
 #endif
 

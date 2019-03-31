@@ -124,6 +124,7 @@ int cpucount(void)
 #endif
 #ifdef __linux__
 	// try parsing /proc/cpuinfo
+	// NOTE seems cygwin can provide this too, idk if need tho
 	ncpu = parsecpuinfo();
 	if (ncpu > 0)
 		return ncpu;
