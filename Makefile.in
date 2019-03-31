@@ -1,9 +1,6 @@
 
 CC= @CC@
 CSTD= @CSTD@
-ifeq ($(OS),Windows_NT)
-	CSTD+= -Wno-pedantic-ms-format
-endif
 CFLAGS= $(CSTD) @CFLAGS@ @CPPFLAGS@ -DED25519_@ED25519IMPL@ @MYDEFS@
 ASFLAGS=
 LDFLAGS= @NOPIE@ @LDFLAGS@

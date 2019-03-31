@@ -171,6 +171,7 @@ fi
 cstd=""
 c99=""
 oldcflags="$CFLAGS"
+
 CFLAGS="-std=c99"
 AC_MSG_CHECKING([whether CC supports -std=c99])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
@@ -179,6 +180,7 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
     [cstd="-std=c99"],
     [AC_MSG_RESULT([no])]
 )
+
 CFLAGS="$cstd -Wall"
 AC_MSG_CHECKING([whether CC supports -Wall])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
@@ -186,6 +188,7 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
     [cstd="$cstd -Wall"],
     [AC_MSG_RESULT([no])]
 )
+
 # (negative) detection on clang fails without -Werror
 CFLAGS="$cstd -Wno-maybe-uninitialized -Werror"
 AC_MSG_CHECKING([whether CC supports -Wno-maybe-uninitialized])
@@ -194,6 +197,7 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
     [cstd="$cstd -Wno-maybe-uninitialized"],
     [AC_MSG_RESULT([no])]
 )
+
 if test "x$c99" = "xyes" -a "x$ed25519impl" != "xdonna" -a "x$enable_intfilter" != "x128"
 then
 	CFLAGS="$cstd -pedantic"
@@ -204,6 +208,17 @@ then
 		[AC_MSG_RESULT([no])]
 	)
 fi
+
+CFLAGS="$cstd -Wno-pedantic-ms-format -Werror"
+AC_MSG_CHECKING([whether CC supports and needs -Wno-pedantic-ms-format])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#ifndef _WIN32
+#error wants windows
+#endif]], [])],
+	[AC_MSG_RESULT([yes])]
+	[cstd="$cstd -Wno-pedantic-ms-format"],
+	[AC_MSG_RESULT([no])]
+)
+
 if test "x$ed25519impl" = "xdonna"
 then
 	CFLAGS="$cstd -Wno-unused-function -Werror"
@@ -214,6 +229,7 @@ then
 		[AC_MSG_RESULT([no])]
 	)
 fi
+
 CFLAGS="$oldcflags"
 
 AC_ARG_ENABLE([binfilterlen],
