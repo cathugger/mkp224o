@@ -209,13 +209,13 @@ then
 	)
 fi
 
-CFLAGS="$cstd -Wno-pedantic-ms-format -Werror"
-AC_MSG_CHECKING([whether CC supports and needs -Wno-pedantic-ms-format])
+CFLAGS="$cstd -Wno-format -Wno-pedantic-ms-format -Werror"
+AC_MSG_CHECKING([whether CC supports and needs -Wno-format -Wno-pedantic-ms-format])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#ifndef _WIN32
 #error wants windows
 #endif]], [])],
 	[AC_MSG_RESULT([yes])]
-	[cstd="$cstd -Wno-pedantic-ms-format"],
+	[cstd="$cstd -Wno-format -Wno-pedantic-ms-format"],
 	[AC_MSG_RESULT([no])]
 )
 
