@@ -68,32 +68,33 @@ CLEANO= $(filter %.o,$(ALLO))
 MAINLIB= -lpthread -lsodium @MAINLIB@
 TEST_ED25519LIB= -lsodium
 
-EXE= mkp224o test_base64 test_base32 test_base16 test_ed25519
+ALLTGTS= mkp224o test_base64 test_base32 test_base16 test_ed25519
+ALLEXE= $(patsubst %,%@EXESFX@,$(ALLTGTS))
 
 .PHONY: default all clean distclean depend
 
 default: mkp224o
 
-all: $(EXE)
+all: $(ALLEXE)
 
-mkp224o: $(MAINOBJ)
+mkp224o@EXESFX@: $(MAINOBJ)
 	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ $(MAINLIB) && $(MV) $@.tmp $@
 
-test_base64: $(TEST_BASE64OBJ)
+test_base64@EXESFX@: $(TEST_BASE64OBJ)
 	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ && $(MV) $@.tmp $@
 
-test_base32: $(TEST_BASE32OBJ)
+test_base32@EXESFX@: $(TEST_BASE32OBJ)
 	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ && $(MV) $@.tmp $@
 
-test_base16: $(TEST_BASE16OBJ)
+test_base16@EXESFX@: $(TEST_BASE16OBJ)
 	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ && $(MV) $@.tmp $@
 
-test_ed25519: $(TEST_ED25519OBJ)
+test_ed25519@EXESFX@: $(TEST_ED25519OBJ)
 	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ $(TEST_ED25519LIB) && $(MV) $@.tmp $@
 
 clean:
 	$(RM) $(CLEANO)
-	$(RM) $(EXE)
+	$(RM) $(ALLEXE)
 
 distclean: clean
 	$(RM) -r autom4te.cache

@@ -209,15 +209,26 @@ then
 	)
 fi
 
-CFLAGS="$cstd -Wno-pedantic-ms-format -Werror"
-AC_MSG_CHECKING([whether CC supports and needs -Wno-pedantic-ms-format])
+WIN=0
+AC_MSG_CHECKING([whether CC compiles for Windows API])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#ifndef _WIN32
 #error wants windows
 #endif]], [])],
 	[AC_MSG_RESULT([yes])]
-	[cstd="$cstd -Wno-pedantic-ms-format"],
+	[WIN=1],
 	[AC_MSG_RESULT([no])]
 )
+
+if test "$WIN" -eq 1
+then
+	CFLAGS="$cstd -Wno-pedantic-ms-format -Werror"
+	AC_MSG_CHECKING([whether CC supports and needs -Wno-pedantic-ms-format])
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+		[AC_MSG_RESULT([yes])]
+		[cstd="$cstd -Wno-pedantic-ms-format"],
+		[AC_MSG_RESULT([no])]
+	)
+fi
 
 if test "x$ed25519impl" = "xdonna"
 then
@@ -309,6 +320,12 @@ yes|pcre2)
 	;;
 esac
 
+EXESFX=''
+if test "$WIN" -eq 1
+then
+	EXESFX='.exe'
+fi
+
 # recreate dir tree, because otherwise gcc will fuck up
 (cd "$srcdir" && find ed25519 -type d) | xargs mkdir -p
 
@@ -318,4 +335,5 @@ AC_SUBST(MYDEFS,["$MYDEFS"])
 AC_SUBST(MAINLIB,["$MAINLIB"])
 AC_SUBST(NOPIE,["$nopie"])
 AC_SUBST(SRCDIR,["$srcdir"])
+AC_SUBST(EXESFX,["$EXESFX"])
 AC_OUTPUT(Makefile)
