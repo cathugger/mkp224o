@@ -58,7 +58,7 @@ MAINLIB=""
 ed25519impl=""
 AC_ARG_ENABLE([ref10],
 	[AS_HELP_STRING([--enable-ref10],
-		[use SUPERCOP ref10 ed25519 implementation @<:@default=yes@:>@])],
+		[use SUPERCOP ref10 ed25519 implementation @<:@default=no@:>@])],
 	[
 		AS_IF([test "x$ed25519impl" != "x" -a "$ed25519impl" != "ref10"],
 			[AC_ERROR([only one ed25519 implementation can be defined])])
@@ -91,7 +91,7 @@ AC_ARG_ENABLE([amd64-64-24k],
 
 AC_ARG_ENABLE([donna],
 	[AS_HELP_STRING([--enable-donna],
-		[use ed25519-donna implementation @<:@default=no@:>@])],
+		[use ed25519-donna implementation @<:@default=yes@:>@])],
 	[
 		AS_IF([test "x$ed25519impl" != "x" -a "$ed25519impl" != "donna"],
 			[AC_ERROR([only one ed25519 implementation can be defined])])
@@ -111,7 +111,8 @@ AC_ARG_ENABLE([donna-sse2],
 	[]
 )
 
-AS_IF([test "x$ed25519impl" == "x"],[ed25519impl=ref10])
+# default
+AS_IF([test "x$ed25519impl" == "x"],[ed25519impl="donna"])
 
 if test "$ed25519impl" = "donna-sse2"
 then
