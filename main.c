@@ -34,7 +34,8 @@
 #endif
 
 // Argon2 hashed passphrase stretching settings
-#define PWHASH_OPSLIMIT 64
+// NOTE: changing these will break compatibility
+#define PWHASH_OPSLIMIT 48
 #define PWHASH_MEMLIMIT 64 * 1024 * 1024
 #define PWHASH_ALG      crypto_pwhash_ALG_ARGON2ID13
 
