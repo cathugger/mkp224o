@@ -121,6 +121,8 @@ then
 	CFLAGS="$CFLAGS -msse2"
 fi
 
+
+
 AC_ARG_ENABLE([intfilter],
 	[AS_HELP_STRING([--enable-intfilter@<:@=(32|64|128|native)@:>@],
 		[use integers of specific size @<:@default=64@:>@ for filtering. faster but limits filter length to: 6 for 32-bit, 12 for 64-bit, 24 for 128-bit @<:@default=no@:>@])],
@@ -309,6 +311,19 @@ yes|pcre2)
 	AC_MSG_WARN([unrecognised regex engine type: $enable_regex])
 	;;
 esac
+
+
+AC_MSG_CHECKING([whether ARGON2ID13 is supported by libsodium])
+AC_COMPILE_IFELSE(
+	[AC_LANG_PROGRAM(
+		[[#include <sodium/crypto_pwhash.h>]],
+		[[int alg = crypto_pwhash_ALG_ARGON2ID13;(void) alg;]]
+	)],
+	[AC_MSG_RESULT([yes])]
+	[MYDEFS="$MYDEFS -DPASSPHRASE"],
+	[AC_MSG_RESULT([no])]
+)
+
 
 # recreate dir tree, because otherwise gcc will fuck up
 (cd "$srcdir" && find ed25519 -type d) | xargs mkdir -p
