@@ -233,6 +233,23 @@ then
 	)
 fi
 
+CFLAGS="$cstd -Wmissing-prototypes -Werror"
+AC_MSG_CHECKING([whether CC supports -Wmissing-prototypes])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+    [AC_MSG_RESULT([yes])]
+    [cstd="$cstd -Wmissing-prototypes"],
+    [AC_MSG_RESULT([no])]
+)
+
+# XXX AC_LANG_PROGRAM produces unsuitable prototype so this check must be last one
+CFLAGS="$cstd -Wstrict-prototypes -Werror"
+AC_MSG_CHECKING([whether CC supports -Wstrict-prototypes])
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[int main(void) { return 0; }]])],
+    [AC_MSG_RESULT([yes])]
+    [cstd="$cstd -Wstrict-prototypes"],
+    [AC_MSG_RESULT([no])]
+)
+
 CFLAGS="$oldcflags"
 
 AC_ARG_ENABLE([binfilterlen],

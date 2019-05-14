@@ -92,4 +92,5 @@ extern struct pfiltervec filters;
 extern int flattened;
 
 extern void filters_init(void);
+extern void filters_add(const char *filter);
 extern size_t filters_count(void);

@@ -36,7 +36,7 @@ static const ge_cached ge_eightpoint = {
     11267669, -24569594, 14624995
   }
 };
-inline static void ge_initeightpoint() {}
+inline static void ge_initeightpoint(void) {}
 #endif
 
 
@@ -105,7 +105,7 @@ static const ge25519_pniels ge_eightpoint = {
 	// t2d
 	{{ 1700965895112270, 372560131616985, 329575203620664, 756160485635107, 981466775886086 }},
 };
-inline static void ge_initeightpoint() {}
+inline static void ge_initeightpoint(void) {}
 #endif
 
 
@@ -129,7 +129,7 @@ static const ge25519_pniels ge_eightpoint = {
 	// t2d
 	{{ 9713713562319586894U, 4328467261753610859U, 8262494979546083277U, 4020087914029409631U }},
 };
-inline static void ge_initeightpoint() {}
+inline static void ge_initeightpoint(void) {}
 #endif
 
 
@@ -232,7 +232,7 @@ static u8 fe_t2d[32] = {
 };
 
 // initialize from packed representation
-static void ge_initeightpoint()
+static void ge_initeightpoint(void)
 {
 	memset(&ge_eightpoint,0,sizeof(ge_eightpoint));
 	curve25519_expand(ge_eightpoint.ysubx,fe_ysubx);

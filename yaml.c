@@ -49,12 +49,12 @@ static const char keys_field_time[]      = "time: ";
 
 static pthread_mutex_t tminfo_mutex;
 
-void yamlout_init()
+void yamlout_init(void)
 {
 	pthread_mutex_init(&tminfo_mutex,0);
 }
 
-void yamlout_clean()
+void yamlout_clean(void)
 {
 	pthread_mutex_destroy(&tminfo_mutex);
 }

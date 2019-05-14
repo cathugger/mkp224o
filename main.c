@@ -114,14 +114,14 @@ static void printhelp(FILE *out,const char *progname)
 	fflush(out);
 }
 
-static void e_additional()
+static void e_additional(void)
 {
 	fprintf(stderr,"additional argument required\n");
 	exit(1);
 }
 
 #ifndef STATISTICS
-static void e_nostatistics()
+static void e_nostatistics(void)
 {
 	fprintf(stderr,"statistics support not compiled in\n");
 	exit(1);
