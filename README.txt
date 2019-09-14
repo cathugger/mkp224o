@@ -4,7 +4,12 @@ This tool generates vanity ed25519 (hidden service version 3, formely known as p
 For context, see <https://gitweb.torproject.org/torspec.git/plain/rend-spec-v3.txt>.
 
 REQUIREMENTS:
-C99 compatible compiler, libsodium, GNU make, GNU autoconf, UNIX-like platform (currently tested in Linux and OpenBSD).
+C99 compatible compiler (gcc and clang should work),
+libsodium (including headers), GNU make,
+GNU autoconf (to generate configure script, needed only if not using release tarball),
+UNIX-like platform (currently tested in Linux and OpenBSD, but should also build under cygwin and msys2).
+For debian-like linux distros, this should be enough to prepare for building:
+`apt install gcc libsodium-dev make autoconf`.
 
 BUILDING:
 `./autogen.sh` to generate configure script, if it's not there already.
