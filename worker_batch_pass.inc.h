@@ -1,5 +1,6 @@
 
-void *worker_batch(void *task)
+#ifdef PASSPHRASE
+void *worker_batch_pass(void *task)
 {
 	union pubonionunion pubonion;
 	u8 * const pk = &pubonion.raw[PKPREFIX_SIZE];
@@ -17,7 +18,7 @@ void *worker_batch(void *task)
 	fe tmp_batch[BATCHNUM];
 	bytes32 pk_batch[BATCHNUM];
 
-	size_t counter;
+	size_t counter,oldcounter;
 	size_t i;
 
 #ifdef STATISTICS
@@ -45,13 +46,18 @@ initseed:
 	++st->numrestart.v;
 #endif
 
-	randombytes(seed,sizeof(seed));
+	pthread_mutex_lock(&determseed_mutex);
+	for (int i = 0; i < SEED_LEN; i++)
+		if (++determseed[i])
+			break;
+	memcpy(seed, determseed, SEED_LEN);
+	pthread_mutex_unlock(&determseed_mutex);
 
 	ed25519_seckey_expand(sk,seed);
 
 	ge_scalarmult_base(&ge_public,sk);
 
-	for (counter = 0;counter < SIZE_MAX-(8*BATCHNUM);counter += 8*BATCHNUM) {
+	for (counter = oldcounter = 0;counter < DETERMINISTIC_LOOP_COUNT;counter += 8*BATCHNUM) {
 		ge_p1p1 sum;
 
 		if (unlikely(endwork))
@@ -90,10 +96,14 @@ initseed:
 				// copy public key
 				memcpy(pk,pk_batch[b],PUBLIC_LEN);
 				// update secret key with counter
-				addsztoscalar32(sk,counter + (b * 8));
+				addsztoscalar32(sk,counter + (b * 8) - oldcounter);
+				oldcounter = counter + (b * 8);
 				// sanity check
 				if ((sk[0] & 248) != sk[0] || ((sk[31] & 63) | 64) != sk[31])
 					goto initseed;
+
+				// reseed right half of key to avoid reuse, it won't change public key anyway
+				reseedright(sk);
 
 				ADDNUMSUCCESS;
 
@@ -106,8 +116,6 @@ initseed:
 				strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
 				onionready(sname,secret,pubonion.raw);
 				pk[PUBLIC_LEN] = 0; // what is this for?
-				// don't reuse same seed
-				goto initseed;
 			});
 		next:
 			;
@@ -122,3 +130,4 @@ end:
 	sodium_memzero(seed,sizeof(seed));
 	return 0;
 }
+#endif // PASSPHRASE

@@ -516,7 +516,8 @@ int main(int argc,char **argv)
 #endif
 		tret = pthread_create(&VEC_BUF(threads,i),0,
 #ifdef PASSPHRASE
-				deterministic ? worker_fast_pass :
+				deterministic ? (
+					batchkeygen ? worker_batch_pass : worker_fast_pass) :
 #endif
 				batchkeygen ? worker_batch :
 				(fastkeygen ? worker_fast : worker_slow),tp);

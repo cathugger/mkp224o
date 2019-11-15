@@ -34,17 +34,18 @@ void *worker_fast_pass(void *task)
 	sname = makesname();
 
 initseed:
+#ifdef STATISTICS
+	++st->numrestart.v;
+#endif
+
 	pthread_mutex_lock(&determseed_mutex);
 	for (int i = 0; i < SEED_LEN; i++)
 		if (++determseed[i])
 			break;
 	memcpy(seed, determseed, SEED_LEN);
 	pthread_mutex_unlock(&determseed_mutex);
-	ed25519_seckey_expand(sk,seed);
 
-#ifdef STATISTICS
-	++st->numrestart.v;
-#endif
+	ed25519_seckey_expand(sk,seed);
 
 	ge_scalarmult_base(&ge_public,sk);
 	ge_p3_tobytes(pk,&ge_public);

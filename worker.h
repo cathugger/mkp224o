@@ -43,4 +43,5 @@ extern void *worker_fast(void *task);
 extern void *worker_batch(void *task);
 #ifdef PASSPHRASE
 extern void *worker_fast_pass(void *task);
+extern void *worker_batch_pass(void *task);
 #endif

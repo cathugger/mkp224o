@@ -36,7 +36,9 @@ initseed:
 #ifdef STATISTICS
 	++st->numrestart.v;
 #endif
+
 	randombytes(seed,sizeof(seed));
+
 	ed25519_seckey_expand(sk,seed);
 
 	ge_scalarmult_base(&ge_public,sk);

@@ -452,5 +452,5 @@ worker.c.o: ed25519/ed25519-donna/ed25519-donna-impl-sse2.h
 worker.c.o: ed25519/ed25519-donna/ed25519-donna-impl-base.h ioutil.h common.h
 worker.c.o: yaml.h worker.h filters.h filters_worker.inc.h
 worker.c.o: filters_common.inc.h worker_slow.inc.h worker_fast.inc.h
-worker.c.o: worker_fast_pass.inc.h worker_batch.inc.h
+worker.c.o: worker_fast_pass.inc.h worker_batch.inc.h worker_batch_pass.inc.h
 yaml.c.o: types.h yaml.h ioutil.h base32.h base64.h common.h

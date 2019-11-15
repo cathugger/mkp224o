@@ -210,8 +210,17 @@ static void reseedright(u8 sk[SECRET_LEN])
 #include "worker_fast_pass.inc.h"
 
 
-#ifndef BATCHNUM
-#define BATCHNUM 2048
+#if !defined(BATCHNUM)
+	#define BATCHNUM 2048
+#else
+	#if BATCHNUM & (BATCHNUM - 1)
+		#error "BATCHNUM must be power of 2"
+	#endif
+	#if (BATCHNUM * 8) > DETERMINISTIC_LOOP_COUNT
+		#error "BATCHNUM is too large"
+	#endif
 #endif
 
 #include "worker_batch.inc.h"
+
+#include "worker_batch_pass.inc.h"
