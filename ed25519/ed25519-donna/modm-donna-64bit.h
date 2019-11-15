@@ -2,6 +2,8 @@
 	Public domain by Andrew M. <liquidsun@gmail.com>
 */
 
+/* separate uint128 check for 64 bit sse2 */
+#if defined(HAVE_UINT128) && !defined(ED25519_FORCE_32BIT)
 
 /*
 	Arithmetic modulo the group order n = 2^252 +  27742317777372353535851937790883648493 = 7237005577332262213973186563042994240857116359379907606001950938285454250989
@@ -359,3 +361,5 @@ isatmost128bits256_modm_batch(const bignum256modm a) {
 
 	return (mask == 0);
 }
+
+#endif /* defined(HAVE_UINT128) && !defined(ED25519_FORCE_32BIT) */

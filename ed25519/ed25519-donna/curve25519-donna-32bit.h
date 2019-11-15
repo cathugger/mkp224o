@@ -5,6 +5,8 @@
 	32 bit integer curve25519 implementation
 */
 
+#if !defined(ED25519_SSE2) && !defined(ED25519_64BIT)
+
 typedef uint32_t bignum25519[10];
 typedef uint32_t bignum25519align16[12];
 
@@ -577,3 +579,5 @@ curve25519_swap_conditional(bignum25519 a, bignum25519 b, uint32_t iswap) {
 	x8 = swap & (a[8] ^ b[8]); a[8] ^= x8; b[8] ^= x8;
 	x9 = swap & (a[9] ^ b[9]); a[9] ^= x9; b[9] ^= x9;
 }
+
+#endif /* !defined(ED25519_SSE2) && !defined(ED25519_64BIT) */

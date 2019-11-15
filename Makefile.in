@@ -410,12 +410,20 @@ test_ed25519.c.o: ed25519/amd64-64-24k/ge25519.h
 test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna.h
 test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-portable.h
 test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-portable-identify.h
+test_ed25519.c.o: ed25519/ed25519-donna/curve25519-donna-sse2.h
 test_ed25519.c.o: ed25519/ed25519-donna/curve25519-donna-64bit.h
+test_ed25519.c.o: ed25519/ed25519-donna/curve25519-donna-32bit.h
 test_ed25519.c.o: ed25519/ed25519-donna/curve25519-donna-helpers.h
 test_ed25519.c.o: ed25519/ed25519-donna/modm-donna-64bit.h
+test_ed25519.c.o: ed25519/ed25519-donna/modm-donna-32bit.h
 test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-basepoint-table.h
 test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-tables.h
 test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-x86.h
+test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-32bit-tables.h
+test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-x86-32bit.h
+test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-32bit-sse2.h
+test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-sse2.h
+test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-impl-sse2.h
 test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-impl-base.h
 vec.c.o: vec.h
 worker.c.o: types.h likely.h vec.h base32.h keccak.h ed25519/ed25519.h
@@ -427,12 +435,20 @@ worker.c.o: ed25519/amd64-64-24k/ge25519.h
 worker.c.o: ed25519/ed25519-donna/ed25519-donna.h
 worker.c.o: ed25519/ed25519-donna/ed25519-donna-portable.h
 worker.c.o: ed25519/ed25519-donna/ed25519-donna-portable-identify.h
+worker.c.o: ed25519/ed25519-donna/curve25519-donna-sse2.h
 worker.c.o: ed25519/ed25519-donna/curve25519-donna-64bit.h
+worker.c.o: ed25519/ed25519-donna/curve25519-donna-32bit.h
 worker.c.o: ed25519/ed25519-donna/curve25519-donna-helpers.h
 worker.c.o: ed25519/ed25519-donna/modm-donna-64bit.h
+worker.c.o: ed25519/ed25519-donna/modm-donna-32bit.h
 worker.c.o: ed25519/ed25519-donna/ed25519-donna-basepoint-table.h
 worker.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-tables.h
 worker.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-x86.h
+worker.c.o: ed25519/ed25519-donna/ed25519-donna-32bit-tables.h
+worker.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-x86-32bit.h
+worker.c.o: ed25519/ed25519-donna/ed25519-donna-32bit-sse2.h
+worker.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-sse2.h
+worker.c.o: ed25519/ed25519-donna/ed25519-donna-impl-sse2.h
 worker.c.o: ed25519/ed25519-donna/ed25519-donna-impl-base.h ioutil.h common.h
 worker.c.o: yaml.h worker.h filters.h filters_worker.inc.h
 worker.c.o: filters_common.inc.h worker_slow.inc.h worker_fast.inc.h

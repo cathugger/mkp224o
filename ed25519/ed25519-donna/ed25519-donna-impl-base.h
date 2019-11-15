@@ -1,3 +1,5 @@
+#if !defined(ED25519_SSE2)
+
 /*
 	conversions
 */
@@ -387,3 +389,4 @@ ge25519_scalarmult_base_niels(ge25519 *r, const uint8_t basepoint_table[256][96]
 	}
 }
 
+#endif /* !defined(ED25519_SSE2) */

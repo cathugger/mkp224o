@@ -5,6 +5,8 @@
 	SSE2 curve25519 implementation
 */
 
+#if defined(ED25519_SSE2)
+
 #include <emmintrin.h>
 typedef __m128i xmmi;
 
@@ -1110,3 +1112,4 @@ curve25519_move_conditional_bytes(uint8_t out[96], const uint8_t in[96], uint32_
 	_mm_store_si128((xmmi*)out + 5, a5);
 }
 
+#endif /* defined(ED25519_SSE2) */

@@ -1,3 +1,5 @@
+#if defined(ED25519_SSE2)
+
 /*
 	conversions
 */
@@ -412,3 +414,5 @@ ge25519_scalarmult_base_niels(ge25519 *r, const uint8_t table[256][96], const bi
 		ge25519_nielsadd2(r, &t);
 	}
 }
+
+#endif /* defined(ED25519_SSE2) */

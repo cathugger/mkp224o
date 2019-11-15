@@ -6,6 +6,8 @@
 	64bit integer curve25519 implementation
 */
 
+#if !defined(ED25519_SSE2) && defined(ED25519_64BIT)
+
 typedef uint64_t bignum25519[5];
 
 static const uint64_t reduce_mask_40 = ((uint64_t)1 << 40) - 1;
@@ -411,3 +413,4 @@ curve25519_swap_conditional(bignum25519 a, bignum25519 b, uint64_t iswap) {
 
 #define ED25519_64BIT_TABLES
 
+#endif /* !defined(ED25519_SSE2) && defined(ED25519_64BIT) */
