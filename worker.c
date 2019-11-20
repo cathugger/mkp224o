@@ -58,7 +58,7 @@ void worker_init(void)
 
 #ifdef PASSPHRASE
 // How many times we loop before a reseed
-#define DETERMINISTIC_LOOP_COUNT 1<<24
+#define DETERMINISTIC_LOOP_COUNT (1<<24)
 
 pthread_mutex_t determseed_mutex;
 u8 determseed[SEED_LEN];
@@ -212,13 +212,6 @@ static void reseedright(u8 sk[SECRET_LEN])
 
 #if !defined(BATCHNUM)
 	#define BATCHNUM 2048
-#else
-	#if BATCHNUM & (BATCHNUM - 1)
-		#error "BATCHNUM must be power of 2"
-	#endif
-	#if (BATCHNUM * 8) > DETERMINISTIC_LOOP_COUNT
-		#error "BATCHNUM is too large"
-	#endif
 #endif
 
 #include "worker_batch.inc.h"

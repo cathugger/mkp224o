@@ -57,7 +57,7 @@ initseed:
 
 	ge_scalarmult_base(&ge_public,sk);
 
-	for (counter = oldcounter = 0;counter < DETERMINISTIC_LOOP_COUNT;counter += 8*BATCHNUM) {
+	for (counter = oldcounter = 0;counter < DETERMINISTIC_LOOP_COUNT - (BATCHNUM - 1) * 8;counter += BATCHNUM * 8) {
 		ge_p1p1 sum;
 
 		if (unlikely(endwork))
@@ -118,6 +118,75 @@ initseed:
 				pk[PUBLIC_LEN] = 0; // what is this for?
 			});
 		next:
+			;
+		}
+	}
+	// continue if have leftovers, DETERMINISTIC_LOOP_COUNT - counter < BATCHNUM * 8
+	// can't have leftovers in theory if BATCHNUM was power of 2 and smaller than DETERMINISTIC_LOOP_COUNT bound
+	if (((BATCHNUM & (BATCHNUM - 1)) || (BATCHNUM * 8) > DETERMINISTIC_LOOP_COUNT) &&
+		counter < DETERMINISTIC_LOOP_COUNT)
+	{
+		ge_p1p1 sum;
+
+		if (unlikely(endwork))
+			goto end;
+
+		const size_t remaining = (DETERMINISTIC_LOOP_COUNT - counter) / 8;
+
+		for (size_t b = 0;b < remaining;++b) {
+			ge_batch[b] = ge_public;
+			ge_add(&sum,&ge_public,&ge_eightpoint);
+			ge_p1p1_to_p3(&ge_public,&sum);
+		}
+		// NOTE: leaves unfinished one bit at the very end
+		ge_p3_batchtobytes_destructive_1(pk_batch,ge_batch,batchgez,tmp_batch,remaining);
+
+#ifdef STATISTICS
+		st->numcalc.v += remaining;
+#endif
+
+		for (size_t b = 0;b < remaining;++b) {
+			DOFILTER(i,pk_batch[b],{
+				if (numwords > 1) {
+					shiftpk(wpk,pk_batch[b],filter_len(i));
+					size_t j;
+					for (int w = 1;;) {
+						DOFILTER(j,wpk,goto secondfind2);
+						goto next2;
+					secondfind2:
+						if (++w >= numwords)
+							break;
+						shiftpk(wpk,wpk,filter_len(j));
+					}
+				}
+				// found!
+				// finish it up
+				ge_p3_batchtobytes_destructive_finish(pk_batch[b],&ge_batch[b]);
+				// copy public key
+				memcpy(pk,pk_batch[b],PUBLIC_LEN);
+				// update secret key with counter
+				addsztoscalar32(sk,counter + (b * 8) - oldcounter);
+				oldcounter = counter + (b * 8);
+				// sanity check
+				if ((sk[0] & 248) != sk[0] || ((sk[31] & 63) | 64) != sk[31])
+					goto initseed;
+
+				// reseed right half of key to avoid reuse, it won't change public key anyway
+				reseedright(sk);
+
+				ADDNUMSUCCESS;
+
+				// calc checksum
+				memcpy(&hashsrc[checksumstrlen],pk,PUBLIC_LEN);
+				FIPS202_SHA3_256(hashsrc,sizeof(hashsrc),&pk[PUBLIC_LEN]);
+				// version byte
+				pk[PUBLIC_LEN + 2] = 0x03;
+				// full name
+				strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
+				onionready(sname,secret,pubonion.raw);
+				pk[PUBLIC_LEN] = 0; // what is this for?
+			});
+		next2:
 			;
 		}
 	}
