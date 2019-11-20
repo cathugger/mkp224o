@@ -123,9 +123,8 @@ initseed:
 	}
 	// continue if have leftovers, DETERMINISTIC_LOOP_COUNT - counter < BATCHNUM * 8
 	// can't have leftovers in theory if BATCHNUM was power of 2 and smaller than DETERMINISTIC_LOOP_COUNT bound
-	if (((BATCHNUM & (BATCHNUM - 1)) || (BATCHNUM * 8) > DETERMINISTIC_LOOP_COUNT) &&
-		counter < DETERMINISTIC_LOOP_COUNT)
-	{
+#if (BATCHNUM & (BATCHNUM - 1)) || (BATCHNUM * 8) > DETERMINISTIC_LOOP_COUNT
+	if (counter < DETERMINISTIC_LOOP_COUNT) {
 		ge_p1p1 sum;
 
 		if (unlikely(endwork))
@@ -190,6 +189,7 @@ initseed:
 			;
 		}
 	}
+#endif // (BATCHNUM & (BATCHNUM - 1)) || (BATCHNUM * 8) > DETERMINISTIC_LOOP_COUNT
 	goto initseed;
 
 end:
