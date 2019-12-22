@@ -15,9 +15,9 @@ ED25519_amd64_64_24k= \
 	$(patsubst @SRCDIR@/%.c,%.c.o,$(wildcard @SRCDIR@/ed25519/amd64-64-24k/*.c)) \
 	$(patsubst @SRCDIR@/%.s,%.s.o,$(wildcard @SRCDIR@/ed25519/amd64-64-24k/*.s))
 ED25519_donna=
-ED25519OBJ= $(ED25519_@ED25519IMPL@)
+ED25519_OBJ= $(ED25519_@ED25519IMPL@)
 
-MAINOBJ= \
+MAIN_OBJ= \
 	main.c.o \
 	worker.c.o \
 	yaml.c.o \
@@ -28,73 +28,86 @@ MAINOBJ= \
 	base64_to.c.o \
 	base64_from.c.o \
 	ioutil.c.o \
-	$(ED25519OBJ) \
+	$(ED25519_OBJ) \
 	keccak.c.o
 
-TEST_BASE64OBJ= \
+UTIL_CALCDIFF_OBJ= \
+	calcdiff.c.o
+
+TEST_BASE64_OBJ= \
 	test_base64.c.o \
 	base64_to.c.o \
 	base64_from.c.o
 
-TEST_BASE32OBJ= \
+TEST_BASE32_OBJ= \
 	test_base32.c.o \
 	base32_to.c.o \
 	base32_from.c.o
 
-TEST_BASE16OBJ= \
+TEST_BASE16_OBJ= \
 	test_base16.c.o \
 	base16_to.c.o \
 	base16_from.c.o
 
-TEST_ED25519OBJ= \
+TEST_ED25519_OBJ= \
 	test_ed25519.c.o \
 	base16_to.c.o \
 	base16_from.c.o \
-	$(ED25519OBJ)
+	$(ED25519_OBJ)
 
-ALLO= $(sort \
-	$(MAINOBJ) \
-	$(TEST_BASE64OBJ) \
-	$(TEST_BASE32OBJ) \
-	$(TEST_BASE16OBJ) \
-	$(TEST_ED25519OBJ) \
+ALL_O= $(sort \
+	$(MAIN_OBJ) \
+	$(TEST_BASE64_OBJ) \
+	$(TEST_BASE32_OBJ) \
+	$(TEST_BASE16_OBJ) \
+	$(TEST_ED25519_OBJ) \
 	$(ED25519_ref10) \
 	$(ED25519_amd64_51_30k) \
 	$(ED25519_amd64_64_24k))
 
-ALLC= $(patsubst %.c.o,%.c,$(filter %.c.o %.c,$(ALLO)))
-CLEANO= $(filter %.o,$(ALLO))
+ALL_C= $(patsubst %.c.o,%.c,$(filter %.c.o %.c,$(ALL_O)))
+CLEAN_O= $(filter %.o,$(ALL_O))
 
-MAINLIB= -lpthread -lsodium @MAINLIB@
-TEST_ED25519LIB= -lsodium
+MAIN_LIB= -lpthread -lsodium @MAINLIB@
+TEST_ED25519_LIB= -lsodium
 
-ALLTGTS= mkp224o test_base64 test_base32 test_base16 test_ed25519
-ALLEXE= $(patsubst %,%@EXEEXT@,$(ALLTGTS))
+MAIN_TGT= mkp224o
+UTIL_TGT= calcdiff
+TEST_TGT= test_base64 test_base32 test_base16 test_ed25519
+
+MAIN_EXE= $(patsubst %,%@EXEEXT@,$(MAIN_TGT))
+UTIL_EXE= $(patsubst %,%@EXEEXT@,$(UTIL_TGT))
+TEST_EXE= $(patsubst %,%@EXEEXT@,$(TEST_TGT))
+
+ALL_EXE= $(MAIN_EXE) $(UTIL_EXE) $(TEST_EXE)
 
 .PHONY: default all clean distclean depend
 
-default: mkp224o@EXEEXT@
+default: $(MAIN_EXE)
 
-all: $(ALLEXE)
+all: $(ALL_EXE)
 
-mkp224o@EXEEXT@: $(MAINOBJ)
-	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ $(MAINLIB) && $(MV) $@.tmp $@
+mkp224o@EXEEXT@: $(MAIN_OBJ)
+	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ $(MAIN_LIB) && $(MV) $@.tmp $@
 
-test_base64@EXEEXT@: $(TEST_BASE64OBJ)
+calcdiff@EXEEXT@: $(UTIL_CALCDIFF_OBJ)
 	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ && $(MV) $@.tmp $@
 
-test_base32@EXEEXT@: $(TEST_BASE32OBJ)
+test_base64@EXEEXT@: $(TEST_BASE64_OBJ)
 	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ && $(MV) $@.tmp $@
 
-test_base16@EXEEXT@: $(TEST_BASE16OBJ)
+test_base32@EXEEXT@: $(TEST_BASE32_OBJ)
 	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ && $(MV) $@.tmp $@
 
-test_ed25519@EXEEXT@: $(TEST_ED25519OBJ)
-	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ $(TEST_ED25519LIB) && $(MV) $@.tmp $@
+test_base16@EXEEXT@: $(TEST_BASE16_OBJ)
+	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ && $(MV) $@.tmp $@
+
+test_ed25519@EXEEXT@: $(TEST_ED25519_OBJ)
+	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ $(TEST_ED25519_LIB) && $(MV) $@.tmp $@
 
 clean:
-	$(RM) $(CLEANO)
-	$(RM) $(ALLEXE)
+	$(RM) $(CLEAN_O)
+	$(RM) $(ALL_EXE)
 
 distclean: clean
 	$(RM) -r autom4te.cache
@@ -102,7 +115,7 @@ distclean: clean
 	$(RM) Makefile
 
 depend:
-	cd "@SRCDIR@" && makedepend -Y -fMakefile.in -o.c.o -- $(CSTD) $(ED25519_DEFS) -- $(ALLC)
+	cd "@SRCDIR@" && makedepend -Y -fMakefile.in -o.c.o -- $(CSTD) $(ED25519_DEFS) -- $(ALL_C)
 
 VPATH=@SRCDIR@
 
@@ -424,7 +437,7 @@ test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-x86-32bit.h
 test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-32bit-sse2.h
 test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-64bit-sse2.h
 test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-impl-sse2.h
-test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-impl-base.h
+test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-impl-base.h testutil.h
 vec.c.o: vec.h
 worker.c.o: types.h likely.h vec.h base32.h keccak.h ed25519/ed25519.h
 worker.c.o: ed25519/ref10/ed25519.h ed25519/ref10/ge.h ed25519/ref10/fe.h

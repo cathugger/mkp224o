@@ -6,6 +6,7 @@
 #include "types.h"
 #include "base16.h"
 #include "ed25519/ed25519.h"
+#include "testutil.h"
 
 struct pktest {
 	const char *seed;
@@ -25,11 +26,6 @@ struct pktest {
 		"1519a3b15816a1aafab0b213892026ebf5c0dc232c58b21088d88cb90e9b940d"
 	},
 };
-
-#define WARN(test) if (!(test)) \
-	fprintf(stderr, "check failed @ %d: %s\n", (int)__LINE__, #test)
-
-#define WARNF(test) if (!(test) && (fprintf(stderr, "check failed @ %d: %s\n", (int)__LINE__, #test), 1))
 
 #define SEEDBYTES 32
 #define SECRETKEYBYTES 64
