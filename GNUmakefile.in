@@ -112,10 +112,10 @@ clean:
 distclean: clean
 	$(RM) -r autom4te.cache
 	$(RM) configure config.status config.log
-	$(RM) Makefile
+	$(RM) GNUmakefile
 
 depend:
-	cd "@SRCDIR@" && makedepend -Y -fMakefile.in -o.c.o -- $(CSTD) $(ED25519_DEFS) -- $(ALL_C)
+	cd "@SRCDIR@" && makedepend -Y -fGNUmakefile.in -o.c.o -- $(CSTD) $(ED25519_DEFS) -- $(ALL_C)
 
 VPATH=@SRCDIR@
 
