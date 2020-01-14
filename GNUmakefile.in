@@ -31,8 +31,8 @@ MAIN_OBJ= \
 	$(ED25519_OBJ) \
 	keccak.c.o
 
-UTIL_CALCDIFF_OBJ= \
-	calcdiff.c.o
+UTIL_CALCEST_OBJ= \
+	calcest.c.o
 
 TEST_BASE64_OBJ= \
 	test_base64.c.o \
@@ -69,10 +69,11 @@ ALL_C= $(patsubst %.c.o,%.c,$(filter %.c.o %.c,$(ALL_O)))
 CLEAN_O= $(filter %.o,$(ALL_O))
 
 MAIN_LIB= -lpthread -lsodium @MAINLIB@
+UTIL_CALCEST_LIB= -lm
 TEST_ED25519_LIB= -lsodium
 
 MAIN_TGT= mkp224o
-UTIL_TGT= calcdiff
+UTIL_TGT= calcest
 TEST_TGT= test_base64 test_base32 test_base16 test_ed25519
 
 MAIN_EXE= $(patsubst %,%@EXEEXT@,$(MAIN_TGT))
@@ -90,8 +91,8 @@ all: $(ALL_EXE)
 mkp224o@EXEEXT@: $(MAIN_OBJ)
 	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ $(MAIN_LIB) && $(MV) $@.tmp $@
 
-calcdiff@EXEEXT@: $(UTIL_CALCDIFF_OBJ)
-	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ && $(MV) $@.tmp $@
+calcest@EXEEXT@: $(UTIL_CALCEST_OBJ)
+	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ $(UTIL_CALCEST_LIB) && $(MV) $@.tmp $@
 
 test_base64@EXEEXT@: $(TEST_BASE64_OBJ)
 	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ && $(MV) $@.tmp $@
