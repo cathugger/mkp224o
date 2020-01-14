@@ -135,15 +135,6 @@ base32_to.c.o: types.h base32.h
 base64_from.c.o: types.h base64.h
 base64_to.c.o: types.h base64.h
 cpucount.c.o: cpucount.h
-ed25519/amd64-51-30k/batch.c.o: ed25519/amd64-51-30k/crypto_sign.h
-ed25519/amd64-51-30k/batch.c.o: ed25519/amd64-51-30k/ed25519.h
-ed25519/amd64-51-30k/batch.c.o: ed25519/amd64-51-30k/crypto_verify_32.h
-ed25519/amd64-51-30k/batch.c.o: ed25519/amd64-51-30k/crypto_hash_sha512.h
-ed25519/amd64-51-30k/batch.c.o: ed25519/amd64-51-30k/randombytes.h
-ed25519/amd64-51-30k/batch.c.o: ed25519/amd64-51-30k/ge25519.h
-ed25519/amd64-51-30k/batch.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-51-30k/batch.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-51-30k/batch.c.o: ed25519/amd64-51-30k/hram.h
 ed25519/amd64-51-30k/fe25519_add.c.o: ed25519/amd64-51-30k/fe25519.h
 ed25519/amd64-51-30k/fe25519_batchinvert.c.o: ed25519/amd64-51-30k/fe25519.h
 ed25519/amd64-51-30k/fe25519_getparity.c.o: ed25519/amd64-51-30k/fe25519.h
@@ -222,15 +213,6 @@ ed25519/amd64-51-30k/sign.c.o: ed25519/amd64-51-30k/crypto_hash_sha512.h
 ed25519/amd64-51-30k/sign.c.o: ed25519/amd64-51-30k/ge25519.h
 ed25519/amd64-51-30k/sign.c.o: ed25519/amd64-51-30k/fe25519.h
 ed25519/amd64-51-30k/sign.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/batch.c.o: ed25519/amd64-51-30k/crypto_sign.h
-ed25519/amd64-64-24k/batch.c.o: ed25519/amd64-51-30k/ed25519.h
-ed25519/amd64-64-24k/batch.c.o: ed25519/amd64-51-30k/crypto_verify_32.h
-ed25519/amd64-64-24k/batch.c.o: ed25519/amd64-51-30k/crypto_hash_sha512.h
-ed25519/amd64-64-24k/batch.c.o: ed25519/amd64-51-30k/randombytes.h
-ed25519/amd64-64-24k/batch.c.o: ed25519/amd64-51-30k/ge25519.h
-ed25519/amd64-64-24k/batch.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/batch.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/batch.c.o: ed25519/amd64-51-30k/hram.h
 ed25519/amd64-64-24k/fe25519_batchinvert.c.o: ed25519/amd64-51-30k/fe25519.h
 ed25519/amd64-64-24k/fe25519_getparity.c.o: ed25519/amd64-51-30k/fe25519.h
 ed25519/amd64-64-24k/fe25519_invert.c.o: ed25519/amd64-51-30k/fe25519.h

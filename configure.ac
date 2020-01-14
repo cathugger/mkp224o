@@ -192,6 +192,14 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
     [AC_MSG_RESULT([no])]
 )
 
+CFLAGS="$cstd -Wextra"
+AC_MSG_CHECKING([whether CC supports -Wextra])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+    [AC_MSG_RESULT([yes])]
+    [cstd="$cstd -Wextra"],
+    [AC_MSG_RESULT([no])]
+)
+
 # (negative) detection on clang fails without -Werror
 CFLAGS="$cstd -Wno-maybe-uninitialized -Werror"
 AC_MSG_CHECKING([whether CC supports -Wno-maybe-uninitialized])

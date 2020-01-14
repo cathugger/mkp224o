@@ -48,7 +48,7 @@ curve25519_recip(bignum25519 out, const bignum25519 z) {
 	/* 2^255 - 21 */ curve25519_mul_noinline(out, b, a);
 }
 
-const static unsigned char curve25519_packedone[32] = {
+static const unsigned char curve25519_packedone[32] = {
 	1, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0,
