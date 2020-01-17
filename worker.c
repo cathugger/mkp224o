@@ -33,8 +33,8 @@
 #endif
 
 // additional 0 terminator is added by C
-static const char * const pkprefix = "== ed25519v1-public: type0 ==\0\0";
-static const char * const skprefix = "== ed25519v1-secret: type0 ==\0\0";
+const char * const pkprefix = "== ed25519v1-public: type0 ==\0\0";
+const char * const skprefix = "== ed25519v1-secret: type0 ==\0\0";
 
 static const char checksumstr[] = ".onion checksum";
 #define checksumstrlen (sizeof(checksumstr) - 1) // 15
@@ -44,6 +44,7 @@ volatile size_t keysgenerated = 0;
 volatile int endwork = 0;
 
 int yamloutput = 0;
+int yamlraw = 0;
 int numwords = 1;
 size_t numneedgenerate = 0;
 
@@ -127,8 +128,9 @@ static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 			fflush(fout);
 			pthread_mutex_unlock(&fout_mutex);
 		}
-	} else
-		yamlout_writekeys(&sname[direndpos],pubonion,secret);
+	}
+	else
+		yamlout_writekeys(&sname[direndpos],pubonion,secret,yamlraw);
 }
 
 #include "filters_worker.inc.h"

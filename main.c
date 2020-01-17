@@ -106,6 +106,7 @@ static void printhelp(FILE *out,const char *progname)
 		"\t-T  - do not reset statistics counters when printing\n"
 		"\t-y  - output generated keys in YAML format instead of dumping them to filesystem\n"
 		"\t-Y [filename [host.onion]]  - parse YAML encoded input and extract key(s) to filesystem\n"
+		"\t--rawyaml  - raw (unprefixed) public/secret keys for -y/-Y (may be useful for tor controller API)\n"
 #ifdef PASSPHRASE
 		"\t-p passphrase  - use passphrase to initialize the random seed with\n"
 		"\t-P  - same as -p, but takes passphrase from PASSPHRASE environment variable\n"
@@ -180,7 +181,7 @@ int main(int argc,char **argv)
 {
 	const char *outfile = 0;
 	const char *infile = 0;
-	const char *hostname = 0;
+	const char *onehostname = 0;
 	const char *arg;
 	int ignoreargs = 0;
 	int dirnameflag = 0;
@@ -237,6 +238,8 @@ int main(int argc,char **argv)
 					printhelp(stdout,progname);
 					exit(0);
 				}
+				else if (!strcmp(arg,"rawyaml"))
+					yamlraw = 1;
 				else {
 					fprintf(stderr,"unrecognised argument: --%s\n",arg);
 					exit(1);
@@ -352,10 +355,10 @@ int main(int argc,char **argv)
 						infile = 0;
 					if (argc) {
 						--argc;
-						hostname = *argv++;
-						if (!*hostname)
-							hostname = 0;
-						if (hostname && strlen(hostname) != ONION_LEN) {
+						onehostname = *argv++;
+						if (!*onehostname)
+							onehostname = 0;
+						if (onehostname && strlen(onehostname) != ONION_LEN) {
 							fprintf(stderr,"bad onion argument length\n");
 							exit(1);
 						}
@@ -390,6 +393,16 @@ int main(int argc,char **argv)
 		}
 		else
 			filters_add(arg);
+	}
+
+	if (yamlinput && yamloutput) {
+		fprintf(stderr,"both -y and -Y does not make sense\n");
+		exit(1);
+	}
+
+	if (yamlraw && !yamlinput && !yamloutput) {
+		fprintf(stderr,"--rawyaml requires either -y or -Y to do anything\n");
+		exit(1);
 	}
 
 	if (outfile) {
@@ -429,7 +442,7 @@ int main(int argc,char **argv)
 				return 1;
 			}
 		}
-		tret = yamlin_parseandcreate(fin,sname,hostname);
+		tret = yamlin_parseandcreate(fin,sname,onehostname,yamlraw);
 		if (infile) {
 			fclose(fin);
 			fin = 0;

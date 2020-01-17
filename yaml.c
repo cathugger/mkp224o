@@ -21,7 +21,6 @@
 
 #define LINEFEED_LEN       (sizeof(char))
 #define NULLTERM_LEN       (sizeof(char))
-#define PATH_SEPARATOR_LEN (sizeof(char))
 
 static const char keys_field_generated[] = "---";
 static const char keys_field_hostname[]  = "hostname: ";
@@ -37,15 +36,20 @@ static const char keys_field_time[]      = "time: ";
 
 #define B64_PUBKEY_LEN (BASE64_TO_LEN(FORMATTED_PUBLIC_LEN))
 #define B64_SECKEY_LEN (BASE64_TO_LEN(FORMATTED_SECRET_LEN))
-#define TIME_LEN       (21 * sizeof(char)) // strlen("2018-07-04 21:31:20 Z")
+#define B64_RAW_PUBKEY_LEN (BASE64_TO_LEN(PUBLIC_LEN))
+#define B64_RAW_SECKEY_LEN (BASE64_TO_LEN(SECRET_LEN))
+#define TIME_LEN       21 // strlen("2018-07-04 21:31:20 Z")
 
 #define KEYS_LEN ( \
-	KEYS_FIELD_GENERATED_LEN + LINEFEED_LEN + \
-	KEYS_FIELD_HOSTNAME_LEN + ONION_LEN + LINEFEED_LEN + \
+	KEYS_FIELD_GENERATED_LEN                  + LINEFEED_LEN + \
+	KEYS_FIELD_HOSTNAME_LEN  + ONION_LEN      + LINEFEED_LEN + \
 	KEYS_FIELD_PUBLICKEY_LEN + B64_PUBKEY_LEN + LINEFEED_LEN + \
 	KEYS_FIELD_SECRETKEY_LEN + B64_SECKEY_LEN + LINEFEED_LEN + \
-	KEYS_FIELD_TIME_LEN + TIME_LEN + LINEFEED_LEN \
+	KEYS_FIELD_TIME_LEN      + TIME_LEN       + LINEFEED_LEN \
 )
+#define RAW_KEYS_LEN (KEYS_LEN \
+	- B64_PUBKEY_LEN + B64_RAW_PUBKEY_LEN \
+	- B64_SECKEY_LEN + B64_RAW_SECKEY_LEN)
 
 static pthread_mutex_t tminfo_mutex;
 
@@ -67,7 +71,8 @@ do { \
 #define BUF_APPEND_CSTR(buf,offset,src) BUF_APPEND(buf,offset,src,strlen(src))
 #define BUF_APPEND_CHAR(buf,offset,c) buf[offset++] = (c)
 
-void yamlout_writekeys(const char *hostname,const u8 *formated_public,const u8 *formated_secret)
+void yamlout_writekeys(
+	const char *hostname,const u8 *publickey,const u8 *secretkey,int rawkeys)
 {
 	char keysbuf[KEYS_LEN];
 	char pubkeybuf[B64_PUBKEY_LEN + NULLTERM_LEN];
@@ -75,22 +80,37 @@ void yamlout_writekeys(const char *hostname,const u8 *formated_public,const u8 *
 	char timebuf[TIME_LEN + NULLTERM_LEN];
 	size_t offset = 0;
 
+
 	BUF_APPEND(keysbuf,offset,keys_field_generated,KEYS_FIELD_GENERATED_LEN);
 	BUF_APPEND_CHAR(keysbuf,offset,'\n');
+
 
 	BUF_APPEND(keysbuf,offset,keys_field_hostname,KEYS_FIELD_HOSTNAME_LEN);
 	BUF_APPEND(keysbuf,offset,hostname,ONION_LEN);
 	BUF_APPEND_CHAR(keysbuf,offset,'\n');
 
+
 	BUF_APPEND(keysbuf,offset,keys_field_publickey,KEYS_FIELD_PUBLICKEY_LEN);
-	base64_to(pubkeybuf,formated_public,FORMATTED_PUBLIC_LEN);
-	BUF_APPEND(keysbuf,offset,pubkeybuf,B64_PUBKEY_LEN);
+
+	if (!rawkeys)
+		base64_to(pubkeybuf,publickey,FORMATTED_PUBLIC_LEN);
+	else
+		base64_to(pubkeybuf,&publickey[PKPREFIX_SIZE],PUBLIC_LEN);
+
+	BUF_APPEND_CSTR(keysbuf,offset,pubkeybuf);
 	BUF_APPEND_CHAR(keysbuf,offset,'\n');
 
+
 	BUF_APPEND(keysbuf,offset,keys_field_secretkey,KEYS_FIELD_SECRETKEY_LEN);
-	base64_to(seckeybuf,formated_secret,FORMATTED_SECRET_LEN);
-	BUF_APPEND(keysbuf,offset,seckeybuf,B64_SECKEY_LEN);
+
+	if (!rawkeys)
+		base64_to(seckeybuf,secretkey,FORMATTED_SECRET_LEN);
+	else
+		base64_to(seckeybuf,&secretkey[SKPREFIX_SIZE],SECRET_LEN);
+
+	BUF_APPEND_CSTR(keysbuf,offset,seckeybuf);
 	BUF_APPEND_CHAR(keysbuf,offset,'\n');
+
 
 	BUF_APPEND(keysbuf,offset,keys_field_time,KEYS_FIELD_TIME_LEN);
 
@@ -106,10 +126,12 @@ void yamlout_writekeys(const char *hostname,const u8 *formated_public,const u8 *
 	BUF_APPEND(keysbuf,offset,timebuf,TIME_LEN);
 	BUF_APPEND_CHAR(keysbuf,offset,'\n');
 
-	assert(offset == KEYS_LEN);
+
+	assert(offset == (!rawkeys ? KEYS_LEN : RAW_KEYS_LEN));
+
 
 	pthread_mutex_lock(&fout_mutex);
-	fwrite(keysbuf,sizeof(keysbuf),1,fout);
+	fwrite(keysbuf,offset,1,fout);
 	fflush(fout);
 	pthread_mutex_unlock(&fout_mutex);
 }
@@ -119,7 +141,8 @@ void yamlout_writekeys(const char *hostname,const u8 *formated_public,const u8 *
 #undef BUF_APPEND
 
 // pseudo YAML parser
-int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
+int yamlin_parseandcreate(
+	FILE *fin,char *sname,const char *onehostname,int rawkeys)
 {
 	char line[256];
 	size_t len,cnt;
@@ -127,6 +150,11 @@ int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 	u8 secbuf[BASE64_DATA_ALIGN(FORMATTED_SECRET_LEN)];
 	int hashost = 0,haspub = 0,hassec = 0,skipthis = 0;
 	enum keytype { HOST, PUB, SEC } keyt;
+
+	if (rawkeys) {
+		memcpy(pubbuf,pkprefix,PKPREFIX_SIZE);
+		memcpy(secbuf,skprefix,SKPREFIX_SIZE);
+	}
 
 	while (!feof(fin) && !ferror(fin)) {
 		if (!fgets(line,sizeof(line),fin))
@@ -143,7 +171,7 @@ int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 			continue;
 
 		if (len >= 3 && line[0] == '-' && line[1] == '-' && line[2] == '-') {
-			// end of document indicator
+			// end of document / start of new document indicator
 			if (!skipthis && (hashost || haspub || hassec)) {
 				fprintf(stderr,"ERROR: incomplete record\n");
 				return 1;
@@ -206,15 +234,18 @@ int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 					fprintf(stderr,"ERROR: invalid hostname syntax\n");
 					return 1;
 				}
-				if (!hostname || !strcmp(hostname,p)) {
+				if (!onehostname || !strcmp(onehostname,p)) {
 					memcpy(&sname[direndpos],p,len + 1);
 					hashost = 1;
 				} else
 					skipthis = 1;
 				break;
 			case PUB:
-				if (len != B64_PUBKEY_LEN || !base64_valid(p,0) ||
-					base64_from(pubbuf,p,len) != FORMATTED_PUBLIC_LEN)
+				if (!rawkeys
+						? (len != B64_PUBKEY_LEN || !base64_valid(p,0) ||
+							base64_from(pubbuf,p,len) != FORMATTED_PUBLIC_LEN)
+						: (len != B64_RAW_PUBKEY_LEN || !base64_valid(p,0) ||
+							base64_from(&pubbuf[PKPREFIX_SIZE],p,len) != PUBLIC_LEN))
 				{
 					fprintf(stderr,"ERROR: invalid pubkey syntax\n");
 					return 1;
@@ -222,8 +253,11 @@ int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 				haspub = 1;
 				break;
 			case SEC:
-				if (len != B64_SECKEY_LEN || !base64_valid(p,0) ||
-					base64_from(secbuf,p,len) != FORMATTED_SECRET_LEN)
+				if (!rawkeys
+						? (len != B64_SECKEY_LEN || !base64_valid(p,0) ||
+							base64_from(secbuf,p,len) != FORMATTED_SECRET_LEN)
+						: (len != B64_RAW_SECKEY_LEN || !base64_valid(p,0) ||
+							base64_from(&secbuf[SKPREFIX_SIZE],p,len) != SECRET_LEN))
 				{
 					fprintf(stderr,"ERROR: invalid seckey syntax\n");
 					return 1;
@@ -264,8 +298,9 @@ int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 #ifndef _WIN32
 			sigprocmask(SIG_SETMASK,&oset,0);
 #endif
-			if (hostname)
+			if (onehostname)
 				return 0; // finished
+			// skip rest of lines until we hit start of new doc indicator
 			skipthis = 1;
 		}
 	}
@@ -275,7 +310,7 @@ int yamlin_parseandcreate(FILE *fin,char *sname,const char *hostname)
 		return 1;
 	}
 
-	if (hostname) {
+	if (onehostname) {
 		fprintf(stderr,"hostname wasn't found in input\n");
 		return 1;
 	}

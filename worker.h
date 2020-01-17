@@ -4,6 +4,7 @@ extern volatile size_t keysgenerated;
 extern volatile int endwork;
 
 extern int yamloutput;
+extern int yamlraw;
 extern int numwords;
 extern size_t numneedgenerate;
 

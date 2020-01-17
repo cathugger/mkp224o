@@ -7,6 +7,9 @@
 #define PKPREFIX_SIZE (29 + 3)
 #define SKPREFIX_SIZE (29 + 3)
 
+extern const char * const pkprefix;
+extern const char * const skprefix;
+
 #define FORMATTED_PUBLIC_LEN (PKPREFIX_SIZE + PUBLIC_LEN)
 #define FORMATTED_SECRET_LEN (SKPREFIX_SIZE + SECRET_LEN)
 
