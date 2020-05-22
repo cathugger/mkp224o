@@ -95,6 +95,7 @@ int closefile(FH fd)
 int createdir(const char *path,int secret)
 {
 	// XXX don't know how to handle secret argument
+	(void) secret;
 	return CreateDirectoryA(path,0) ? 0 : -1;
 }
 

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include <time.h>
 #include <pthread.h>
@@ -256,8 +257,13 @@ int main(int argc,char **argv)
 				exit(0);
 			}
 			else if (*arg == 'f') {
-				if (argc--)
-					loadfilterfile(*argv++);
+				if (argc--) {
+					const char *filename = *argv++;
+					if (!loadfilterfile(filename)) {
+						fprintf(stderr,"failed to load filter file %s\n",filename);
+						exit(1);
+					}
+				}
 				else
 					e_additional();
 			}

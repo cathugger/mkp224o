@@ -496,10 +496,12 @@ static void filters_prepare(void)
 #endif
 }
 
-static void loadfilterfile(const char *fname)
+static bool loadfilterfile(const char *fname)
 {
 	char buf[128];
 	FILE *f = fopen(fname,"r");
+	if (!f)
+		return false;
 	while (fgets(buf,sizeof(buf),f)) {
 		for (char *p = buf;*p;++p) {
 			if (*p == '\n') {
@@ -510,4 +512,5 @@ static void loadfilterfile(const char *fname)
 		if (*buf && *buf != '#' && memcmp(buf,"//",2) != 0)
 			filters_add(buf);
 	}
+	return true;
 }
