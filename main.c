@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
@@ -258,11 +259,8 @@ int main(int argc,char **argv)
 			}
 			else if (*arg == 'f') {
 				if (argc--) {
-					const char *filename = *argv++;
-					if (!loadfilterfile(filename)) {
-						fprintf(stderr,"failed to load filter file %s\n",filename);
+					if (!loadfilterfile(*argv++))
 						exit(1);
-					}
 				}
 				else
 					e_additional();

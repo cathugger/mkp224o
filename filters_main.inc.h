@@ -500,8 +500,10 @@ static bool loadfilterfile(const char *fname)
 {
 	char buf[128];
 	FILE *f = fopen(fname,"r");
-	if (!f)
+	if (!f) {
+		fprintf(stderr,"failed to load filter file \"%s\": %s\n",fname,strerror(errno));
 		return false;
+	}
 	while (fgets(buf,sizeof(buf),f)) {
 		for (char *p = buf;*p;++p) {
 			if (*p == '\n') {
@@ -511,6 +513,12 @@ static bool loadfilterfile(const char *fname)
 		}
 		if (*buf && *buf != '#' && memcmp(buf,"//",2) != 0)
 			filters_add(buf);
+	}
+	int fe = ferror(f);
+	fclose(f);
+	if (fe != 0) {
+		fprintf(stderr,"failure while reading filter file \"%s\": %s\n",fname,strerror(fe));
+		return false;
 	}
 	return true;
 }
