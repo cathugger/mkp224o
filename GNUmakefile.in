@@ -82,11 +82,17 @@ TEST_EXE= $(patsubst %,%@EXEEXT@,$(TEST_TGT))
 
 ALL_EXE= $(MAIN_EXE) $(UTIL_EXE) $(TEST_EXE)
 
-.PHONY: default all clean distclean depend
+.PHONY: default all main util test clean distclean depend
 
 default: $(MAIN_EXE)
 
 all: $(ALL_EXE)
+
+main: $(MAIN_EXE)
+
+util: $(UTIL_EXE)
+
+test: $(TEST_EXE)
 
 mkp224o@EXEEXT@: $(MAIN_OBJ)
 	$(CC) $(LDFLAGS) $(CFLAGS) -o $@.tmp $^ $(MAIN_LIB) && $(MV) $@.tmp $@

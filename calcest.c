@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stddef.h>
 #include <math.h>
 
 /*
@@ -19,20 +20,20 @@ const int charcounts[] = { 2, 3, 4, 5, 6, 7 };
 int main(void)
 {
 	printf("   |");
-	for (int i = 0; i < sizeof(probs)/sizeof(probs[0]); ++i) {
+	for (size_t i = 0; i < sizeof(probs)/sizeof(probs[0]); ++i) {
 		printf(" %11d%% |",(int)((probs[i]*100)+0.5));
 	}
 	printf("\n");
 
 	printf("---+");
-	for (int i = 0; i < sizeof(probs)/sizeof(probs[0]); ++i) {
+	for (size_t i = 0; i < sizeof(probs)/sizeof(probs[0]); ++i) {
 		printf("--------------+");
 	}
 	printf("\n");
 
-	for (int i = 0; i < sizeof(charcounts)/sizeof(charcounts[0]); ++i) {
+	for (size_t i = 0; i < sizeof(charcounts)/sizeof(charcounts[0]); ++i) {
 		printf("%2d |",charcounts[i]);
-		for (int j = 0; j < sizeof(probs)/sizeof(probs[0]); ++j) {
+		for (size_t j = 0; j < sizeof(probs)/sizeof(probs[0]); ++j) {
 			double t = log2(1 - probs[j]) / log2(1 - (1 / pow(32,charcounts[i])));
 			printf(" %12.0f |",t);
 		}
