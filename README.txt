@@ -36,6 +36,7 @@ when benchmarking different ed25519 implementations on your machine.
 Use -h switch to obtain all available options.
 I highly recommend reading OPTIMISATION.txt for performance-related tips.
 
+
 FAQ AND OTHER USEFUL INFO:
 
  * How do I generate address?
