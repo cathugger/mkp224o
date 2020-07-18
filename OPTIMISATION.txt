@@ -1,26 +1,25 @@
 This document describes configuration options which may help one to generate onions faster.
-First of all, default configuration options are tuned for portability, not performance.
+First of all, default configuration options are tuned for portability, and may be a bit suboptimal.
 User is expected to pick optimal settings depending on hardware mkp224o will run on and ammount of filters.
 
 
 ED25519 implementations:
 mkp224o includes multiple implementations of ed25519 code, tuned for different processors.
-Default is ref10 implementation from SUPERCOP, which is suboptimal in many cases.
 Implementation is selected at configuration time, when running `./configure` script.
 If one already configured/compiled code and wants to change options, just re-run
 `./configure` and also run `make clean` to clear compiled files, if any.
+Note that options and CFLAGS/LDFLAGS settings won't carry over from previous configure run,
+so you have to include options you've previously configured, if you want them to remain.
 At the time of writing, these implementations are present:
-+----------------+-----------------------+-------------------------------------------------+
-| implementation | enable flag           | notes                                           |
-|----------------+-----------------------+-------------------------------------------------+
-| ref10          | --enable-ref10        | SUPERCOP' ref10, pure C, very portable, default |
-| amd64-51-30k   | --enable-amd64-51-30k | SUPERCOP' amd64-51-30k, amd64 assembler,        |
-|                |                       | only works in x86_64 architecture               |
-| amd64-64-24k   | --enable-amd64-64-24k | SUPERCOP' amd64-64-24k, amd64 assembler,        |
-|                |                       | only works in x86_64 architecture               |
-| ed25519-donna  | --enable-donna        | portable, based on amd64-51-30k, but C, not asm |
-| ed25519-donna  | --enable-donna-sse2   | uses SSE2, needs x86 architecture               |
-+----------------+-----------------------+-------------------------------------------------+
++----------------+-----------------------+----------------------------------------------------------+
+| implementation | enable flag           | notes                                                    |
+|----------------+-----------------------+----------------------------------------------------------+
+| ref10          | --enable-ref10        | SUPERCOP' ref10, pure C, very portable, previous default |
+| amd64-51-30k   | --enable-amd64-51-30k | SUPERCOP' amd64-51-30k, only works on x86_64             |
+| amd64-64-24k   | --enable-amd64-64-24k | SUPERCOP' amd64-64-24k, only works on x86_64             |
+| ed25519-donna  | --enable-donna        | based on amd64-51-30k, C, portable, current default      |
+| ed25519-donna  | --enable-donna-sse2   | uses SSE2, needs x86 architecture                        |
++----------------+-----------------------+----------------------------------------------------------+
 When to use what:
  - on 32-bit x86 architecture "--enable-donna" will probably be fastest, but one should try
    using "--enable-donna-sse2" too
@@ -89,6 +88,14 @@ Current options, at the time of writing:
 
                           TL;DR: its quite good idea to use this if you do "--enable-binsearch --enable-intfilter"
                           and have some random filters which may have different length.
+
+
+Batch mode:
+mkp224o now includes experimental key generation mode which performs certain operations in batches,
+and is around 15 times faster than current default.
+It is currently experimental, and is activated by -B run-time flag.
+Batched element count is configured by --enable-batchnum=number option at configure time,
+increasing or decreasing it may make batch mode faster or slower, depending on hardware.
 
 
 Benchmarking:
