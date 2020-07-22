@@ -45,7 +45,7 @@ FAQ AND OTHER USEFUL INFO:
 
  * How do I run with Docker?
  - `docker build -f Dockerfile -t mkp224o .` to build the docker image
-   `docker run -it -v `pwd`:/root/ onion:latest sh`
+   `docker run -it -v `pwd`:/root/ mkp224o:latest sh`
    Now run the `mkp224o neko` command and it will create key for onion starting with "neko"
    in the current working directory.
 
