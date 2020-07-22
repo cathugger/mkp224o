@@ -24,7 +24,6 @@ or "--enable-donna" to configure script for faster key generation;
 run `./configure --help` to see all available options.
 Finally, `make` to start building (`gmake` in *BSD platforms).
 
-
 USAGE:
 
 Generator needs one or more filters to work.
@@ -43,6 +42,12 @@ FAQ AND OTHER USEFUL INFO:
  - Once compiled, run it like `./mkp224o neko`, and it will try creating keys
    for onions starting with "neko" in this example; use `./mkp224o -d nekokeys neko` to
    not litter current directory and put all discovered keys in directory named "nekokeys".
+
+ * How do I run with Docker?
+ - `docker build -f Dockerfile -t mkp224o .` to build the docker image
+   `docker run -it -v `pwd`:/root/ onion:latest sh`
+   Now run the `mkp224o neko` command and it will create key for onion starting with "neko"
+   in the current working directory.
 
  * How do I make tor use generated keys?
  - Copy key folder (though technically only hs_ed25519_secret_key is required)
