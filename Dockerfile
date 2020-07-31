@@ -13,5 +13,4 @@ RUN ./autogen.sh \
   && cp /mkp224o/mkp224o /usr/local/bin/
 
 WORKDIR /root
-
-CMD ["mkp224o"]
+ENTRYPOINT ["mkp224o"]
