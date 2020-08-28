@@ -123,7 +123,7 @@ along with this software. If not, see [CC0][].
 [OPTIMISATION]: ./OPTIMISATION.txt
 [#27]: https://github.com/cathugger/mkp224o/issues/27
 [keccak.c]: https://github.com/XKCP/XKCP/blob/master/Standalone/CompactFIPS202/C/Keccak-more-compact.c
-[CC0]: http://creativecommons.org/publicdomain/zero/1.0/
+[CC0]: https://creativecommons.org/publicdomain/zero/1.0/
 [SUPERCOP]: https://bench.cr.yp.to/supercop.html
 [ed25519-donna]: https://github.com/floodyberry/ed25519-donna
 [horse25519]: https://github.com/Yawning/horse25519
