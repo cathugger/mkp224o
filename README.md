@@ -115,7 +115,7 @@ along with this software. If not, see [CC0][].
 * `ed25519/ed25519-donna` adopted from [ed25519-donna][]
 * Idea used in `worker_fast()` is stolen from [horse25519][]
 * base64 routines and initial YAML processing work contributed by
-  Alexander Khristoforov (heios@protonmail.com)
+  Alexander Khristoforov (heios at protonmail dot com)
 * Passphrase-based generation code and idea used in `worker_batch()`
   contributed by [foobar2019][]
 
