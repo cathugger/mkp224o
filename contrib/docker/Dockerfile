@@ -1,5 +1,7 @@
 FROM alpine:3.12.0
 
+LABEL maintainer="sstefin@bk.ru"
+
 #Installing all the dependencies
 RUN apk add --no-cache gcc libsodium-dev make autoconf build-base
 
