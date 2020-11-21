@@ -100,9 +100,9 @@ static void printhelp(FILE *out,const char *progname)
 		"\t-j numthreads  - same as -t\n"
 		"\t-n numkeys  - specify number of keys (default - 0 - unlimited)\n"
 		"\t-N numwords  - specify number of words per key (default - 1)\n"
-		"\t-z  - use faster key generation method; this is now default\n"
-		"\t-Z  - use slower key generation method\n"
-		"\t-B  - use batching key generation method (>10x faster than -z, experimental)\n"
+		"\t-Z  - use \"slower\" key generation method (initial default)\n"
+		"\t-z  - use \"faster\" key generation method (later default)\n"
+		"\t-B  - use batching key generation method (>10x faster than -z, current default)\n"
 		"\t-s  - print statistics each 10 seconds\n"
 		"\t-S t  - print statistics every specified ammount of seconds\n"
 		"\t-T  - do not reset statistics counters when printing\n"
@@ -177,7 +177,14 @@ static void setpassphrase(const char *pass)
 
 VEC_STRUCT(threadvec, pthread_t);
 
+#include "filters_inc.inc.h"
 #include "filters_main.inc.h"
+
+enum worker_type {
+	WT_SLOW,
+	WT_FAST,
+	WT_BATCH,
+};
 
 int main(int argc,char **argv)
 {
@@ -188,8 +195,7 @@ int main(int argc,char **argv)
 	int ignoreargs = 0;
 	int dirnameflag = 0;
 	int numthreads = 0;
-	int fastkeygen = 1;
-	int batchkeygen = 0;
+	enum worker_type wt = WT_BATCH;
 	int yamlinput = 0;
 #ifdef PASSPHRASE
 	int deterministic = 0;
@@ -319,11 +325,11 @@ int main(int argc,char **argv)
 					e_additional();
 			}
 			else if (*arg == 'Z')
-				fastkeygen = 0;
+				wt = WT_SLOW;
 			else if (*arg == 'z')
-				fastkeygen = 1;
+				wt = WT_FAST;
 			else if (*arg == 'B')
-				batchkeygen = 1;
+				wt = WT_BATCH;
 			else if (*arg == 's') {
 #ifdef STATISTICS
 				reportdelay = 10000000;
@@ -531,13 +537,23 @@ int main(int argc,char **argv)
 #ifdef STATISTICS
 		tp = &VEC_BUF(stats,i);
 #endif
-		tret = pthread_create(&VEC_BUF(threads,i),0,
+		tret = pthread_create(
+			&VEC_BUF(threads,i),0,
 #ifdef PASSPHRASE
-				deterministic ? (
-					batchkeygen ? worker_batch_pass : worker_fast_pass) :
+				deterministic
+					? (wt == WT_BATCH
+						? worker_batch_pass
+						: worker_fast_pass)
+					:
 #endif
-				batchkeygen ? worker_batch :
-				(fastkeygen ? worker_fast : worker_slow),tp);
+				wt == WT_BATCH
+					? worker_batch
+					:
+				wt == WT_FAST
+					? worker_fast
+					: worker_slow,
+			tp
+		);
 		if (tret) {
 			fprintf(stderr,"error while making " FSZ "th thread: %s\n",i,strerror(tret));
 			exit(1);

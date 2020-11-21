@@ -1,0 +1,1 @@
+#define S(x) x

@@ -1,6 +1,6 @@
 #ifdef INTFILTER
 
-static inline size_t filter_len(size_t i)
+static inline size_t S(filter_len)(size_t i)
 {
 # ifndef OMITMASK
 	const u8 *m = (const u8 *)&VEC_BUF(filters,i).m;
@@ -23,12 +23,13 @@ static inline size_t filter_len(size_t i)
 	}
 	return c;
 }
+#define filter_len S(filter_len)
 
 #endif // INTFILTER
 
 #ifdef BINFILTER
 
-static inline size_t filter_len(size_t i)
+static inline size_t S(filter_len)(size_t i)
 {
 	size_t c = VEC_BUF(filters,i).len * 8;
 	u8 v = VEC_BUF(filters,i).mask;
@@ -41,6 +42,7 @@ static inline size_t filter_len(size_t i)
 		v <<= 1;
 	}
 }
+#define filter_len S(filter_len)
 
 #endif // BINFILTER
 

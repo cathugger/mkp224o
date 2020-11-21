@@ -93,6 +93,8 @@ static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 		pthread_mutex_unlock(&keysgenerated_mutex);
 	}
 
+	// disabled as this was never ever triggered as far as I'm aware
+#if 0
 	// Sanity check that the public key matches the private one.
 	ge_p3 point;
 	u8 testpk[PUBLIC_LEN];
@@ -100,6 +102,7 @@ static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 	ge_p3_tobytes(testpk, &point);
 	if (!memcmp(testpk, pubonion, PUBLIC_LEN))
 		abort();
+#endif
 
 	if (!yamloutput) {
 		if (createdir(sname,1) != 0) {
@@ -133,6 +136,7 @@ static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 		yamlout_writekeys(&sname[direndpos],pubonion,secret,yamlraw);
 }
 
+#include "filters_inc.inc.h"
 #include "filters_worker.inc.h"
 
 #ifdef STATISTICS

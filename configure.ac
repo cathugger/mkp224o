@@ -33,9 +33,9 @@ oldcflags="$CFLAGS"
 CFLAGS="-nopie -Werror"
 AC_MSG_CHECKING([whether CC supports -nopie])
 AC_LINK_IFELSE([AC_LANG_PROGRAM([])],
-    [AC_MSG_RESULT([yes])]
-    [nopie="-nopie"],
-    [AC_MSG_RESULT([no])]
+	[AC_MSG_RESULT([yes])]
+	[nopie="-nopie"],
+	[AC_MSG_RESULT([no])]
 )
 CFLAGS="$oldcflags"
 
@@ -178,35 +178,35 @@ oldcflags="$CFLAGS"
 CFLAGS="-std=c99"
 AC_MSG_CHECKING([whether CC supports -std=c99])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
-    [AC_MSG_RESULT([yes])]
-    [c99="yes"]
-    [cstd="-std=c99"],
-    [AC_MSG_RESULT([no])]
+	[AC_MSG_RESULT([yes])]
+	[c99="yes"]
+	[cstd="-std=c99"],
+	[AC_MSG_RESULT([no])]
 )
 
 CFLAGS="$cstd -Wall"
 AC_MSG_CHECKING([whether CC supports -Wall])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
-    [AC_MSG_RESULT([yes])]
-    [cstd="$cstd -Wall"],
-    [AC_MSG_RESULT([no])]
+	[AC_MSG_RESULT([yes])]
+	[cstd="$cstd -Wall"],
+	[AC_MSG_RESULT([no])]
 )
 
 CFLAGS="$cstd -Wextra"
 AC_MSG_CHECKING([whether CC supports -Wextra])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
-    [AC_MSG_RESULT([yes])]
-    [cstd="$cstd -Wextra"],
-    [AC_MSG_RESULT([no])]
+	[AC_MSG_RESULT([yes])]
+	[cstd="$cstd -Wextra"],
+	[AC_MSG_RESULT([no])]
 )
 
 # (negative) detection on clang fails without -Werror
 CFLAGS="$cstd -Wno-maybe-uninitialized -Werror"
 AC_MSG_CHECKING([whether CC supports -Wno-maybe-uninitialized])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
-    [AC_MSG_RESULT([yes])]
-    [cstd="$cstd -Wno-maybe-uninitialized"],
-    [AC_MSG_RESULT([no])]
+	[AC_MSG_RESULT([yes])]
+	[cstd="$cstd -Wno-maybe-uninitialized"],
+	[AC_MSG_RESULT([no])]
 )
 
 if test "x$c99" = "xyes" -a "x$ed25519impl" != "xdonna" -a "x$enable_intfilter" != "x128"
@@ -244,18 +244,18 @@ fi
 CFLAGS="$cstd -Wmissing-prototypes -Werror"
 AC_MSG_CHECKING([whether CC supports -Wmissing-prototypes])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
-    [AC_MSG_RESULT([yes])]
-    [cstd="$cstd -Wmissing-prototypes"],
-    [AC_MSG_RESULT([no])]
+	[AC_MSG_RESULT([yes])]
+	[cstd="$cstd -Wmissing-prototypes"],
+	[AC_MSG_RESULT([no])]
 )
 
 # XXX AC_LANG_PROGRAM produces unsuitable prototype so this check must be last one
 CFLAGS="$cstd -Wstrict-prototypes -Werror"
 AC_MSG_CHECKING([whether CC supports -Wstrict-prototypes])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[int main(void) { return 0; }]])],
-    [AC_MSG_RESULT([yes])]
-    [cstd="$cstd -Wstrict-prototypes"],
-    [AC_MSG_RESULT([no])]
+	[AC_MSG_RESULT([yes])]
+	[cstd="$cstd -Wstrict-prototypes"],
+	[AC_MSG_RESULT([no])]
 )
 
 CFLAGS="$oldcflags"

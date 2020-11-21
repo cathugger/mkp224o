@@ -1,0 +1,15 @@
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{c,h}]
+indent_style = tab
+
+[{GNUmakefile.in,configure.ac}]
+indent_style = tab
+
+[ed25519/{ref10,amd64-51-30k,amd64-64-24k}/*.{c,h,py}]
+indent_style = space
+indent_size = 2
