@@ -38,6 +38,7 @@ extern u8 determseed[SEED_LEN];
 extern void worker_init(void);
 
 extern char *makesname(void);
+extern size_t worker_batch_memuse(void);
 
 extern void *worker_slow(void *task);
 extern void *worker_fast(void *task);

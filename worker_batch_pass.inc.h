@@ -9,13 +9,13 @@ void *worker_batch_pass(void *task)
 	u8 seed[SEED_LEN];
 	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
 	u8 wpk[PUBLIC_LEN + 1];
-	ge_p3 ge_public;
+	ge_p3 ALIGN(16) ge_public;
 	char *sname;
 
 	// state to keep batch data
-	ge_p3 ge_batch[BATCHNUM];
-	fe tmp_batch[BATCHNUM];
-	bytes32 pk_batch[BATCHNUM];
+	ge_p3   ALIGN(16) ge_batch [BATCHNUM];
+	fe      ALIGN(16) tmp_batch[BATCHNUM];
+	bytes32 ALIGN(16) pk_batch [BATCHNUM];
 
 	size_t counter,oldcounter;
 	size_t i;
@@ -53,7 +53,7 @@ initseed:
 	ge_scalarmult_base(&ge_public,sk);
 
 	for (counter = oldcounter = 0;counter < DETERMINISTIC_LOOP_COUNT - (BATCHNUM - 1) * 8;counter += BATCHNUM * 8) {
-		ge_p1p1 sum;
+		ge_p1p1 ALIGN(16) sum;
 
 		if (unlikely(endwork))
 			goto end;
@@ -120,7 +120,7 @@ initseed:
 	// can't have leftovers in theory if BATCHNUM was power of 2 and smaller than DETERMINISTIC_LOOP_COUNT bound
 #if (BATCHNUM & (BATCHNUM - 1)) || (BATCHNUM * 8) > DETERMINISTIC_LOOP_COUNT
 	if (counter < DETERMINISTIC_LOOP_COUNT) {
-		ge_p1p1 sum;
+		ge_p1p1 ALIGN(16) sum;
 
 		if (unlikely(endwork))
 			goto end;

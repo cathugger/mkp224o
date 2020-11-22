@@ -8,7 +8,7 @@ void *worker_fast(void *task)
 	u8 seed[SEED_LEN];
 	u8 hashsrc[checksumstrlen + PUBLIC_LEN + 1];
 	u8 wpk[PUBLIC_LEN + 1];
-	ge_p3 ge_public;
+	ge_p3 ALIGN(16) ge_public;
 	char *sname;
 
 	size_t counter;
@@ -45,7 +45,7 @@ initseed:
 	ge_p3_tobytes(pk,&ge_public);
 
 	for (counter = 0;counter < SIZE_MAX-8;counter += 8) {
-		ge_p1p1 sum;
+		ge_p1p1 ALIGN(16) sum;
 
 		if (unlikely(endwork))
 			goto end;

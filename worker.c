@@ -94,9 +94,9 @@ static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 	}
 
 	// disabled as this was never ever triggered as far as I'm aware
-#if 0
+#if 1
 	// Sanity check that the public key matches the private one.
-	ge_p3 point;
+	ge_p3 ALIGN(16) point;
 	u8 testpk[PUBLIC_LEN];
 	ge_scalarmult_base(&point, secret);
 	ge_p3_tobytes(testpk, &point);
@@ -219,6 +219,11 @@ static void reseedright(u8 sk[SECRET_LEN])
 #if !defined(BATCHNUM)
 	#define BATCHNUM 2048
 #endif
+
+size_t worker_batch_memuse(void)
+{
+	return (sizeof(ge_p3) + sizeof(fe) + sizeof(bytes32)) * BATCHNUM;
+}
 
 #include "worker_batch.inc.h"
 

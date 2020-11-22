@@ -186,8 +186,6 @@ enum worker_type {
 	WT_BATCH,
 };
 
-#define TATTR 0
-
 int main(int argc,char **argv)
 {
 	const char *outfile = 0;
@@ -520,7 +518,6 @@ int main(int argc,char **argv)
 	VEC_ZERO(tstats);
 #endif
 
-#if TATTR
 	pthread_attr_t tattr,*tattrp = &tattr;
 	tret = pthread_attr_init(tattrp);
 	if (tret) {
@@ -528,11 +525,17 @@ int main(int argc,char **argv)
 		tattrp = 0;
 	}
 	else {
-		tret = pthread_attr_setstacksize(tattrp,2<<20);
+		// 256KiB plus whatever batch stuff uses if in batch mode
+		size_t ss = 256 << 10;
+		if (wt == WT_BATCH)
+			ss += worker_batch_memuse();
+		// align to 64KiB
+		ss = (ss + (64 << 10) - 1) & ~((64 << 10) - 1);
+		//printf("stack size: " FSZ "\n",ss);
+		tret = pthread_attr_setstacksize(tattrp,ss);
 		if (tret)
 			perror("pthread_attr_setstacksize");
 	}
-#endif
 
 	for (size_t i = 0;i < VEC_LENGTH(threads);++i) {
 		void *tp = 0;
@@ -562,13 +565,11 @@ int main(int argc,char **argv)
 		}
 	}
 
-#if TATTR
 	if (tattrp) {
 		tret = pthread_attr_destroy(tattrp);
 		if (tret)
 			perror("pthread_attr_destroy");
 	}
-#endif
 
 #ifdef STATISTICS
 	struct timespec nowtime;

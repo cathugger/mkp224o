@@ -3,7 +3,22 @@
 #define ED25519_PUBLICKEYBYTES 32
 
 
+#ifndef ED25519_donna
+#  if defined(_MSC_VER)
+#    define ALIGN(x) __declspec(align(x))
+#  elif defined(__GNUC__)
+#    undef ALIGN
+#    define ALIGN(x) __attribute__((aligned(x)))
+#  else
+#    ifndef ALIGN
+#      define ALIGN(x)
+#    endif
+#  endif
+#endif
+
+
 #ifdef ED25519_ref10
+
 #include "ref10/ed25519.h"
 #define ed25519_seckey        ed25519_ref10_seckey
 #define ed25519_seckey_expand ed25519_ref10_seckey_expand
@@ -35,49 +50,47 @@ static const ge_cached ge_eightpoint = {
   }
 };
 inline static void ge_initeightpoint(void) {}
+
 #endif
 
 
 #ifdef ED25519_amd64_51_30k
-#define ED25519_amd64_common
-#else
-#ifdef ED25519_amd64_64_24k
-#define ED25519_amd64_common
-#endif
-#endif
 
-
-#ifdef ED25519_amd64_51_30k
 #include "amd64-51-30k/ed25519.h"
 #include "amd64-51-30k/ge25519.h"
 #define ed25519_seckey        ed25519_amd64_51_30k_seckey
 #define ed25519_seckey_expand ed25519_amd64_51_30k_seckey_expand
 #define ed25519_pubkey        ed25519_amd64_51_30k_pubkey
 #define ed25519_keygen        ed25519_amd64_51_30k_keygen
+
 #endif
 
+
 #ifdef ED25519_amd64_64_24k
+
 #include "amd64-64-24k/ed25519.h"
 #include "amd64-64-24k/ge25519.h"
 #define ed25519_seckey        ed25519_amd64_64_seckey
 #define ed25519_seckey_expand ed25519_amd64_64_seckey_expand
 #define ed25519_pubkey        ed25519_amd64_64_pubkey
 #define ed25519_keygen        ed25519_amd64_64_keygen
+
 #endif
 
 
 // common
-#ifdef ED25519_amd64_common
+#if defined(ED25519_amd64_51_30k) || defined(ED25519_amd64_64_24k)
+
 #define fe            fe25519
 #define ge_p1p1       ge25519_p1p1
 #define ge_p3         ge25519_p3
-#define ge_cached     ge25519_pniels
 #define ge_p1p1_to_p3 ge25519_p1p1_to_p3
 #define ge_p3_tobytes ge25519_pack
 #define ge_add        ge25519_pnielsadd_p1p1
 
 #define ge_p3_batchtobytes_destructive_1      ge25519_batchpack_destructive_1
 #define ge_p3_batchtobytes_destructive_finish ge25519_batchpack_destructive_finish
+
 #endif
 
 
@@ -130,6 +143,7 @@ inline static void ge_initeightpoint(void) {}
 
 
 #ifdef ED25519_donna
+
 #define ED25519_CUSTOMRANDOM
 #define ED25519_CUSTOMHASH
 #include <sodium/crypto_hash_sha512.h>
@@ -174,11 +188,10 @@ static int ed25519_keypair(unsigned char *pk,unsigned char *sk)
 
 	return 0;
 }
-// hacky, but works for current stuff in main.c
-#define fe            bignum25519 ALIGN(16)
-#define ge_p1p1       ge25519_p1p1 ALIGN(16)
-#define ge_p3         ge25519 ALIGN(16)
-#define ge_cached     ge25519_pniels ALIGN(16)
+
+#define fe      bignum25519
+#define ge_p1p1 ge25519_p1p1
+#define ge_p3   ge25519
 
 #define ge_p1p1_to_p3 ge25519_p1p1_to_full
 #define ge_p3_tobytes ge25519_pack
