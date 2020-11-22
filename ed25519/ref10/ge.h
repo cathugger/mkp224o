@@ -77,7 +77,7 @@ typedef unsigned char bytes32[32];
 
 extern void ge_tobytes(unsigned char *,const ge_p2 *);
 extern void ge_p3_tobytes(unsigned char *,const ge_p3 *);
-extern void ge_p3_batchtobytes_destructive_1(bytes32 out[],ge_p3 in[],fe *inz[],fe tmp[],size_t num);
+extern void ge_p3_batchtobytes_destructive_1(bytes32 *out,ge_p3 *in,fe *tmp,size_t num);
 extern void ge_p3_batchtobytes_destructive_finish(bytes32 out,ge_p3 *unf);
 extern int ge_frombytes_negate_vartime(ge_p3 *,const unsigned char *);
 

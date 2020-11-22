@@ -92,7 +92,7 @@ extern int ge25519_unpackneg_vartime(ge25519 *r, const unsigned char p[32]);
 
 extern void ge25519_pack(unsigned char r[32], const ge25519 *p);
 
-extern void ge25519_batchpack_destructive_1(bytes32 out[], ge25519_p3 in[], fe25519 *inz[], fe25519 tmp[], size_t num);
+extern void ge25519_batchpack_destructive_1(bytes32 *out, ge25519_p3 *in, fe25519 *tmp, size_t num);
 extern void ge25519_batchpack_destructive_finish(bytes32 out, ge25519_p3 *unf);
 
 extern int ge25519_isneutral_vartime(const ge25519 *p);

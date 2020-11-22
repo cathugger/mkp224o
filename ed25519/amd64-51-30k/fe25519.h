@@ -22,9 +22,9 @@
 #define fe25519_invert       crypto_sign_ed25519_amd64_51_30k_batch_fe25519_invert
 #define fe25519_pow2523      crypto_sign_ed25519_amd64_51_30k_batch_fe25519_pow2523
 
-typedef struct 
+typedef struct
 {
-  unsigned long long v[5]; 
+  unsigned long long v[5];
 }
 fe25519;
 
@@ -62,7 +62,7 @@ void fe25519_nsquare(fe25519 *r, unsigned long long n);
 
 void fe25519_invert(fe25519 *r, const fe25519 *x);
 
-void fe25519_batchinvert(fe25519 *out[],fe25519 tmp[],fe25519 * const in[], size_t num);
+void fe25519_batchinvert(fe25519 *out, const fe25519 *in, fe25519 *tmp, size_t num, size_t offset);
 
 void fe25519_pow2523(fe25519 *r, const fe25519 *x);
 

@@ -186,6 +186,8 @@ enum worker_type {
 	WT_BATCH,
 };
 
+#define TATTR 0
+
 int main(int argc,char **argv)
 {
 	const char *outfile = 0;
@@ -518,7 +520,7 @@ int main(int argc,char **argv)
 	VEC_ZERO(tstats);
 #endif
 
-#if 0
+#if TATTR
 	pthread_attr_t tattr,*tattrp = &tattr;
 	tret = pthread_attr_init(tattrp);
 	if (tret) {
@@ -526,7 +528,7 @@ int main(int argc,char **argv)
 		tattrp = 0;
 	}
 	else {
-		tret = pthread_attr_setstacksize(tattrp,80<<10);
+		tret = pthread_attr_setstacksize(tattrp,2<<20);
 		if (tret)
 			perror("pthread_attr_setstacksize");
 	}
@@ -560,7 +562,7 @@ int main(int argc,char **argv)
 		}
 	}
 
-#if 0
+#if TATTR
 	if (tattrp) {
 		tret = pthread_attr_destroy(tattrp);
 		if (tret)

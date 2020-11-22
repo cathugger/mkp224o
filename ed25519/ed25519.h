@@ -11,8 +11,6 @@
 #define ed25519_keygen        ed25519_ref10_keygen
 #include "ref10/ge.h"
 
-#define GEZ(x) ((x).Z)
-
 /* The basepoint multiplied by 8. */
 static const ge_cached ge_eightpoint = {
   /* YplusX */
@@ -80,8 +78,6 @@ inline static void ge_initeightpoint(void) {}
 
 #define ge_p3_batchtobytes_destructive_1      ge25519_batchpack_destructive_1
 #define ge_p3_batchtobytes_destructive_finish ge25519_batchpack_destructive_finish
-
-#define GEZ(x) ((x).z)
 #endif
 
 
@@ -189,8 +185,6 @@ static int ed25519_keypair(unsigned char *pk,unsigned char *sk)
 
 #define ge_p3_batchtobytes_destructive_1      ge25519_batchpack_destructive_1
 #define ge_p3_batchtobytes_destructive_finish ge25519_batchpack_destructive_finish
-
-#define GEZ(x) ((x).z)
 
 DONNA_INLINE static void ge_add(ge25519_p1p1 *r,const ge25519 *p,const ge25519_pniels *q)
 {

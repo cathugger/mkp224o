@@ -13,7 +13,6 @@ void *worker_batch(void *task)
 
 	// state to keep batch data
 	ge_p3 ge_batch[BATCHNUM];
-	fe *(batchgez)[BATCHNUM];
 	fe tmp_batch[BATCHNUM];
 	bytes32 pk_batch[BATCHNUM];
 
@@ -23,10 +22,6 @@ void *worker_batch(void *task)
 #ifdef STATISTICS
 	struct statstruct *st = (struct statstruct *)task;
 #endif
-
-	// set up right pointers
-	for (size_t b = 0;b < BATCHNUM;++b)
-		batchgez[b] = &GEZ(ge_batch[b]);
 
 	PREFILTER
 
@@ -64,7 +59,7 @@ initseed:
 			ge_p1p1_to_p3(&ge_public,&sum);
 		}
 		// NOTE: leaves unfinished one bit at the very end
-		ge_p3_batchtobytes_destructive_1(pk_batch,ge_batch,batchgez,tmp_batch,BATCHNUM);
+		ge_p3_batchtobytes_destructive_1(pk_batch,ge_batch,tmp_batch,BATCHNUM);
 
 #ifdef STATISTICS
 		st->numcalc.v += BATCHNUM;

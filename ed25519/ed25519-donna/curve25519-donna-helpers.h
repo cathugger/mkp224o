@@ -67,23 +67,31 @@ curve25519_setone(bignum25519 out) {
  * if that's the case then we're doing batch invert there
  */
 static void
-curve25519_batchrecip(bignum25519 *out[], bignum25519 tmp[], bignum25519 * const in[], size_t num) {
-	bignum25519 ALIGN(16) acc, tmpacc;
+curve25519_batchrecip(bignum25519 *out, const bignum25519 *in, bignum25519 *tmp, size_t num, size_t offset) {
+	bignum25519 ALIGN(16) acc,tmpacc;
 	size_t i;
+	const bignum25519 *inp;
+	bignum25519 *outp;
 
 	curve25519_setone(acc);
 
+	inp = in;
 	for (i = 0; i < num; ++i) {
 		curve25519_copy(tmp[i], acc);
-		curve25519_mul(acc, acc, *in[i]);
+		curve25519_mul(acc, acc, *inp);
+		inp = (const bignum25519 *)((const char *)inp + offset);
 	}
 
 	curve25519_recip(acc, acc);
 
 	i = num;
+	inp = (const bignum25519 *)((const char *)in + offset * num);
+	outp = (bignum25519 *)((char *)out + offset * num);
 	while (i--) {
-		curve25519_mul(tmpacc, acc, *in[i]);
-		curve25519_mul(*out[i], acc, tmp[i]);
+		inp = (const bignum25519 *)((const char *)inp - offset);
+		outp = (bignum25519 *)((char *)outp - offset);
+		curve25519_mul(tmpacc, acc, *inp);
+		curve25519_mul(*outp, acc, tmp[i]);
 		curve25519_copy(acc, tmpacc);
 	}
 }
