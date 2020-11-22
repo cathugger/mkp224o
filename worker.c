@@ -94,7 +94,7 @@ static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 	}
 
 	// disabled as this was never ever triggered as far as I'm aware
-#if 1
+#if 0
 	// Sanity check that the public key matches the private one.
 	ge_p3 ALIGN(16) point;
 	u8 testpk[PUBLIC_LEN];
