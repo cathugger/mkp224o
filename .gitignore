@@ -7,8 +7,8 @@ mkp224o
 
 # garbage
 configure
-GNUMakefile
-GNUMakefile.in.bak
+GNUmakefile
+GNUmakefile.in.bak
 config.status
 config.log
 *.cache
