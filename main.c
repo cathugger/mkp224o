@@ -543,20 +543,21 @@ int main(int argc,char **argv)
 		tp = &VEC_BUF(stats,i);
 #endif
 		tret = pthread_create(
-			&VEC_BUF(threads,i),0,
+			&VEC_BUF(threads,i),
+			tattrp,
 #ifdef PASSPHRASE
-				deterministic
-					? (wt == WT_BATCH
-						? worker_batch_pass
-						: worker_fast_pass)
-					:
+			deterministic
+				? (wt == WT_BATCH
+					? worker_batch_pass
+					: worker_fast_pass)
+				:
 #endif
-				wt == WT_BATCH
-					? worker_batch
-					:
-				wt == WT_FAST
-					? worker_fast
-					: worker_slow,
+			wt == WT_BATCH
+				? worker_batch
+				:
+			wt == WT_FAST
+				? worker_fast
+				: worker_slow,
 			tp
 		);
 		if (tret) {
