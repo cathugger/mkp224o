@@ -73,14 +73,12 @@ performance-related tips.
   ```
 
   Then edit `torrc` and add new service with that folder.
-
   After reload/restart tor should pick it up.
 
 * Generate addresses with 1-2 and 7-9 digits?
 
   Onion addresses use base32 encoding which does not include 1,2,7,8,9
   numbers.
-
   So no, that's not possible to generate these, and mkp224o tries to
   detect invalid filters containing them early on.
 
@@ -90,14 +88,11 @@ performance-related tips.
   varience of hardware it's going to run on, it's hard to make promisses
   about how long it's going to take, especially when the most of users
   want just a few keys.
-
   See [this issue][#27] for very valuable discussion about this.
-
   If your machine is powerful enough, 6 character prefix shouldn't take
   more than few tens of minutes, if using batch mode (read
   [OPTIMISATION.txt][OPTIMISATION]) 7 characters can take hours
   to days.
-
   No promisses though, it depends on pure luck.
 
 * Will this work with onionbalance?
@@ -108,7 +103,6 @@ performance-related tips.
 ### Contact
 
 For bug reports/questions/whatever else, email cathugger at cock dot li.
-
 PGP key, if needed, can be found at <http://cathug2kyi4ilneggumrenayhuhsvrgn6qv2y47bgeet42iivkpynqad.onion/contact.html>.
 
 ### Acknowledgements & Legal
