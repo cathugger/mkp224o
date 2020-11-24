@@ -1,9 +1,9 @@
-# mkp224o - vanity address generator for ed25519 onion services
+## mkp224o - vanity address generator for ed25519 onion services
 
 This tool generates vanity ed25519 ([hidden service version 3][v3],
 formely known as proposal 224) onion addresses.
 
-## Requirements
+### Requirements
 
 * C99 compatible compiler (gcc and clang should work)
 * libsodium (including headers)
@@ -18,7 +18,7 @@ For debian-like linux distros, this should be enough to prepare for building:
 apt install gcc libsodium-dev make autoconf
 ```
 
-## Building
+### Building
 
 `./autogen.sh` to generate configure script, if it's not there already.
 
@@ -31,7 +31,7 @@ run `./configure --help` to see all available options.
 
 Finally, `make` to start building (`gmake` in \*BSD platforms).
 
-## Usage
+### Usage
 
 Generator needs one or more filters to work.
 
@@ -47,7 +47,7 @@ Use `-h` switch to obtain all available options.
 I highly recommend reading [OPTIMISATION.txt][OPTIMISATION] for
 performance-related tips.
 
-## FAQ and other useful info
+### FAQ and other useful info
 
 * How do I generate address?  
   Once compiled, run it like `./mkp224o neko`, and it will try creating
@@ -95,12 +95,12 @@ performance-related tips.
   It appears that onionbalance supports loading usual
   `hs_ed25519_secret_key` key so it should work.
 
-## Contact
+### Contact
 
 For bug reports/questions/whatever else, email cathugger at cock dot li.  
 PGP key, if needed, can be found at <http://cathug2kyi4ilneggumrenayhuhsvrgn6qv2y47bgeet42iivkpynqad.onion/contact.html>.
 
-## Acknowledgements & Legal
+### Acknowledgements & Legal
 
 To the extent possible under law, the author(s) have dedicated all
 copyright and related and neighboring rights to this software to the
