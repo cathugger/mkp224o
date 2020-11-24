@@ -49,13 +49,15 @@ performance-related tips.
 
 ### FAQ and other useful info
 
-* How do I generate address?  
+* How do I generate address?
+
   Once compiled, run it like `./mkp224o neko`, and it will try creating
   keys for onions starting with "neko" in this example; use `./mkp224o
   -d nekokeys neko` to not litter current directory and put all
   discovered keys in directory named "nekokeys".
 
-* How do I make tor use generated keys?  
+* How do I make tor use generated keys?
+
   Copy key folder (though technically only `hs_ed25519_secret_key` is required)
   to where you want your service keys to reside:
 
@@ -63,41 +65,50 @@ performance-related tips.
   sudo cp -r neko54as6d54....onion /var/lib/tor/nekosvc
   ```
 
-  You may need to adjust owner and permissions:
+  You may need to adjust ownership and permissions:
 
   ```bash
   sudo chown -R tor: /var/lib/tor/nekosvc
   sudo chmod -R u+rwX,og-rwx /var/lib/tor/nekosvc
   ```
 
-  Then edit `torrc` and add new service with that folder.  
+  Then edit `torrc` and add new service with that folder.
+
   After reload/restart tor should pick it up.
 
-* Generate addresses with 1-2 and 7-9 digits?  
-  onion addresses use base32 encoding which does not include 1,2,7,8,9
-  numbers.  
-  so no, that's not possible to generate these, and mkp224o tries to
+* Generate addresses with 1-2 and 7-9 digits?
+
+  Onion addresses use base32 encoding which does not include 1,2,7,8,9
+  numbers.
+
+  So no, that's not possible to generate these, and mkp224o tries to
   detect invalid filters containing them early on.
 
-* How long is it going to take?  
+* How long is it going to take?
+
   Because of probablistic nature of brute force key generation, and
   varience of hardware it's going to run on, it's hard to make promisses
   about how long it's going to take, especially when the most of users
-  want just a few keys.  
-  See [this issue][#27] for very valuable discussion about this.  
+  want just a few keys.
+
+  See [this issue][#27] for very valuable discussion about this.
+
   If your machine is powerful enough, 6 character prefix shouldn't take
   more than few tens of minutes, if using batch mode (read
   [OPTIMISATION.txt][OPTIMISATION]) 7 characters can take hours
-  to days.  
+  to days.
+
   No promisses though, it depends on pure luck.
 
-* Will this work with onionbalance?  
+* Will this work with onionbalance?
+
   It appears that onionbalance supports loading usual
   `hs_ed25519_secret_key` key so it should work.
 
 ### Contact
 
-For bug reports/questions/whatever else, email cathugger at cock dot li.  
+For bug reports/questions/whatever else, email cathugger at cock dot li.
+
 PGP key, if needed, can be found at <http://cathug2kyi4ilneggumrenayhuhsvrgn6qv2y47bgeet42iivkpynqad.onion/contact.html>.
 
 ### Acknowledgements & Legal
