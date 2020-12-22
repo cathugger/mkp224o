@@ -395,7 +395,7 @@ void filters_add(const char *filter)
 	memset(&bf,0,sizeof(bf));
 
 	if (!base32_valid(filter,&ret)) {
-		fprintf(stderr,"filter \"%s\" is invalid\n",filter);
+		fprintf(stderr,"filter \"%s\" is not valid base32 string\n",filter);
 		fprintf(stderr,"        ");
 		while (ret--)
 			fputc(' ',stderr);
