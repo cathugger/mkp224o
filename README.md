@@ -25,8 +25,8 @@ apt install gcc libsodium-dev make autoconf
 `./configure` to generate makefile; in \*BSD platforms you probably want to use
 `./configure CPPFLAGS="-I/usr/local/include" LDFLAGS="-L/usr/local/lib"`.
 
-You probably also want to pass something like `--enable-amd64-51-30k`
-or `--enable-donna` to configure script for faster key generation;
+On AMD64 platforms, you probably also want to pass something like
+`--enable-amd64-51-30k`  to configure script for faster key generation;
 run `./configure --help` to see all available options.
 
 Finally, `make` to start building (`gmake` in \*BSD platforms).
