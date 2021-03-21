@@ -399,7 +399,7 @@ ioutil.c.o: types.h ioutil.h
 keccak.c.o: types.h keccak.h
 main.c.o: types.h vec.h base32.h cpucount.h keccak.h ioutil.h common.h yaml.h
 main.c.o: filters.h worker.h filters_inc.inc.h filters_main.inc.h
-main.c.o: filters_common.inc.h
+main.c.o: filters_common.inc.h ifilter_bitsum.h
 test_base16.c.o: types.h base16.h
 test_base32.c.o: types.h base32.h
 test_base64.c.o: types.h base64.h
