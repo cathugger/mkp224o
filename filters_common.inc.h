@@ -5,6 +5,7 @@ static inline size_t S(filter_len)(size_t i)
 # ifndef OMITMASK
 	const u8 *m = (const u8 *)&VEC_BUF(filters,i).m;
 # else // OMITMASK
+	(void) i;
 	const u8 *m = (const u8 *)&ifiltermask;
 # endif // OMITMASK
 	size_t c = 0;

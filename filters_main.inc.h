@@ -17,110 +17,79 @@ static inline int filter_compare(const void *p1,const void *p2)
 #  ifdef EXPANDMASK
 
 /*
- * for mask expansion, we need to figure out how much bits
- * we need to fill in with different values.
- * while in big endian machines this is quite easy,
- * representation we use for little endian ones may
- * leave gap of bits we don't want to touch.
- *
- * initial idea draft:
- *
- * raw representation -- FF.FF.F0.00
- * big endian         -- 0xFFFFF000
- * little endian      -- 0x00F0FFFF
- * b: 0xFFffF000 ^ 0xFFff0000 -> 0x0000F000
- *   0x0000F000 + 1 -> 0x0000F001
- *   0x0000F000 & 0x0000F001 -> 0x0000F000 <- shifted mask
- *   0x0000F000 ^ 0x0000F000 -> 0x00000000 <- direct mask
- *   0x0000F000 ^ 0x00000000 -> 0x0000F000 <- shifted mask
- * l: 0x00f0FFff ^ 0x0000FFff -> 0x00f00000
- *   0x00f00000 + 1 -> 0x00f00001
- *   0x00f00000 & 0x00f00001 -> 0x00f00000 <- shifted mask
- *   0x00f00000 ^ 0x00f00000 -> 0x00000000 <- direct mask
- *   0x00f00000 ^ 0x00000000 -> 0x00f00000 <- shifted mask
- *
- * b: 0xFFffFFff ^ 0xF0000000 -> 0x0FffFFff
- *   0x0FffFFff + 1 -> 0x10000000
- *   0x0FffFFff & 0x10000000 -> 0x00000000 <- shifted mask
- *   0x0FffFFff ^ 0x00000000 -> 0x0FffFFff <- direct mask
- *   0x0FffFFff ^ 0x0FffFFff -> 0x00000000 <- shifted mask
- * l: 0xFFffFFff ^ 0x000000f0 -> 0xFFffFF0f
- *   0xFFffFF0f + 1 -> 0xFFffFF10
- *   0xFFffFF0f & 0xFFffFF10 -> 0xFFffFF00 <- shifted mask
- *   0xFFffFF0f ^ 0xFFffFF00 -> 0x0000000f <- direct mask
- *   0xFFffFF0f ^ 0x0000000f -> 0xFFffFF00 <- shifted mask
- *
- * essentially, we have to make direct mask + shifted mask bits worth of information
- * and then split it into 2 parts
- * we do not need absolute shifted mask shifting value, just relative to direct mask
- * 0x0sss00dd - shifted & direct mask combo
- * 0x000sssdd - combined mask
- * 8 - relshiftval
- * generate values from 0x00000000 to 0x000sssdd
- * for each value, realmask <- (val & 0x000000dd) | ((val & 0x000sss00) << relshiftval)
- * or..
- * realmask <- (val & 0x000000dd) | ((val << relshiftval) & 0x0sss0000)
- * ...
- *
- * above method doesn't work in some cases. better way:
- *
- * l: 0x80ffFFff ^ 0x00f0FFff -> 0x800f0000
- *   0x800f0000 >> 16 -> 0x0000800f
- *   0x0000800f + 1 -> 0x00008010
- *   0x0000800f & 0x00008010 -> 0x00008000 <- smask
- *   0x0000800f ^ 0x00008000 -> 0x0000000f <- dmask
- *
- * cross <- difference between mask we desire and mask we currently have
- * shift cross to left variable ammount of times to eliminate zeros
- *   save shift ammount as ishift (initial shift)
- * then, we eliminate first area of ones; if there was no gap, result is already all zeros
- *   save this thing as smask. it's only higher bits.
- * XOR smask and cross; result is only lower bits.
- * shift smask to left variable ammount of times until gap is eliminated.
- *   save resulting mask as cmask;
- *   save resulting shift value as rshift.
+ * so we have 2 masks with basically random bits
+ * we first gonna find where these masks are common
+ * then we gonna find where new mask has more bits than old
+ * common areas must be unchanged
+ * gaps in both must be unchanged
+ * but new bits must be filled
+ * therefore, lets just fill old gaps and common areas with 1s
+ * before add, OR with these 1s
+ * then perform add. these 1s have property to push positive bits to 0s
+ * we already know how much new gaps we need to fill, so this wont overflow
+ * after this addition, AND result with NEG of combined mask, and OR with old value
+ * this will produce new proper value
+ * we need to re-fill 1s before every add to keep structure working
  */
 
 int flattened = 0;
 
-#define EXPVAL(init,j,dmask,smask,ishift,rshift) \
-	((init) | ((((j) & (dmask)) | (((j) << (rshift)) & (smask))) << (ishift)))
 // add expanded set of values
 // allocates space on its own
 static void ifilter_addexpanded(
 	struct intfilter *ifltr,
-	IFT dmask,IFT smask,IFT cmask,
-	int ishift,int rshift)
+	register IFT newbits,
+	register IFT notnewbits,
+	register IFT newbitsum)
 {
 	flattened = 1;
 	size_t i = VEC_LENGTH(filters);
-	VEC_ADDN(filters,cmask + 1);
+	VEC_ADDN(filters,newbitsum + 1);
+	register IFT x = ifltr->f;
+	register IFT y = 0;
 	for (size_t j = 0;;++j) {
-		VEC_BUF(filters,i + j).f =
-			EXPVAL(ifltr->f,j,dmask,smask,ishift,rshift);
-		if (j == cmask)
+		VEC_BUF(filters,i + j).f = x | y;
+		if (j == newbitsum)
 			break;
+		y = ((y | notnewbits) + 1) & newbits;
 	}
 }
 
 // expand existing stuff
 // allocates needed stuff on its own
-static void ifilter_expand(IFT dmask,IFT smask,IFT cmask,int ishift,int rshift)
+static void ifilter_expand(
+	register IFT newbits,
+	register IFT notnewbits,
+	register IFT newbitsum)
 {
 	flattened = 1;
 	size_t len = VEC_LENGTH(filters);
-	VEC_ADDN(filters,cmask * len);
-	size_t esz = cmask + 1; // size of expanded elements
+	VEC_ADDN(filters,newbitsum * len);
+	size_t esz = newbitsum + 1; // size of expanded elements
 	for (size_t i = len - 1;;--i) {
+		register IFT x = VEC_BUF(filters,i).f;
+		register IFT y = 0;
 		for (IFT j = 0;;++j) {
-			VEC_BUF(filters,i * esz + j).f =
-				EXPVAL(VEC_BUF(filters,i).f,j,dmask,smask,ishift,rshift);
-			if (j == cmask)
+			VEC_BUF(filters,i * esz + j).f = x | y;
+			if (j == newbitsum)
 				break;
+			y = ((y | notnewbits) + 1) & newbits;
 		}
 		if (i == 0)
 			break;
 	}
+}
+
+static IFT ifilter_bitsum(IFT x)
+{
+	if (sizeof(IFT) == 16)
+		return (((IFT) 1) <<
+			(__builtin_popcountll((unsigned long long) (x >> (sizeof(IFT) * 8 / 2))) +
+				__builtin_popcountll((unsigned long long) x))) - 1;
+	if (sizeof(IFT) == 8)
+		return (((IFT) 1) << __builtin_popcountll((unsigned long long) x)) - 1;
+
+	return (((IFT) 1) << __builtin_popcount((unsigned int) x)) - 1;
 }
 
 static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
@@ -136,27 +105,21 @@ static inline void ifilter_addflatten(struct intfilter *ifltr,IFT mask)
 		VEC_ADD(filters,*ifltr);
 		return;
 	}
-	IFT cross = ifiltermask ^ mask;
-	int ishift = 0;
-	while ((cross & 1) == 0) {
-		++ishift;
-		cross >>= 1;
-	}
-	IFT smask = cross & (cross + 1); // shift mask
-	IFT dmask = cross ^ smask; // direct mask
-	IFT cmask; // combined mask
-	int rshift = 0; // relative shift
-	while (cmask = (smask >> rshift) | dmask,(cmask & (cmask + 1)) != 0)
-		++rshift;
-	// preparations done
+
+	IFT newbits = ifiltermask ^ mask;
+	IFT notnewbits = ~newbits;
+	IFT newbitsum = ifilter_bitsum(newbits);
+
 	if (ifiltermask > mask) {
-		// already existing stuff has more precise mask than we
-		// so we need to expand our stuff
-		ifilter_addexpanded(ifltr,dmask,smask,cmask,ishift,rshift);
+		// current mask covers more bits
+		// expand new filter
+		ifilter_addexpanded(ifltr,newbits,notnewbits,newbitsum);
 	}
 	else {
+		// new filter mask covers more bits
+		// adjust current mask and expand current filters
 		ifiltermask = mask;
-		ifilter_expand(dmask,smask,cmask,ishift,rshift);
+		ifilter_expand(newbits,notnewbits,newbitsum);
 		VEC_ADD(filters,*ifltr);
 	}
 }
