@@ -61,7 +61,7 @@ AC_ARG_ENABLE([ref10],
 		[use SUPERCOP ref10 ed25519 implementation @<:@default=no@:>@])],
 	[
 		AS_IF([test "x$ed25519impl" != "x" -a "$ed25519impl" != "ref10"],
-			[AC_ERROR([only one ed25519 implementation can be defined])])
+			[AC_MSG_ERROR(only one ed25519 implementation can be defined)])
 		ed25519impl="ref10"
 	],
 	[]
@@ -72,7 +72,7 @@ AC_ARG_ENABLE([amd64-51-30k],
 		[use SUPERCOP amd64-51-30k ed25519 implementation @<:@default=no@:>@])],
 	[
 		AS_IF([test "x$ed25519impl" != "x" -a "$ed25519impl" != "amd64_51_30k"],
-			[AC_ERROR([only one ed25519 implementation can be defined])])
+			[AC_MSG_ERROR(only one ed25519 implementation can be defined)])
 		ed25519impl="amd64_51_30k"
 	],
 	[]
@@ -83,7 +83,7 @@ AC_ARG_ENABLE([amd64-64-24k],
 		[use SUPERCOP amd64-64-24k ed25519 implementation @<:@default=no@:>@])],
 	[
 		AS_IF([test "x$ed25519impl" != "x" -a "$ed25519impl" != "amd64_64_24k"],
-			[AC_ERROR([only one ed25519 implementation can be defined])])
+			[AC_MSG_ERROR(only one ed25519 implementation can be defined)])
 		ed25519impl="amd64_64_24k"
 	],
 	[]
@@ -94,7 +94,7 @@ AC_ARG_ENABLE([donna],
 		[use ed25519-donna implementation @<:@default=yes@:>@])],
 	[
 		AS_IF([test "x$ed25519impl" != "x" -a "$ed25519impl" != "donna"],
-			[AC_ERROR([only one ed25519 implementation can be defined])])
+			[AC_MSG_ERROR(only one ed25519 implementation can be defined)])
 		ed25519impl="donna"
 	],
 	[]
@@ -105,7 +105,7 @@ AC_ARG_ENABLE([donna-sse2],
 		[use ed25519-donna SSE2 implementation @<:@default=no@:>@])],
 	[
 		AS_IF([test "x$ed25519impl" != "x" -a "$ed25519impl" != "donna-sse2"],
-			[AC_ERROR([only one ed25519 implementation can be defined])])
+			[AC_MSG_ERROR(only one ed25519 implementation can be defined)])
 		ed25519impl="donna-sse2"
 	],
 	[]
@@ -300,9 +300,9 @@ then
 	MYDEFS="$MYDEFS -DSTATISTICS"
 fi
 
-AC_ARG_WITH([pcre2],[AC_HELP_STRING([--with-pcre2],[pcre2-config executable @<:@default=pcre2-config@:>@])],[],[with_pcre2="pcre2-config"])
+AC_ARG_WITH([pcre2],[AS_HELP_STRING([--with-pcre2],[pcre2-config executable @<:@default=pcre2-config@:>@])],[],[with_pcre2="pcre2-config"])
 
-AC_ARG_ENABLE([regex],[AC_HELP_STRING([--enable-regex],[whether to enable regex engine. currently possible values are "pcre2" and "yes" which defaults to "pcre2" @<:@default=no@:>@])],[],[enable_regex=no])
+AC_ARG_ENABLE([regex],[AS_HELP_STRING([--enable-regex],[whether to enable regex engine. currently possible values are "pcre2" and "yes" which defaults to "pcre2" @<:@default=no@:>@])],[],[enable_regex=no])
 case "$enable_regex" in
 no|"")
 	;;
@@ -329,7 +329,7 @@ yes|pcre2)
 		fi
 	else
 		AC_MSG_RESULT([not found])
-		AC_ERROR([pcre2-config cannot be executed])
+		AC_MSG_ERROR(pcre2-config cannot be executed)
 	fi
 	;;
 *)
@@ -359,4 +359,5 @@ AC_SUBST(MYDEFS,["$MYDEFS"])
 AC_SUBST(MAINLIB,["$MAINLIB"])
 AC_SUBST(NOPIE,["$nopie"])
 AC_SUBST(SRCDIR,["$srcdir"])
-AC_OUTPUT(GNUmakefile)
+AC_CONFIG_FILES([GNUmakefile])
+AC_OUTPUT
