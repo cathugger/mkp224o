@@ -278,11 +278,11 @@ int main(int argc,char **argv)
 				}
 				else if (!strcmp(arg,"rawyaml")) {
 					yamlraw = 1;
-			    }
+				}
 				else if (!strcmp(arg,"version")) {
 					printversion(stdout);
 					exit(0);
-			    }
+				}
 				else {
 					fprintf(stderr,"unrecognised argument: --%s\n",arg);
 					exit(1);
