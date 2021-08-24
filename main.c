@@ -276,9 +276,8 @@ int main(int argc,char **argv)
 					printhelp(stdout,progname);
 					exit(0);
 				}
-				else if (!strcmp(arg,"rawyaml")) {
+				else if (!strcmp(arg,"rawyaml"))
 					yamlraw = 1;
-				}
 				else if (!strcmp(arg,"version")) {
 					printversion(stdout);
 					exit(0);
