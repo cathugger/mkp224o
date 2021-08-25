@@ -122,7 +122,7 @@ static void printhelp(FILE *out,const char *progname)
 		"\t                      (may be useful for tor controller API)\n"
 		"\t-h --help           print help to stdout and quit\n"
 		"\t   --usage          same as --help\n"
-		"\t   --version        print version information to stdout and exit\n"
+		"\t-V --version        print version information to stdout and exit\n"
 		"\n"
 		"Report bugs at:     <https://github.com/cathugger/mkp224o/issues>\n"
 		"mkp224o home page:  <https://github.com/cathugger/mkp224o>\n"
@@ -295,6 +295,10 @@ int main(int argc,char **argv)
 			}
 			else if (*arg == 'h') {
 				printhelp(stdout,progname);
+				exit(0);
+			}
+			else if (*arg == 'V') {
+				printversion();
 				exit(0);
 			}
 			else if (*arg == 'f') {
