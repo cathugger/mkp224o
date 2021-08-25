@@ -130,9 +130,9 @@ static void printhelp(FILE *out,const char *progname)
 	fflush(out);
 }
 
-static void printversion(FILE *out)
+static void printversion(void)
 {
-	fprintf(out,
+	fprintf(stdout,
 		"mkp224o 1.5.0\n"
 		"Copyright (C) 2021 cathugger\n"
 		"License public domain:\n"
@@ -144,7 +144,7 @@ static void printversion(FILE *out)
 		"Please visit the mkp224o home page to find additional acknowledgements:\n"
 		"<https://github.com/cathugger/mkp224o>\n"
 		);
-	fflush(out);
+	fflush(stdout);
 }
 
 static void e_additional(void)
@@ -279,7 +279,7 @@ int main(int argc,char **argv)
 				else if (!strcmp(arg,"rawyaml"))
 					yamlraw = 1;
 				else if (!strcmp(arg,"version")) {
-					printversion(stdout);
+					printversion();
 					exit(0);
 				}
 				else {
