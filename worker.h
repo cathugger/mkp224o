@@ -33,6 +33,8 @@ VEC_STRUCT(statsvec,struct statstruct);
 #ifdef PASSPHRASE
 extern pthread_mutex_t determseed_mutex;
 extern u8 determseed[SEED_LEN];
+extern u8 checkpoint[SEED_LEN];
+extern const char *checkpointfile;
 #endif
 
 extern void worker_init(void);

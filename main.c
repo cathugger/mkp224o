@@ -112,6 +112,7 @@ static void printhelp(FILE *out,const char *progname)
 #ifdef PASSPHRASE
 		"\t-p passphrase  - use passphrase to initialize the random seed with\n"
 		"\t-P  - same as -p, but takes passphrase from PASSPHRASE environment variable\n"
+		"\t-c filename - load/save checkpoint of progress to specified file (requires passphrase)\n"
 #endif
 		,progname,progname);
 	fflush(out);
@@ -393,6 +394,12 @@ int main(int argc,char **argv)
 				setpassphrase(pass);
 				deterministic = 1;
 			}
+			else if (*arg == 'c') {
+				if (argc--)
+					checkpointfile = *argv++;
+				else
+					e_additional();
+			}
 #endif // PASSPHRASE
 			else {
 				fprintf(stderr,"unrecognised argument: -%c\n",*arg);
@@ -463,6 +470,18 @@ int main(int argc,char **argv)
 			return tret;
 
 		goto done;
+	}
+
+	if (checkpointfile) {
+		// Read current checkpoint position if file exists
+		FILE *checkout = fopen(checkpointfile, "r");
+		if (checkout) {
+			if(fread(checkpoint, 1, SEED_LEN, checkout) != SEED_LEN) {
+				fprintf(stderr,"failed to read checkpoint file\n");
+				exit(1);
+			}
+			fclose(checkout);
+		}
 	}
 
 	filters_prepare();
