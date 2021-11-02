@@ -98,9 +98,9 @@ static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 	// Sanity check that the public key matches the private one.
 	ge_p3 ALIGN(16) point;
 	u8 testpk[PUBLIC_LEN];
-	ge_scalarmult_base(&point,secret);
+	ge_scalarmult_base(&point,&secret[SKPREFIX_SIZE]);
 	ge_p3_tobytes(testpk,&point);
-	if (!memcmp(testpk,pubonion,PUBLIC_LEN))
+	if (memcmp(testpk,&pubonion[PKPREFIX_SIZE],PUBLIC_LEN) != 0)
 		abort();
 #endif
 
