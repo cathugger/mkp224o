@@ -39,6 +39,7 @@ void *worker_batch_pass(void *task)
 	sname = makesname();
 
 initseed:
+
 #ifdef STATISTICS
 	++st->numrestart.v;
 #endif
@@ -191,9 +192,12 @@ initseed:
 
 end:
 	free(sname);
+
 	POSTFILTER
+
 	sodium_memzero(secret,sizeof(secret));
 	sodium_memzero(seed,sizeof(seed));
+
 	return 0;
 }
 #endif // PASSPHRASE
