@@ -17,6 +17,7 @@ void *worker_slow(void *task)
 #else
 	(void) task;
 #endif
+
 	PREFILTER
 
 	memcpy(secret,skprefix,SKPREFIX_SIZE);

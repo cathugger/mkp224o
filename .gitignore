@@ -7,6 +7,7 @@ mkp224o
 
 # garbage
 configure
+configure~
 GNUmakefile
 GNUmakefile.in.bak
 config.status

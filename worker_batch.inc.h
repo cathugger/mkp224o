@@ -21,6 +21,8 @@ void *worker_batch(void *task)
 
 #ifdef STATISTICS
 	struct statstruct *st = (struct statstruct *)task;
+#else
+	(void) task;
 #endif
 
 	PREFILTER
