@@ -1,5 +1,7 @@
 # output files
 mkp224o
+calcest
+test_*
 *.o
 
 # generated onions
