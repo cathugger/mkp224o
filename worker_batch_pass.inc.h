@@ -136,7 +136,7 @@ initseed:
 			ge_p1p1_to_p3(&ge_public,&sum);
 		}
 		// NOTE: leaves unfinished one bit at the very end
-		ge_p3_batchtobytes_destructive_1(pk_batch,ge_batch,batchgez,tmp_batch,remaining);
+		ge_p3_batchtobytes_destructive_1(pk_batch,ge_batch,tmp_batch,remaining);
 
 #ifdef STATISTICS
 		st->numcalc.v += remaining;
