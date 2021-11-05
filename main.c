@@ -112,7 +112,7 @@ static void printhelp(FILE *out,const char *progname)
 #ifdef PASSPHRASE
 		"\t-p passphrase  - use passphrase to initialize the random seed with\n"
 		"\t-P  - same as -p, but takes passphrase from PASSPHRASE environment variable\n"
-		"\t-c filename - load/save checkpoint of progress to specified file (requires passphrase)\n"
+		"\t--checkpoint filename - load/save checkpoint of progress to specified file (requires passphrase)\n"
 #endif
 		,progname,progname);
 	fflush(out);
@@ -249,6 +249,14 @@ int main(int argc,char **argv)
 				}
 				else if (!strcmp(arg,"rawyaml"))
 					yamlraw = 1;
+#ifdef PASSPHRASE
+				else if (!strcmp(arg,"checkpoint")) {
+					if (argc--)
+						checkpointfile = *argv++;
+					else
+						e_additional();
+				}
+#endif // PASSPHRASE
 				else {
 					fprintf(stderr,"unrecognised argument: --%s\n",arg);
 					exit(1);
@@ -393,12 +401,6 @@ int main(int argc,char **argv)
 				}
 				setpassphrase(pass);
 				deterministic = 1;
-			}
-			else if (*arg == 'c') {
-				if (argc--)
-					checkpointfile = *argv++;
-				else
-					e_additional();
 			}
 #endif // PASSPHRASE
 			else {
