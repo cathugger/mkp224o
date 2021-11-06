@@ -58,6 +58,11 @@ size_t printlen;      // precalculated, related to printstartpos
 pthread_mutex_t fout_mutex;
 FILE *fout;
 
+#ifdef PASSPHRASE
+u8 orig_determseed[SEED_LEN];
+const char *checkpointfile = 0;
+#endif
+
 static void termhandler(int sig)
 {
 	switch (sig) {
@@ -173,6 +178,35 @@ static void setpassphrase(const char *pass)
 		exit(1);
 	}
 	fprintf(stderr," done.\n");
+}
+
+static void savecheckpoint(void)
+{
+	if (checkpointfile) {
+		// Open checkpoint file
+		FILE *checkout = fopen(checkpointfile, "w");
+		if (!checkout) {
+			fprintf(stderr,"cannot open checkpoint file for writing\n");
+			exit(1);
+		}
+
+		// Calculate checkpoint as the difference between original seed and the current seed
+		u8 checkpoint[SEED_LEN];
+		bool carry = 0;
+		pthread_mutex_lock(&determseed_mutex);
+		for (int i = 0; i < SEED_LEN; i++) {
+			checkpoint[i] = determseed[i] - orig_determseed[i] - carry;
+			carry = checkpoint[i] > determseed[i];
+		}
+		pthread_mutex_unlock(&determseed_mutex);
+
+		// Write checkpoint file
+		if(fwrite(checkpoint, 1, SEED_LEN, checkout) != SEED_LEN) {
+			fprintf(stderr,"cannot write to checkpoint file\n");
+			exit(1);
+		}
+		fclose(checkout);
+	}
 }
 #endif
 
@@ -474,18 +508,6 @@ int main(int argc,char **argv)
 		goto done;
 	}
 
-	if (checkpointfile) {
-		// Read current checkpoint position if file exists
-		FILE *checkout = fopen(checkpointfile, "r");
-		if (checkout) {
-			if(fread(checkpoint, 1, SEED_LEN, checkout) != SEED_LEN) {
-				fprintf(stderr,"failed to read checkpoint file\n");
-				exit(1);
-			}
-			fclose(checkout);
-		}
-	}
-
 	filters_prepare();
 
 	filters_print();
@@ -521,8 +543,27 @@ int main(int argc,char **argv)
 			numthreads,numthreads == 1 ? "thread" : "threads");
 
 #ifdef PASSPHRASE
-	if (!quietflag && deterministic && numneedgenerate != 1)
-		fprintf(stderr,"CAUTION: avoid using keys generated with same password for unrelated services, as single leaked key may help attacker to regenerate related keys.\n");
+	memcpy(orig_determseed, determseed, sizeof(determseed));
+	if (deterministic) {
+		if (!quietflag && numneedgenerate != 1)
+			fprintf(stderr,"CAUTION: avoid using keys generated with same password for unrelated services, as single leaked key may help attacker to regenerate related keys.\n");
+		if (checkpointfile) {
+			// Read current checkpoint position if file exists
+			FILE *checkout = fopen(checkpointfile, "r");
+			if (checkout) {
+				u8 checkpoint[SEED_LEN];
+				if(fread(checkpoint, 1, SEED_LEN, checkout) != SEED_LEN) {
+					fprintf(stderr,"failed to read checkpoint file\n");
+					exit(1);
+				}
+				fclose(checkout);
+
+				// Apply checkpoint to determseed
+				for (int i = 0; i < SEED_LEN; i++)
+					determseed[i] += checkpoint[i];
+			}
+		}
+	}
 #endif
 
 	signal(SIGTERM,termhandler);
@@ -605,10 +646,16 @@ int main(int argc,char **argv)
 	struct timespec ts;
 	memset(&ts,0,sizeof(ts));
 	ts.tv_nsec = 100000000;
+	u16 loopcounter = 0;
 	while (!endwork) {
 		if (numneedgenerate && keysgenerated >= numneedgenerate) {
 			endwork = 1;
 			break;
+		}
+		loopcounter++;
+		if (loopcounter >= 3000) { // Save checkpoint every 5 minutes
+			savecheckpoint();
+			loopcounter = 0;
 		}
 		nanosleep(&ts,0);
 
@@ -674,6 +721,10 @@ int main(int argc,char **argv)
 		}
 #endif
 	}
+
+#ifdef PASSPHRASE
+	savecheckpoint();
+#endif
 
 	if (!quietflag)
 		fprintf(stderr,"waiting for threads to finish...");

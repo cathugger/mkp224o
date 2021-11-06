@@ -63,8 +63,6 @@ void worker_init(void)
 
 pthread_mutex_t determseed_mutex;
 u8 determseed[SEED_LEN];
-u8 checkpoint[SEED_LEN];
-const char *checkpointfile = 0;
 #endif
 
 

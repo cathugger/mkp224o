@@ -33,38 +33,17 @@ void *worker_fast_pass(void *task)
 
 	sname = makesname();
 
-	// load checkpoint
-	pthread_mutex_lock(&determseed_mutex);
-	for (int i = 0; i < SEED_LEN; i++)
-		determseed[i] += checkpoint[i];
-	pthread_mutex_unlock(&determseed_mutex);
-
 initseed:
 #ifdef STATISTICS
 	++st->numrestart.v;
 #endif
 
 	pthread_mutex_lock(&determseed_mutex);
-	for (int i = 0; i < SEED_LEN; i++) {
-		++checkpoint[i];
+	for (int i = 0; i < SEED_LEN; i++)
 		if (++determseed[i])
 			break;
-	}
 	memcpy(seed, determseed, SEED_LEN);
 	pthread_mutex_unlock(&determseed_mutex);
-
-	if (checkpointfile) {
-		FILE *checkout = fopen(checkpointfile, "w");
-		if (!checkout) {
-			fprintf(stderr,"cannot open checkpoint file for writing\n");
-			exit(1);
-		}
-		if(fwrite(checkpoint, 1, SEED_LEN, checkout) != SEED_LEN) {
-			fprintf(stderr,"cannot write to checkpoint file\n");
-			exit(1);
-		}
-		fclose(checkout);
-	}
 
 	ed25519_seckey_expand(sk,seed);
 
