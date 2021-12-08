@@ -2,6 +2,8 @@
 #include <string.h>
 #include "types.h"
 #include "ioutil.h"
+#include "vec.h"
+#include <stdio.h>
 
 #ifndef _WIN32
 
@@ -31,7 +33,7 @@ FH createfile(const char *path,int secret)
 	int fd;
 	do {
 		fd = open(path,O_WRONLY | O_CREAT | O_TRUNC,secret ? 0600 : 0666);
-		if (fd == -1) {
+		if (fd < 0) {
 			if (errno == EINTR)
 				continue;
 			return -1;
@@ -45,7 +47,7 @@ int closefile(FH fd)
 	int cret;
 	do {
 		cret = close(fd);
-		if (cret == -1) {
+		if (cret < 0) {
 			if (errno == EINTR)
 				continue;
 			return -1;
@@ -58,6 +60,107 @@ int createdir(const char *path,int secret)
 {
 	return mkdir(path,secret ? 0700 : 0777);
 }
+
+int syncwrite(const char *filename,int secret,const u8 *data,size_t datalen)
+{
+	//fprintf(stderr,"filename = %s\n",filename);
+
+	VEC_STRUCT(,char) tmpname;
+	size_t fnlen = strlen(filename);
+	VEC_INIT(tmpname);
+	VEC_ADDN(tmpname,fnlen + 4 /* ".tmp" */ + 1 /* "\0" */);
+	memcpy(&VEC_BUF(tmpname,0),filename,fnlen);
+	strcpy(&VEC_BUF(tmpname,fnlen),".tmp");
+	const char *tmpnamestr = &VEC_BUF(tmpname,0);
+
+	//fprintf(stderr,"tmpnamestr = %s\n",tmpnamestr);
+
+	FH f = createfile(tmpnamestr,secret);
+	if (f == FH_invalid)
+		return -1;
+
+	if (writeall(f,data,datalen) < 0) {
+		closefile(f);
+		remove(tmpnamestr);
+		return -1;
+	}
+
+	int sret;
+	do {
+		sret = fsync(f);
+		if (sret < 0) {
+			if (errno == EINTR)
+				continue;
+
+			closefile(f);
+			remove(tmpnamestr);
+			return -1;
+		}
+	} while (0);
+
+	if (closefile(f) < 0) {
+		remove(tmpnamestr);
+		return -1;
+	}
+
+	if (rename(tmpnamestr,filename) < 0) {
+		remove(tmpnamestr);
+		return -1;
+	}
+
+	VEC_STRUCT(,char) dirname;
+	const char *dirnamestr;
+
+	for (ssize_t x = ((ssize_t)fnlen) - 1;x >= 0;--x) {
+		if (filename[x] == '/') {
+			if (x)
+				--x;
+			++x;
+			VEC_INIT(dirname);
+			VEC_ADDN(dirname,x + 1);
+			memcpy(&VEC_BUF(dirname,0),filename,x);
+			VEC_BUF(dirname,x) = '\0';
+			dirnamestr = &VEC_BUF(dirname,0);
+			goto foundslash;
+		}
+	}
+	/* not found slash, fall back to "." */
+	dirnamestr = ".";
+
+foundslash:
+	//fprintf(stderr,"dirnamestr = %s\n",dirnamestr);
+	;
+
+	int dirf;
+	do {
+		dirf = open(dirnamestr,O_RDONLY);
+		if (dirf < 0) {
+			if (errno == EINTR)
+				continue;
+
+			// failed for non-eintr reasons
+			goto skipdsync; // don't really care enough
+		}
+	} while (0);
+
+	do {
+		sret = fsync(dirf);
+		if (sret < 0) {
+			if (errno == EINTR)
+				continue;
+
+			// failed for non-eintr reasons
+			break; // don't care
+		}
+	} while (0);
+
+	(void) closefile(dirf); // don't care
+
+skipdsync:
+
+	return 0;
+}
+
 
 #else
 
@@ -97,6 +200,49 @@ int createdir(const char *path,int secret)
 	// XXX don't know how to handle secret argument
 	(void) secret;
 	return CreateDirectoryA(path,0) ? 0 : -1;
+}
+
+
+
+int syncwrite(const char *filename,int secret,const char *data,size_t datalen)
+{
+	VEC_STRUCT(,char) tmpname;
+	size_t fnlen = strlen(filename);
+	VEC_INIT(tmpname);
+	VEC_ADDN(tmpname,fnlen + 4 /* ".tmp" */ + 1 /* "\0" */);
+	memcpy(&VEC_BUF(tmpname,0),filename,fnlen);
+	strcpy(&VEC_BUF(tmpname,fnlen),".tmp");
+	const char *tmpnamestr = &VEC_BUF(tmpname,0);
+
+	FH f = createfile(tmpnamestr,secret)
+	if (f == FH_invalid)
+		return -1;
+
+	if (writeall(f,data,datalen) < 0) {
+		closefile(f);
+		remove(tmpnamestr);
+		return -1;
+	}
+
+	if (FlushFileBuffers(f) == 0) {
+		closefile(f);
+		remove(tmpnamestr);
+		return -1;
+	}
+
+	if (closefile(f) < 0) {
+		remove(tmpnamestr);
+		return -1;
+	}
+
+	if (MoveFileA(tmpnamestr,filename) == 0) {
+		remove(tmpnamestr);
+		return -1;
+	}
+
+	// can't fsync parent dir on windows so just end here
+
+	return 0;
 }
 
 #endif
