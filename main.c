@@ -571,10 +571,10 @@ int main(int argc,char **argv)
 
 #ifdef PASSPHRASE
 	if (deterministic) {
-		memcpy(orig_determseed,determseed,sizeof(determseed));
 		if (!quietflag && numneedgenerate != 1)
 			fprintf(stderr,"CAUTION: avoid using keys generated with same password for unrelated services, as single leaked key may help attacker to regenerate related keys.\n");
 		if (checkpointfile) {
+			memcpy(orig_determseed,determseed,sizeof(determseed));
 			// Read current checkpoint position if file exists
 			FILE *checkout = fopen(checkpointfile,"r");
 			if (checkout) {
