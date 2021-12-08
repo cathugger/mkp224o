@@ -161,7 +161,6 @@ skipdsync:
 	return 0;
 }
 
-
 #else
 
 int writeall(FH fd,const u8 *data,size_t len)
@@ -201,8 +200,6 @@ int createdir(const char *path,int secret)
 	(void) secret;
 	return CreateDirectoryA(path,0) ? 0 : -1;
 }
-
-
 
 int syncwrite(const char *filename,int secret,const char *data,size_t datalen)
 {

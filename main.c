@@ -220,7 +220,7 @@ static void *checkpointworker(void *arg)
 		clock_gettime(CLOCK_MONOTONIC,&nowtime);
 		inowtime = (1000000 * (u64)nowtime.tv_sec) + ((u64)nowtime.tv_nsec / 1000);
 
-		if (inowtime - ilasttime >= 300 * 1000000 /* 5 minutes */) {
+		if ((i64)(inowtime - ilasttime) >= 300 * 1000000 /* 5 minutes */) {
 			savecheckpoint();
 			ilasttime = inowtime;
 		}
@@ -718,7 +718,7 @@ int main(int argc,char **argv)
 			VEC_BUF(tstats,i).numrestart += (u64)tdiff;
 			sumrestart += VEC_BUF(tstats,i).numrestart;
 		}
-		if (reportdelay && (!ireporttime || inowtime - ireporttime >= reportdelay)) {
+		if (reportdelay && (!ireporttime || (i64)(inowtime - ireporttime) >= (i64)reportdelay)) {
 			if (ireporttime)
 				ireporttime += reportdelay;
 			else
