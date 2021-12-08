@@ -21,6 +21,8 @@ void *worker_batch(void *task)
 
 #ifdef STATISTICS
 	struct statstruct *st = (struct statstruct *)task;
+#else
+	(void) task;
 #endif
 
 	PREFILTER
@@ -36,6 +38,7 @@ void *worker_batch(void *task)
 	sname = makesname();
 
 initseed:
+
 #ifdef STATISTICS
 	++st->numrestart.v;
 #endif
@@ -112,8 +115,11 @@ initseed:
 
 end:
 	free(sname);
+
 	POSTFILTER
+
 	sodium_memzero(secret,sizeof(secret));
 	sodium_memzero(seed,sizeof(seed));
+
 	return 0;
 }
