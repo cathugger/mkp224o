@@ -144,18 +144,7 @@ static void printhelp(FILE *out,const char *progname)
 
 static void printversion(void)
 {
-	fprintf(stdout,
-		"mkp224o 1.5.0\n"
-		"Copyright (C) 2021 cathugger\n"
-		"License public domain:\n"
-		"  CC0 1.0 <https://creativecommons.org/publicdomain/zero/1.0/>\n"
-		"This is free software: you are free to change and redistribute it.\n"
-		"There is NO WARRANTY, to the extent permitted by law.\n"
-		"\n"
-		"mkp224o was mostly written by cathugger, but some other people helped too.\n"
-		"Please visit the mkp224o home page to find additional acknowledgements:\n"
-		"<https://github.com/cathugger/mkp224o>\n"
-		);
+	fprintf(stdout,"mkp224o " VERSION "\n");
 	fflush(stdout);
 }
 
