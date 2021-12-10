@@ -17,6 +17,7 @@ void *worker_slow(void *task)
 #else
 	(void) task;
 #endif
+
 	PREFILTER
 
 	memcpy(secret,skprefix,SKPREFIX_SIZE);
@@ -32,6 +33,7 @@ void *worker_slow(void *task)
 initseed:
 	randombytes(seed,sizeof(seed));
 	ed25519_seckey_expand(sk,seed);
+
 #ifdef STATISTICS
 	++st->numrestart.v;
 #endif
@@ -82,8 +84,11 @@ next:
 
 end:
 	free(sname);
+
 	POSTFILTER
+
 	sodium_memzero(secret,sizeof(secret));
 	sodium_memzero(seed,sizeof(seed));
+
 	return 0;
 }

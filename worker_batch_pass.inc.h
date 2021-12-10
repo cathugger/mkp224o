@@ -22,6 +22,8 @@ void *worker_batch_pass(void *task)
 
 #ifdef STATISTICS
 	struct statstruct *st = (struct statstruct *)task;
+#else
+	(void) task;
 #endif
 
 	PREFILTER
@@ -37,6 +39,7 @@ void *worker_batch_pass(void *task)
 	sname = makesname();
 
 initseed:
+
 #ifdef STATISTICS
 	++st->numrestart.v;
 #endif
@@ -133,7 +136,7 @@ initseed:
 			ge_p1p1_to_p3(&ge_public,&sum);
 		}
 		// NOTE: leaves unfinished one bit at the very end
-		ge_p3_batchtobytes_destructive_1(pk_batch,ge_batch,batchgez,tmp_batch,remaining);
+		ge_p3_batchtobytes_destructive_1(pk_batch,ge_batch,tmp_batch,remaining);
 
 #ifdef STATISTICS
 		st->numcalc.v += remaining;
@@ -189,9 +192,12 @@ initseed:
 
 end:
 	free(sname);
+
 	POSTFILTER
+
 	sodium_memzero(secret,sizeof(secret));
 	sodium_memzero(seed,sizeof(seed));
+
 	return 0;
 }
 #endif // PASSPHRASE

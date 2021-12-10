@@ -112,7 +112,7 @@ AC_ARG_ENABLE([donna-sse2],
 )
 
 # default
-AS_IF([test "x$ed25519impl" == "x"],[ed25519impl="donna"])
+AS_IF([test "x$ed25519impl" = "x"],[ed25519impl="donna"])
 
 if test "$ed25519impl" = "donna-sse2"
 then
