@@ -29,6 +29,8 @@
 
 #include "worker.h"
 
+#include "likely.h"
+
 #ifndef _WIN32
 #define FSZ "%zu"
 #else
@@ -57,6 +59,11 @@ size_t printlen;      // precalculated, related to printstartpos
 
 pthread_mutex_t fout_mutex;
 FILE *fout;
+
+#ifdef PASSPHRASE
+u8 orig_determseed[SEED_LEN];
+const char *checkpointfile = 0;
+#endif
 
 static void termhandler(int sig)
 {
@@ -112,6 +119,7 @@ static void printhelp(FILE *out,const char *progname)
 #ifdef PASSPHRASE
 		"\t-p passphrase  - use passphrase to initialize the random seed with\n"
 		"\t-P  - same as -p, but takes passphrase from PASSPHRASE environment variable\n"
+		"\t--checkpoint filename - load/save checkpoint of progress to specified file (requires passphrase)\n"
 #endif
 		,progname,progname);
 	fflush(out);
@@ -173,9 +181,58 @@ static void setpassphrase(const char *pass)
 	}
 	fprintf(stderr," done.\n");
 }
+
+static void savecheckpoint(void)
+{
+	u8 checkpoint[SEED_LEN];
+	bool carry = 0;
+	pthread_mutex_lock(&determseed_mutex);
+	for (int i = 0; i < SEED_LEN; i++) {
+		checkpoint[i] = determseed[i] - orig_determseed[i] - carry;
+		carry = checkpoint[i] > determseed[i];
+	}
+	pthread_mutex_unlock(&determseed_mutex);
+
+	if (syncwrite(checkpointfile,1,checkpoint,SEED_LEN) < 0) {
+		pthread_mutex_lock(&fout_mutex);
+		fprintf(stderr,"ERROR: could not save checkpoint\n");
+		pthread_mutex_unlock(&fout_mutex);
+	}
+}
+
+static volatile int checkpointer_endwork = 0;
+
+static void *checkpointworker(void *arg)
+{
+	(void) arg;
+
+	struct timespec ts;
+	memset(&ts,0,sizeof(ts));
+	ts.tv_nsec = 100000000;
+
+	struct timespec nowtime;
+	u64 ilasttime,inowtime;
+	clock_gettime(CLOCK_MONOTONIC,&nowtime);
+	ilasttime = (1000000 * (u64)nowtime.tv_sec) + ((u64)nowtime.tv_nsec / 1000);
+
+	while (!unlikely(checkpointer_endwork)) {
+
+		clock_gettime(CLOCK_MONOTONIC,&nowtime);
+		inowtime = (1000000 * (u64)nowtime.tv_sec) + ((u64)nowtime.tv_nsec / 1000);
+
+		if ((i64)(inowtime - ilasttime) >= 300 * 1000000 /* 5 minutes */) {
+			savecheckpoint();
+			ilasttime = inowtime;
+		}
+	}
+
+	savecheckpoint();
+
+	return 0;
+}
 #endif
 
-VEC_STRUCT(threadvec, pthread_t);
+VEC_STRUCT(threadvec,pthread_t);
 
 #include "filters_inc.inc.h"
 #include "filters_main.inc.h"
@@ -248,6 +305,14 @@ int main(int argc,char **argv)
 				}
 				else if (!strcmp(arg,"rawyaml"))
 					yamlraw = 1;
+#ifdef PASSPHRASE
+				else if (!strcmp(arg,"checkpoint")) {
+					if (argc--)
+						checkpointfile = *argv++;
+					else
+						e_additional();
+				}
+#endif // PASSPHRASE
 				else {
 					fprintf(stderr,"unrecognised argument: --%s\n",arg);
 					exit(1);
@@ -415,6 +480,11 @@ int main(int argc,char **argv)
 		exit(1);
 	}
 
+	if (checkpointfile && !deterministic) {
+		fprintf(stderr,"--checkpoint requires passphrase\n");
+		exit(1);
+	}
+
 	if (outfile) {
 		fout = fopen(outfile,!outfileoverwrite ? "a" : "w");
 		if (!fout) {
@@ -500,8 +570,27 @@ int main(int argc,char **argv)
 			numthreads,numthreads == 1 ? "thread" : "threads");
 
 #ifdef PASSPHRASE
-	if (!quietflag && deterministic && numneedgenerate != 1)
-		fprintf(stderr,"CAUTION: avoid using keys generated with same password for unrelated services, as single leaked key may help attacker to regenerate related keys.\n");
+	if (deterministic) {
+		if (!quietflag && numneedgenerate != 1)
+			fprintf(stderr,"CAUTION: avoid using keys generated with same password for unrelated services, as single leaked key may help attacker to regenerate related keys.\n");
+		if (checkpointfile) {
+			memcpy(orig_determseed,determseed,sizeof(determseed));
+			// Read current checkpoint position if file exists
+			FILE *checkout = fopen(checkpointfile,"r");
+			if (checkout) {
+				u8 checkpoint[SEED_LEN];
+				if(fread(checkpoint,1,SEED_LEN,checkout) != SEED_LEN) {
+					fprintf(stderr,"failed to read checkpoint file\n");
+					exit(1);
+				}
+				fclose(checkout);
+
+				// Apply checkpoint to determseed
+				for (int i = 0; i < SEED_LEN; i++)
+					determseed[i] += checkpoint[i];
+			}
+		}
+	}
 #endif
 
 	signal(SIGTERM,termhandler);
@@ -572,6 +661,18 @@ int main(int argc,char **argv)
 			perror("pthread_attr_destroy");
 	}
 
+#if PASSPHRASE
+	pthread_t checkpoint_thread;
+
+	if (checkpointfile) {
+		tret = pthread_create(&checkpoint_thread,NULL,checkpointworker,NULL);
+		if (tret) {
+			fprintf(stderr,"error while making checkpoint thread: %s\n",strerror(tret));
+			exit(1);
+		}
+	}
+#endif
+
 #ifdef STATISTICS
 	struct timespec nowtime;
 	u64 istarttime,inowtime,ireporttime = 0,elapsedoffset = 0;
@@ -581,6 +682,7 @@ int main(int argc,char **argv)
 	}
 	istarttime = (1000000 * (u64)nowtime.tv_sec) + ((u64)nowtime.tv_nsec / 1000);
 #endif
+
 	struct timespec ts;
 	memset(&ts,0,sizeof(ts));
 	ts.tv_nsec = 100000000;
@@ -616,7 +718,7 @@ int main(int argc,char **argv)
 			VEC_BUF(tstats,i).numrestart += (u64)tdiff;
 			sumrestart += VEC_BUF(tstats,i).numrestart;
 		}
-		if (reportdelay && (!ireporttime || inowtime - ireporttime >= reportdelay)) {
+		if (reportdelay && (!ireporttime || (i64)(inowtime - ireporttime) >= (i64)reportdelay)) {
 			if (ireporttime)
 				ireporttime += reportdelay;
 			else
@@ -656,8 +758,16 @@ int main(int argc,char **argv)
 
 	if (!quietflag)
 		fprintf(stderr,"waiting for threads to finish...");
+
 	for (size_t i = 0;i < VEC_LENGTH(threads);++i)
 		pthread_join(VEC_BUF(threads,i),0);
+#ifdef PASSPHRASE
+	if (checkpointfile) {
+		checkpointer_endwork = 1;
+		pthread_join(checkpoint_thread,0);
+	}
+#endif
+
 	if (!quietflag)
 		fprintf(stderr," done.\n");
 
