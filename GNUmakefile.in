@@ -396,10 +396,10 @@ ed25519/ref10/sign.c.o: ed25519/amd64-51-30k/ed25519.h
 ed25519/ref10/sign.c.o: ed25519/amd64-51-30k/crypto_hash_sha512.h
 ed25519/ref10/sign.c.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/sign.c.o: ed25519/ref10/crypto_int32.h ed25519/ref10/sc.h
-ioutil.c.o: types.h ioutil.h
+ioutil.c.o: types.h ioutil.h vec.h
 keccak.c.o: types.h keccak.h
 main.c.o: types.h vec.h base32.h cpucount.h keccak.h ioutil.h common.h yaml.h
-main.c.o: filters.h worker.h filters_inc.inc.h filters_main.inc.h
+main.c.o: filters.h worker.h likely.h filters_inc.inc.h filters_main.inc.h
 main.c.o: filters_common.inc.h ifilter_bitsum.h
 test_base16.c.o: types.h base16.h
 test_base32.c.o: types.h base32.h
