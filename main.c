@@ -480,10 +480,12 @@ int main(int argc,char **argv)
 		exit(1);
 	}
 
+#ifdef PASSPHRASE
 	if (checkpointfile && !deterministic) {
 		fprintf(stderr,"--checkpoint requires passphrase\n");
 		exit(1);
 	}
+#endif
 
 	if (outfile) {
 		fout = fopen(outfile,!outfileoverwrite ? "a" : "w");
@@ -661,7 +663,7 @@ int main(int argc,char **argv)
 			perror("pthread_attr_destroy");
 	}
 
-#if PASSPHRASE
+#ifdef PASSPHRASE
 	pthread_t checkpoint_thread;
 
 	if (checkpointfile) {
