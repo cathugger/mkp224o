@@ -1,0 +1,46 @@
+
+# set this to choose the starting prefix of the onion name
+filter = "prefix"
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "debian/bullseye64"
+  config.vm.provider :libvirt do |libvirt|
+    libvirt.cpus = 2
+  end
+  config.vm.synced_folder '.', '/vagrant', disabled: true
+  config.vm.provision :shell, inline: <<-SHELL
+    set -ex
+
+    sed -i s,http:,https:, /etc/apt/sources.list
+    apt-get update
+    apt-get -qy dist-upgrade
+    apt-get -qy install --no-install-recommends git gcc libc-dev libsodium-dev make autoconf htop screen
+SHELL
+
+  config.vm.provision :shell, privileged: false, inline: <<-SHELL
+      git clone https://github.com/cathugger/mkp224o.git /home/vagrant/mkp224o
+SHELL
+
+  # disable internet access
+  config.vm.provision "shell",
+                      run: "always",
+                      inline: "ip route del default || true"
+
+  # disable root
+  config.vm.provision "shell", inline: "passwd --lock root"
+  config.vm.provision "shell", inline: "SUDO_FORCE_REMOVE=yes dpkg --purge sudo"
+
+  config.vm.provision :shell, privileged: false, inline: <<-SHELL
+      set -ex
+
+      cd mkp224o
+      ./autogen.sh
+      ./configure
+      make
+      ./mkp224o -h
+
+      mkdir ~/#{filter}
+      cd ~/#{filter}
+      screen -d -m -L -Logfile #{filter}.log -S run-#{filter} nice ~/mkp224o/mkp224o -S 300 #{filter}
+SHELL
+end
