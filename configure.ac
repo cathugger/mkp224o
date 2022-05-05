@@ -5,6 +5,38 @@ AC_CONFIG_SRCDIR([main.c])
 oldcflags="$CFLAGS"
 AC_PROG_CC
 
+# determine version
+ver=""
+if test -r "$srcdir/version.txt"
+then
+	ver=`cat "$srcdir/version.txt"`
+elif test -d "$srcdir/.git"
+then
+	if git --version >/dev/null 2>&1
+	then
+		# try matching exact tag
+		ver=`git -C "$srcdir" describe --tags --exact-match 2>/dev/null`
+		if test -z "$ver"
+		then
+			# otherwise obtain full commit ID
+			ver=git-`git -C "$srcdir" rev-parse HEAD 2>/dev/null`
+		fi
+		if test -n "$ver"
+		then
+			if ! git -C "$srcdir" diff --exit-code >/dev/null 2>&1
+			then
+				# add at the end to mark modified version
+				ver="$ver"'*'
+			fi
+		fi
+	fi
+fi
+
+if test -z "$ver"
+then
+	ver=unknown
+fi
+
 # NOTE: this script intentionally doesn't check for small details like posix functions and hard dependencies (libsodium) so you may get errors at compilation
 
 if test "x$oldcflags" != "x$CFLAGS"
@@ -346,5 +378,6 @@ AC_SUBST(MYDEFS,["$MYDEFS"])
 AC_SUBST(MAINLIB,["$MAINLIB"])
 AC_SUBST(PIE,["$pie"])
 AC_SUBST(SRCDIR,["$srcdir"])
+AC_SUBST(VERSION,["$ver"])
 AC_CONFIG_FILES([GNUmakefile])
 AC_OUTPUT

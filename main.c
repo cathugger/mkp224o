@@ -89,40 +89,59 @@ VEC_STRUCT(tstatsvec,struct tstatstruct);
 
 static void printhelp(FILE *out,const char *progname)
 {
+	//   0         1         2         3         4         5         6         7
+	//   01234567890123456789012345678901234567890123456789012345678901234567890123456789
 	fprintf(out,
-		"Usage: %s filter [filter...] [options]\n"
-		"       %s -f filterfile [options]\n"
+		"Usage: %s FILTER [FILTER...] [OPTION]\n"
+		"       %s -f FILTERFILE [OPTION]\n"
 		"Options:\n"
-		"\t-h  - print help to stdout and quit\n"
-		"\t-f  - specify filter file which contains filters separated by newlines\n"
-		"\t-D  - deduplicate filters\n"
-		"\t-q  - do not print diagnostic output to stderr\n"
-		"\t-x  - do not print onion names\n"
-		"\t-v  - print more diagnostic data\n"
-		"\t-o filename  - output onion names to specified file (append)\n"
-		"\t-O filename  - output onion names to specified file (overwrite)\n"
-		"\t-F  - include directory names in onion names output\n"
-		"\t-d dirname  - output directory\n"
-		"\t-t numthreads  - specify number of threads to utilise (default - CPU core count or 1)\n"
-		"\t-j numthreads  - same as -t\n"
-		"\t-n numkeys  - specify number of keys (default - 0 - unlimited)\n"
-		"\t-N numwords  - specify number of words per key (default - 1)\n"
-		"\t-Z  - use \"slower\" key generation method (initial default)\n"
-		"\t-z  - use \"faster\" key generation method (later default)\n"
-		"\t-B  - use batching key generation method (>10x faster than -z, current default)\n"
-		"\t-s  - print statistics each 10 seconds\n"
-		"\t-S t  - print statistics every specified ammount of seconds\n"
-		"\t-T  - do not reset statistics counters when printing\n"
-		"\t-y  - output generated keys in YAML format instead of dumping them to filesystem\n"
-		"\t-Y [filename [host.onion]]  - parse YAML encoded input and extract key(s) to filesystem\n"
-		"\t--rawyaml  - raw (unprefixed) public/secret keys for -y/-Y (may be useful for tor controller API)\n"
+		"  -f FILTERFILE         specify filter file which contains filters separated\n"
+		"                        by newlines\n"
+		"  -D                    deduplicate filters\n"
+		"  -q                    do not print diagnostic output to stderr\n"
+		"  -x                    do not print onion names\n"
+		"  -v                    print more diagnostic data\n"
+		"  -o FILENAME           output onion names to specified file (append)\n"
+		"  -O FILENAME           output onion names to specified file (overwrite)\n"
+		"  -F                    include directory names in onion names output\n"
+		"  -d DIRNAME            output directory\n"
+		"  -t NUMTHREADS         specify number of threads to utilise\n"
+		"                        (default - try detecting CPU core count)\n"
+		"  -j NUMTHREADS         same as -t\n"
+		"  -n NUMKEYS            specify number of keys (default - 0 - unlimited)\n"
+		"  -N NUMWORDS           specify number of words per key (default - 1)\n"
+		"  -Z                    use \"slower\" key generation method (initial default)\n"
+		"  -z                    use \"faster\" key generation method (later default)\n"
+		"  -B                    use batching key generation method\n"
+		"                        (>10x faster than -z, current default)\n"
+		"  -s                    print statistics each 10 seconds\n"
+		"  -S SECONDS            print statistics every specified amount of seconds\n"
+		"  -T                    do not reset statistics counters when printing\n"
+		"  -y                    output generated keys in YAML format instead of\n"
+		"                        dumping them to filesystem\n"
+		"  -Y [FILENAME [host.onion]]\n"
+		"                        parse YAML encoded input and extract key(s) to\n"
+		"                        filesystem\n"
 #ifdef PASSPHRASE
-		"\t-p passphrase  - use passphrase to initialize the random seed with\n"
-		"\t-P  - same as -p, but takes passphrase from PASSPHRASE environment variable\n"
-		"\t--checkpoint filename - load/save checkpoint of progress to specified file (requires passphrase)\n"
+		"  -p PASSPHRASE         use passphrase to initialize the random seed with\n"
+		"  -P                    same as -p, but takes passphrase from PASSPHRASE\n"
+		"                        environment variable\n"
+		"  --checkpoint filename\n"
+		"                        load/save checkpoint of progress to specified file\n"
+		"                        (requires passphrase)\n"
 #endif
+		"      --rawyaml         raw (unprefixed) public/secret keys for -y/-Y\n"
+		"                        (may be useful for tor controller API)\n"
+		"  -h, --help, --usage   print help to stdout and quit\n"
+		"  -V, --version         print version information to stdout and exit\n"
 		,progname,progname);
 	fflush(out);
+}
+
+static void printversion(void)
+{
+	fprintf(stdout,"mkp224o " VERSION "\n");
+	fflush(stdout);
 }
 
 static void e_additional(void)
@@ -303,6 +322,10 @@ int main(int argc,char **argv)
 					printhelp(stdout,progname);
 					exit(0);
 				}
+				else if (!strcmp(arg,"version")) {
+					printversion();
+					exit(0);
+				}
 				else if (!strcmp(arg,"rawyaml"))
 					yamlraw = 1;
 #ifdef PASSPHRASE
@@ -326,6 +349,10 @@ int main(int argc,char **argv)
 			}
 			else if (*arg == 'h') {
 				printhelp(stdout,progname);
+				exit(0);
+			}
+			else if (*arg == 'V') {
+				printversion();
 				exit(0);
 			}
 			else if (*arg == 'f') {
