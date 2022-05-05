@@ -1,25 +1,25 @@
 #ifndef SC25519_H
 #define SC25519_H
 
-#define sc25519                  crypto_sign_ed25519_amd64_51_30k_batch_sc25519
-#define shortsc25519             crypto_sign_ed25519_amd64_51_30k_batch_shortsc25519
-#define sc25519_from32bytes      crypto_sign_ed25519_amd64_51_30k_batch_sc25519_from32bytes
-#define shortsc25519_from16bytes crypto_sign_ed25519_amd64_51_30k_batch_shortsc25519_from16bytes
-#define sc25519_from64bytes      crypto_sign_ed25519_amd64_51_30k_batch_sc25519_from64bytes
-#define sc25519_from_shortsc     crypto_sign_ed25519_amd64_51_30k_batch_sc25519_from_shortsc
-#define sc25519_to32bytes        crypto_sign_ed25519_amd64_51_30k_batch_sc25519_to32bytes
-#define sc25519_iszero_vartime   crypto_sign_ed25519_amd64_51_30k_batch_sc25519_iszero_vartime
-#define sc25519_isshort_vartime  crypto_sign_ed25519_amd64_51_30k_batch_sc25519_isshort_vartime
-#define sc25519_lt               crypto_sign_ed25519_amd64_51_30k_batch_sc25519_lt
-#define sc25519_add              crypto_sign_ed25519_amd64_51_30k_batch_sc25519_add
-#define sc25519_sub_nored        crypto_sign_ed25519_amd64_51_30k_batch_sc25519_sub_nored
-#define sc25519_mul              crypto_sign_ed25519_amd64_51_30k_batch_sc25519_mul
-#define sc25519_mul_shortsc      crypto_sign_ed25519_amd64_51_30k_batch_sc25519_mul_shortsc
-#define sc25519_window4          crypto_sign_ed25519_amd64_51_30k_batch_sc25519_window4
-#define sc25519_window5          crypto_sign_ed25519_amd64_51_30k_batch_sc25519_window5
-#define sc25519_slide           crypto_sign_ed25519_amd64_51_30k_batch_sc25519_slide
-#define sc25519_2interleave2     crypto_sign_ed25519_amd64_51_30k_batch_sc25519_2interleave2
-#define sc25519_barrett crypto_sign_ed25519_amd64_51_30k_batch_sc25519_barrett
+#define sc25519                  CRYPTO_NAMESPACE(batch_sc25519)
+#define shortsc25519             CRYPTO_NAMESPACE(batch_shortsc25519)
+#define sc25519_from32bytes      CRYPTO_NAMESPACE(batch_sc25519_from32bytes)
+#define shortsc25519_from16bytes CRYPTO_NAMESPACE(batch_shortsc25519_from16bytes)
+#define sc25519_from64bytes      CRYPTO_NAMESPACE(batch_sc25519_from64bytes)
+#define sc25519_from_shortsc     CRYPTO_NAMESPACE(batch_sc25519_from_shortsc)
+#define sc25519_to32bytes        CRYPTO_NAMESPACE(batch_sc25519_to32bytes)
+#define sc25519_iszero_vartime   CRYPTO_NAMESPACE(batch_sc25519_iszero_vartime)
+#define sc25519_isshort_vartime  CRYPTO_NAMESPACE(batch_sc25519_isshort_vartime)
+#define sc25519_lt               CRYPTO_NAMESPACE(batch_sc25519_lt)
+#define sc25519_add              CRYPTO_NAMESPACE(batch_sc25519_add)
+#define sc25519_sub_nored        CRYPTO_NAMESPACE(batch_sc25519_sub_nored)
+#define sc25519_mul              CRYPTO_NAMESPACE(batch_sc25519_mul)
+#define sc25519_mul_shortsc      CRYPTO_NAMESPACE(batch_sc25519_mul_shortsc)
+#define sc25519_window4          CRYPTO_NAMESPACE(batch_sc25519_window4)
+#define sc25519_window5          CRYPTO_NAMESPACE(batch_sc25519_window5)
+#define sc25519_slide           CRYPTO_NAMESPACE(batch_sc25519_slide)
+#define sc25519_2interleave2     CRYPTO_NAMESPACE(batch_sc25519_2interleave2)
+#define sc25519_barrett CRYPTO_NAMESPACE(batch_sc25519_barrett)
 
 typedef struct 
 {

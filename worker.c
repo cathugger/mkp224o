@@ -18,6 +18,7 @@
 #include "base32.h"
 #include "keccak.h"
 #include "ed25519/ed25519.h"
+#include "ed25519/ed25519_impl_pre.h"
 #include "ioutil.h"
 #include "common.h"
 #include "yaml.h"
@@ -180,7 +181,6 @@ static inline void shiftpk(u8 *dst,const u8 *src,size_t sbits)
 		dst[i] = 0;
 }
 
-#include "worker_slow.inc.h"
 
 
 // in little-endian order, 32 bytes aka 256 bits
@@ -195,7 +195,6 @@ static void addsztoscalar32(u8 *dst,size_t v)
 	}
 }
 
-#include "worker_fast.inc.h"
 
 
 #ifdef PASSPHRASE
@@ -213,7 +212,6 @@ static void reseedright(u8 sk[SECRET_LEN])
 }
 #endif // PASSPHRASE
 
-#include "worker_fast_pass.inc.h"
 
 
 #if !defined(BATCHNUM)
@@ -225,6 +223,15 @@ size_t worker_batch_memuse(void)
 	return (sizeof(ge_p3) + sizeof(fe) + sizeof(bytes32)) * BATCHNUM;
 }
 
+#include "worker_slow.inc.h"
+
+#include "worker_fast.inc.h"
+
+#include "worker_fast_pass.inc.h"
+
 #include "worker_batch.inc.h"
 
 #include "worker_batch_pass.inc.h"
+
+// XXX this is useless here, but will end up somewhere like that when i'll modularize stuff
+#include "ed25519/ed25519_impl_post.h"

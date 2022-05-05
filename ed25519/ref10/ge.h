@@ -52,28 +52,28 @@ typedef struct {
 
 typedef unsigned char bytes32[32];
 
-#define ge_frombytes_negate_vartime crypto_sign_ed25519_ref10_ge_frombytes_negate_vartime
-#define ge_tobytes crypto_sign_ed25519_ref10_ge_tobytes
-#define ge_p3_tobytes crypto_sign_ed25519_ref10_ge_p3_tobytes
-#define ge_p3_batchtobytes_destructive_1 crypto_sign_ed25519_ref10_ge_p3_batchtobytes_destructive_1
-#define ge_p3_batchtobytes_destructive_finish crypto_sign_ed25519_ref10_ge_p3_batchtobytes_destructive_finish
+#define ge_frombytes_negate_vartime CRYPTO_NAMESPACE(ge_frombytes_negate_vartime)
+#define ge_tobytes CRYPTO_NAMESPACE(ge_tobytes)
+#define ge_p3_tobytes CRYPTO_NAMESPACE(ge_p3_tobytes)
+#define ge_p3_batchtobytes_destructive_1 CRYPTO_NAMESPACE(ge_p3_batchtobytes_destructive_1)
+#define ge_p3_batchtobytes_destructive_finish CRYPTO_NAMESPACE(ge_p3_batchtobytes_destructive_finish)
 
-#define ge_p2_0 crypto_sign_ed25519_ref10_ge_p2_0
-#define ge_p3_0 crypto_sign_ed25519_ref10_ge_p3_0
-#define ge_precomp_0 crypto_sign_ed25519_ref10_ge_precomp_0
-#define ge_p3_to_p2 crypto_sign_ed25519_ref10_ge_p3_to_p2
-#define ge_p3_to_cached crypto_sign_ed25519_ref10_ge_p3_to_cached
-#define ge_p1p1_to_p2 crypto_sign_ed25519_ref10_ge_p1p1_to_p2
-#define ge_p1p1_to_p3 crypto_sign_ed25519_ref10_ge_p1p1_to_p3
-#define ge_p2_dbl crypto_sign_ed25519_ref10_ge_p2_dbl
-#define ge_p3_dbl crypto_sign_ed25519_ref10_ge_p3_dbl
+#define ge_p2_0 CRYPTO_NAMESPACE(ge_p2_0)
+#define ge_p3_0 CRYPTO_NAMESPACE(ge_p3_0)
+#define ge_precomp_0 CRYPTO_NAMESPACE(ge_precomp_0)
+#define ge_p3_to_p2 CRYPTO_NAMESPACE(ge_p3_to_p2)
+#define ge_p3_to_cached CRYPTO_NAMESPACE(ge_p3_to_cached)
+#define ge_p1p1_to_p2 CRYPTO_NAMESPACE(ge_p1p1_to_p2)
+#define ge_p1p1_to_p3 CRYPTO_NAMESPACE(ge_p1p1_to_p3)
+#define ge_p2_dbl CRYPTO_NAMESPACE(ge_p2_dbl)
+#define ge_p3_dbl CRYPTO_NAMESPACE(ge_p3_dbl)
 
-#define ge_madd crypto_sign_ed25519_ref10_ge_madd
-#define ge_msub crypto_sign_ed25519_ref10_ge_msub
-#define ge_add crypto_sign_ed25519_ref10_ge_add
-#define ge_sub crypto_sign_ed25519_ref10_ge_sub
-#define ge_scalarmult_base crypto_sign_ed25519_ref10_ge_scalarmult_base
-#define ge_double_scalarmult_vartime crypto_sign_ed25519_ref10_ge_double_scalarmult_vartime
+#define ge_madd CRYPTO_NAMESPACE(ge_madd)
+#define ge_msub CRYPTO_NAMESPACE(ge_msub)
+#define ge_add CRYPTO_NAMESPACE(ge_add)
+#define ge_sub CRYPTO_NAMESPACE(ge_sub)
+#define ge_scalarmult_base CRYPTO_NAMESPACE(ge_scalarmult_base)
+#define ge_double_scalarmult_vartime CRYPTO_NAMESPACE(ge_double_scalarmult_vartime)
 
 extern void ge_tobytes(unsigned char *,const ge_p2 *);
 extern void ge_p3_tobytes(unsigned char *,const ge_p3 *);

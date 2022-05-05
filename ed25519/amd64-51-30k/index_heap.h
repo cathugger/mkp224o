@@ -3,15 +3,15 @@
 
 #include "sc25519.h"
 
-#define heap_init                crypto_sign_ed25519_amd64_51_30k_batch_heap_init
-#define heap_extend              crypto_sign_ed25519_amd64_51_30k_batch_heap_extend
-#define heap_pop                 crypto_sign_ed25519_amd64_51_30k_batch_heap_pop
-#define heap_push                crypto_sign_ed25519_amd64_51_30k_batch_heap_push
-#define heap_get2max             crypto_sign_ed25519_amd64_51_30k_batch_heap_get2max
-#define heap_rootreplaced        crypto_sign_ed25519_amd64_51_30k_batch_heap_rootreplaced
-#define heap_rootreplaced_3limbs crypto_sign_ed25519_amd64_51_30k_batch_heap_rootreplaced_3limbs
-#define heap_rootreplaced_2limbs crypto_sign_ed25519_amd64_51_30k_batch_heap_rootreplaced_2limbs
-#define heap_rootreplaced_1limb  crypto_sign_ed25519_amd64_51_30k_batch_heap_rootreplaced_1limb
+#define heap_init                CRYPTO_NAMESPACE(batch_heap_init)
+#define heap_extend              CRYPTO_NAMESPACE(batch_heap_extend)
+#define heap_pop                 CRYPTO_NAMESPACE(batch_heap_pop)
+#define heap_push                CRYPTO_NAMESPACE(batch_heap_push)
+#define heap_get2max             CRYPTO_NAMESPACE(batch_heap_get2max)
+#define heap_rootreplaced        CRYPTO_NAMESPACE(batch_heap_rootreplaced)
+#define heap_rootreplaced_3limbs CRYPTO_NAMESPACE(batch_heap_rootreplaced_3limbs)
+#define heap_rootreplaced_2limbs CRYPTO_NAMESPACE(batch_heap_rootreplaced_2limbs)
+#define heap_rootreplaced_1limb  CRYPTO_NAMESPACE(batch_heap_rootreplaced_1limb)
 
 void heap_init(unsigned long long *h, unsigned long long hlen, sc25519 *scalars);
 

@@ -19,7 +19,7 @@ static unsigned char negative(signed char b)
   return x;
 }
 
-static void cmov(ge_precomp *t,ge_precomp *u,unsigned char b)
+static void cmov(ge_precomp *t,const ge_precomp *u,unsigned char b)
 {
   fe_cmov(t->yplusx,u->yplusx,b);
   fe_cmov(t->yminusx,u->yminusx,b);
@@ -27,7 +27,7 @@ static void cmov(ge_precomp *t,ge_precomp *u,unsigned char b)
 }
 
 /* base[i][j] = (j+1)*256^i*B */
-static ge_precomp base[32][8] = {
+static const ge_precomp base[32][8] = {
 #include "base.h"
 } ;
 

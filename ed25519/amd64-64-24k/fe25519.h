@@ -3,24 +3,24 @@
 
 #include <stddef.h>
 
-#define fe25519                crypto_sign_ed25519_amd64_64_fe25519
-#define fe25519_freeze         crypto_sign_ed25519_amd64_64_fe25519_freeze
-#define fe25519_unpack         crypto_sign_ed25519_amd64_64_fe25519_unpack
-#define fe25519_pack           crypto_sign_ed25519_amd64_64_fe25519_pack
-#define fe25519_iszero_vartime crypto_sign_ed25519_amd64_64_fe25519_iszero_vartime
-#define fe25519_iseq_vartime   crypto_sign_ed25519_amd64_64_fe25519_iseq_vartime
-#define fe25519_cmov           crypto_sign_ed25519_amd64_64_fe25519_cmov
-#define fe25519_setint         crypto_sign_ed25519_amd64_64_fe25519_setint
-#define fe25519_neg            crypto_sign_ed25519_amd64_64_fe25519_neg
-#define fe25519_getparity      crypto_sign_ed25519_amd64_64_fe25519_getparity
-#define fe25519_add            crypto_sign_ed25519_amd64_64_fe25519_add
-#define fe25519_sub            crypto_sign_ed25519_amd64_64_fe25519_sub
-#define fe25519_mul            crypto_sign_ed25519_amd64_64_fe25519_mul
-#define fe25519_mul121666      crypto_sign_ed25519_amd64_64_fe25519_mul121666
-#define fe25519_square         crypto_sign_ed25519_amd64_64_fe25519_square
-#define fe25519_invert         crypto_sign_ed25519_amd64_64_fe25519_invert
-#define fe25519_batchinvert    crypto_sign_ed25519_amd64_64_fe25519_batchinvert
-#define fe25519_pow2523        crypto_sign_ed25519_amd64_64_fe25519_pow2523
+#define fe25519                CRYPTO_NAMESPACE(fe25519)
+#define fe25519_freeze         CRYPTO_NAMESPACE(fe25519_freeze)
+#define fe25519_unpack         CRYPTO_NAMESPACE(fe25519_unpack)
+#define fe25519_pack           CRYPTO_NAMESPACE(fe25519_pack)
+#define fe25519_iszero_vartime CRYPTO_NAMESPACE(fe25519_iszero_vartime)
+#define fe25519_iseq_vartime   CRYPTO_NAMESPACE(fe25519_iseq_vartime)
+#define fe25519_cmov           CRYPTO_NAMESPACE(fe25519_cmov)
+#define fe25519_setint         CRYPTO_NAMESPACE(fe25519_setint)
+#define fe25519_neg            CRYPTO_NAMESPACE(fe25519_neg)
+#define fe25519_getparity      CRYPTO_NAMESPACE(fe25519_getparity)
+#define fe25519_add            CRYPTO_NAMESPACE(fe25519_add)
+#define fe25519_sub            CRYPTO_NAMESPACE(fe25519_sub)
+#define fe25519_mul            CRYPTO_NAMESPACE(fe25519_mul)
+#define fe25519_mul121666      CRYPTO_NAMESPACE(fe25519_mul121666)
+#define fe25519_square         CRYPTO_NAMESPACE(fe25519_square)
+#define fe25519_invert         CRYPTO_NAMESPACE(fe25519_invert)
+#define fe25519_batchinvert    CRYPTO_NAMESPACE(fe25519_batchinvert)
+#define fe25519_pow2523        CRYPTO_NAMESPACE(fe25519_pow2523)
 
 typedef struct
 {

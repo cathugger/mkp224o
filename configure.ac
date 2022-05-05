@@ -27,30 +27,17 @@ then
 	CFLAGS="$oldcflags"
 fi
 
-nopie=""
+pie=""
 
 oldcflags="$CFLAGS"
-CFLAGS="-nopie -Werror"
-AC_MSG_CHECKING([whether CC supports -nopie])
+CFLAGS="-fPIE -Werror"
+AC_MSG_CHECKING([whether CC supports -fPIE])
 AC_LINK_IFELSE([AC_LANG_PROGRAM([])],
 	[AC_MSG_RESULT([yes])]
-	[nopie="-nopie"],
+	[pie="-fPIE"],
 	[AC_MSG_RESULT([no])]
 )
 CFLAGS="$oldcflags"
-
-if test "x$nopie" = "x"
-then
-	oldcflags="$CFLAGS"
-	CFLAGS="-no-pie -Werror"
-	AC_MSG_CHECKING([whether CC supports -no-pie])
-	AC_LINK_IFELSE([AC_LANG_PROGRAM([])],
-		[AC_MSG_RESULT([yes])]
-		[nopie="-no-pie"],
-		[AC_MSG_RESULT([no])]
-	)
-	CFLAGS="$oldcflags"
-fi
 
 MYDEFS=""
 MAINLIB=""
@@ -357,7 +344,7 @@ AC_SUBST(CSTD,["$cstd"])
 AC_SUBST(ED25519IMPL,["$ed25519impl"])
 AC_SUBST(MYDEFS,["$MYDEFS"])
 AC_SUBST(MAINLIB,["$MAINLIB"])
-AC_SUBST(NOPIE,["$nopie"])
+AC_SUBST(PIE,["$pie"])
 AC_SUBST(SRCDIR,["$srcdir"])
 AC_CONFIG_FILES([GNUmakefile])
 AC_OUTPUT

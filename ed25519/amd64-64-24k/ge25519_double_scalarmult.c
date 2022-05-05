@@ -7,7 +7,7 @@
 #define S2_SWINDOWSIZE 7
 #define PRE2_SIZE (1<<(S2_SWINDOWSIZE-2))
 
-ge25519_niels pre2[PRE2_SIZE] = {
+static const ge25519_niels pre2[PRE2_SIZE] = {
 #include "ge25519_base_slide_multiples.data"
 };
 

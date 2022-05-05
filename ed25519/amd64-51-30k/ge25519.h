@@ -12,26 +12,26 @@
 #include "fe25519.h"
 #include "sc25519.h"
 
-#define ge25519                           crypto_sign_ed25519_amd64_51_30k_batch_ge25519
-#define ge25519_base                      crypto_sign_ed25519_amd64_51_30k_batch_ge25519_base
-#define ge25519_unpackneg_vartime         crypto_sign_ed25519_amd64_51_30k_batch_unpackneg_vartime
-#define ge25519_pack                      crypto_sign_ed25519_amd64_51_30k_batch_pack
-#define ge25519_isneutral_vartime         crypto_sign_ed25519_amd64_51_30k_batch_isneutral_vartime
-#define ge25519_add                       crypto_sign_ed25519_amd64_51_30k_batch_ge25519_add
-#define ge25519_double                    crypto_sign_ed25519_amd64_51_30k_batch_ge25519_double
-#define ge25519_double_scalarmult_vartime crypto_sign_ed25519_amd64_51_30k_batch_double_scalarmult_vartime
-#define ge25519_multi_scalarmult_vartime  crypto_sign_ed25519_amd64_51_30k_batch_ge25519_multi_scalarmult_vartime
-#define ge25519_scalarmult_base           crypto_sign_ed25519_amd64_51_30k_batch_scalarmult_base
-#define ge25519_p1p1_to_p2                crypto_sign_ed25519_amd64_51_30k_batch_ge25519_p1p1_to_p2
-#define ge25519_p1p1_to_p3                crypto_sign_ed25519_amd64_51_30k_batch_ge25519_p1p1_to_p3
-#define ge25519_p1p1_to_pniels            crypto_sign_ed25519_amd64_51_30k_batch_ge25519_p1p1_to_pniels
-#define ge25519_add_p1p1                  crypto_sign_ed25519_amd64_51_30k_batch_ge25519_add_p1p1
-#define ge25519_dbl_p1p1                  crypto_sign_ed25519_amd64_51_30k_batch_ge25519_dbl_p1p1
-#define choose_t                          crypto_sign_ed25519_amd64_51_30k_batch_choose_t
-#define choose_t_smultq                   crypto_sign_ed25519_amd64_51_30k_batch_choose_t_smultq
-#define ge25519_nielsadd2                 crypto_sign_ed25519_amd64_51_30k_batch_ge25519_nielsadd2
-#define ge25519_nielsadd_p1p1             crypto_sign_ed25519_amd64_51_30k_batch_ge25519_nielsadd_p1p1
-#define ge25519_pnielsadd_p1p1            crypto_sign_ed25519_amd64_51_30k_batch_ge25519_pnielsadd_p1p1
+#define ge25519                           CRYPTO_NAMESPACE(batch_ge25519)
+#define ge25519_base                      CRYPTO_NAMESPACE(batch_ge25519_base)
+#define ge25519_unpackneg_vartime         CRYPTO_NAMESPACE(batch_unpackneg_vartime)
+#define ge25519_pack                      CRYPTO_NAMESPACE(batch_pack)
+#define ge25519_isneutral_vartime         CRYPTO_NAMESPACE(batch_isneutral_vartime)
+#define ge25519_add                       CRYPTO_NAMESPACE(batch_ge25519_add)
+#define ge25519_double                    CRYPTO_NAMESPACE(batch_ge25519_double)
+#define ge25519_double_scalarmult_vartime CRYPTO_NAMESPACE(batch_double_scalarmult_vartime)
+#define ge25519_multi_scalarmult_vartime  CRYPTO_NAMESPACE(batch_ge25519_multi_scalarmult_vartime)
+#define ge25519_scalarmult_base           CRYPTO_NAMESPACE(batch_scalarmult_base)
+#define ge25519_p1p1_to_p2                CRYPTO_NAMESPACE(batch_ge25519_p1p1_to_p2)
+#define ge25519_p1p1_to_p3                CRYPTO_NAMESPACE(batch_ge25519_p1p1_to_p3)
+#define ge25519_p1p1_to_pniels            CRYPTO_NAMESPACE(batch_ge25519_p1p1_to_pniels)
+#define ge25519_add_p1p1                  CRYPTO_NAMESPACE(batch_ge25519_add_p1p1)
+#define ge25519_dbl_p1p1                  CRYPTO_NAMESPACE(batch_ge25519_dbl_p1p1)
+#define choose_t                          CRYPTO_NAMESPACE(batch_choose_t)
+#define choose_t_smultq                   CRYPTO_NAMESPACE(batch_choose_t_smultq)
+#define ge25519_nielsadd2                 CRYPTO_NAMESPACE(batch_ge25519_nielsadd2)
+#define ge25519_nielsadd_p1p1             CRYPTO_NAMESPACE(batch_ge25519_nielsadd_p1p1)
+#define ge25519_pnielsadd_p1p1            CRYPTO_NAMESPACE(batch_ge25519_pnielsadd_p1p1)
 
 #define ge25519_p3 ge25519
 

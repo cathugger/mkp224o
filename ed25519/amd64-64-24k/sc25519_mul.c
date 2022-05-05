@@ -1,6 +1,6 @@
 #include "sc25519.h"
 
-#define ull4_mul        crypto_sign_ed25519_amd64_64_ull4_mul
+#define ull4_mul        CRYPTO_NAMESPACE(ull4_mul)
 
 extern void ull4_mul(unsigned long long r[8], const unsigned long long x[4], const unsigned long long y[4]);
 

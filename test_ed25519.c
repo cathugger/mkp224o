@@ -6,6 +6,7 @@
 #include "types.h"
 #include "base16.h"
 #include "ed25519/ed25519.h"
+#include "ed25519/ed25519_impl_pre.h"
 #include "testutil.h"
 
 struct pktest {
@@ -60,3 +61,5 @@ int main(void)
 
 	return 0;
 }
+
+#include "ed25519/ed25519_impl_post.h"
