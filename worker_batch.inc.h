@@ -1,5 +1,5 @@
 
-void *worker_batch(void *task)
+void *CRYPTO_NAMESPACE(worker_batch)(void *task)
 {
 	union pubonionunion pubonion;
 	u8 * const pk = &pubonion.raw[PKPREFIX_SIZE];

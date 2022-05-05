@@ -666,16 +666,16 @@ int main(int argc,char **argv)
 #ifdef PASSPHRASE
 			deterministic
 				? (wt == WT_BATCH
-					? worker_batch_pass
-					: worker_fast_pass)
+					? CRYPTO_NAMESPACE(worker_batch_pass)
+					: CRYPTO_NAMESPACE(worker_fast_pass))
 				:
 #endif
 			wt == WT_BATCH
-				? worker_batch
+				? CRYPTO_NAMESPACE(worker_batch)
 				:
 			wt == WT_FAST
-				? worker_fast
-				: worker_slow,
+				? CRYPTO_NAMESPACE(worker_fast)
+				: CRYPTO_NAMESPACE(worker_slow),
 			tp
 		);
 		if (tret) {

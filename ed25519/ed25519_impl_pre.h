@@ -1,3 +1,4 @@
+
 #ifndef ED25519_donna
 #  if defined(_MSC_VER)
 #    define ALIGN(x) __declspec(align(x))

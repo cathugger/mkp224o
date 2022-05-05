@@ -17,8 +17,6 @@
 #include "vec.h"
 #include "base32.h"
 #include "keccak.h"
-#include "ed25519/ed25519.h"
-#include "ed25519/ed25519_impl_pre.h"
 #include "ioutil.h"
 #include "common.h"
 #include "yaml.h"
@@ -53,10 +51,6 @@ size_t numneedgenerate = 0;
 char *workdir = 0;
 size_t workdirlen = 0;
 
-void worker_init(void)
-{
-	ge_initeightpoint();
-}
 
 #ifdef PASSPHRASE
 // How many times we loop before a reseed
@@ -218,20 +212,57 @@ static void reseedright(u8 sk[SECRET_LEN])
 	#define BATCHNUM 2048
 #endif
 
+
+#include "ed25519/ed25519.h"
+
+#include "worker_impl.inc.h"
+
 size_t worker_batch_memuse(void)
 {
-	return (sizeof(ge_p3) + sizeof(fe) + sizeof(bytes32)) * BATCHNUM;
+	size_t s = 0,x;
+
+#ifdef ED25519_ref10
+	x = crypto_sign_ed25519_ref10_worker_batch_memuse();
+	if (x > s)
+		s = x;
+#endif
+
+#ifdef ED25519_amd64_51_30k
+	x = crypto_sign_ed25519_amd64_51_30k_worker_batch_memuse();
+	if (x > s)
+		s = x;
+#endif
+
+#ifdef ED25519_amd64_64_24k
+	x = crypto_sign_ed25519_amd64_64_24k_worker_batch_memuse();
+	if (x > s)
+		s = x;
+#endif
+
+#ifdef ED25519_donna
+	x = crypto_sign_ed25519_donna_worker_batch_memuse();
+	if (x > s)
+		s = x;
+#endif
+
+	return s;
 }
 
-#include "worker_slow.inc.h"
+void worker_init(void)
+{
+#ifdef ED25519_ref10
+	crypto_sign_ed25519_ref10_ge_initeightpoint();
+#endif
 
-#include "worker_fast.inc.h"
+#ifdef ED25519_amd64_51_30k
+	crypto_sign_ed25519_amd64_51_30k_ge_initeightpoint();
+#endif
 
-#include "worker_fast_pass.inc.h"
+#ifdef ED25519_amd64_64_24k
+	crypto_sign_ed25519_amd64_64_24k_ge_initeightpoint();
+#endif
 
-#include "worker_batch.inc.h"
-
-#include "worker_batch_pass.inc.h"
-
-// XXX this is useless here, but will end up somewhere like that when i'll modularize stuff
-#include "ed25519/ed25519_impl_post.h"
+#ifdef ED25519_donna
+	crypto_sign_ed25519_donna_ge_initeightpoint();
+#endif
+}
