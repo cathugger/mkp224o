@@ -19,7 +19,11 @@ then
 		if test -z "$ver"
 		then
 			# otherwise obtain full commit ID
-			ver=git-`git -C "$srcdir" rev-parse HEAD 2>/dev/null`
+			ver=`git -C "$srcdir" rev-parse HEAD 2>/dev/null`
+			if test -n "$ver"
+			then
+				ver=git-$ver
+			fi
 		fi
 		if test -n "$ver"
 		then
