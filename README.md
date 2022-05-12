@@ -100,11 +100,6 @@ performance-related tips.
   It appears that onionbalance supports loading usual
   `hs_ed25519_secret_key` key so it should work.
 
-### Contact
-
-For bug reports/questions/whatever else, email cathugger at cock dot li.\
-PGP key, if needed, can be found at <http://cathug2kyi4ilneggumrenayhuhsvrgn6qv2y47bgeet42iivkpynqad.onion/contact.html>.
-
 ### Acknowledgements & Legal
 
 To the extent possible under law, the author(s) have dedicated all
