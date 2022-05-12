@@ -75,9 +75,9 @@ performance-related tips.
   Then edit `torrc` and add new service with that folder.\
   After reload/restart tor should pick it up.
 
-* Generate addresses with 1-2 and 7-9 digits?
+* Generate addresses with `1-2` and `7-9` digits?
 
-  Onion addresses use base32 encoding which does not include 0,1,8,9
+  Onion addresses use base32 encoding which does not include `0,1,8,9`
   numbers.\
   So no, that's not possible to generate these, and mkp224o tries to
   detect invalid filters containing them early on.
