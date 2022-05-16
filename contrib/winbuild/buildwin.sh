@@ -26,8 +26,8 @@ do
 	esac
 	CFLAGS="-O3 $CFLAGS -fomit-frame-pointer"
 
-	export PATH=/usr/$p/bin:$PATH
-	../../../configure --enable-regex --enable-donna CC="$p-gcc" CFLAGS="$CFLAGS"
+	export PATH=/usr/$p/bin:$OPATH
+	../../../configure --enable-regex --enable-donna --with-pcre2="/usr/$p/bin/pcre2-config" CC="$p-gcc" CFLAGS="$CFLAGS"
 	make
 	cd ..
 done
