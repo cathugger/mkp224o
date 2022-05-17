@@ -19,6 +19,9 @@ const int charcounts[] = { 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 
 int main(int argc,char **argv)
 {
+	// TODO
+	(void) argc;
+	(void) argv;
 
 	printf("   |");
 	for (size_t i = 0; i < sizeof(probs)/sizeof(probs[0]); ++i) {
