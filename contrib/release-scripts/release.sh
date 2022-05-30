@@ -25,6 +25,7 @@ git clone ../../ "$SO"
 cd "$SO"
 rm -rf .git
 ./autogen.sh
+rm -rf *.cache
 echo v$V > version.txt
 cd ../..
 
