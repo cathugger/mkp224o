@@ -43,7 +43,7 @@ fi
 
 # NOTE: this script intentionally doesn't check for small details like posix functions and hard dependencies (libsodium) so you may get errors at compilation
 
-if test "x$oldcflags" != "x$CFLAGS"
+if test x"$oldcflags" != x"$CFLAGS"
 then
 	oldcflags="-O3"
 	CFLAGS="-march=native"
@@ -83,7 +83,7 @@ AC_ARG_ENABLE([ref10],
 	[AS_HELP_STRING([--enable-ref10],
 		[use SUPERCOP ref10 ed25519 implementation @<:@default=no@:>@])],
 	[
-		AS_IF([test "x$ed25519impl" != "x" -a "$ed25519impl" != "ref10"],
+		AS_IF([test x"$ed25519impl" != x"" -a "$ed25519impl" != "ref10"],
 			[AC_MSG_ERROR(only one ed25519 implementation can be defined)])
 		ed25519impl="ref10"
 	],
@@ -94,7 +94,7 @@ AC_ARG_ENABLE([amd64-51-30k],
 	[AS_HELP_STRING([--enable-amd64-51-30k],
 		[use SUPERCOP amd64-51-30k ed25519 implementation @<:@default=no@:>@])],
 	[
-		AS_IF([test "x$ed25519impl" != "x" -a "$ed25519impl" != "amd64_51_30k"],
+		AS_IF([test x"$ed25519impl" != x"" -a "$ed25519impl" != "amd64_51_30k"],
 			[AC_MSG_ERROR(only one ed25519 implementation can be defined)])
 		ed25519impl="amd64_51_30k"
 	],
@@ -105,7 +105,7 @@ AC_ARG_ENABLE([amd64-64-24k],
 	[AS_HELP_STRING([--enable-amd64-64-24k],
 		[use SUPERCOP amd64-64-24k ed25519 implementation @<:@default=no@:>@])],
 	[
-		AS_IF([test "x$ed25519impl" != "x" -a "$ed25519impl" != "amd64_64_24k"],
+		AS_IF([test x"$ed25519impl" != x"" -a "$ed25519impl" != "amd64_64_24k"],
 			[AC_MSG_ERROR(only one ed25519 implementation can be defined)])
 		ed25519impl="amd64_64_24k"
 	],
@@ -116,7 +116,7 @@ AC_ARG_ENABLE([donna],
 	[AS_HELP_STRING([--enable-donna],
 		[use ed25519-donna implementation @<:@default=yes@:>@])],
 	[
-		AS_IF([test "x$ed25519impl" != "x" -a "$ed25519impl" != "donna"],
+		AS_IF([test x"$ed25519impl" != x"" -a "$ed25519impl" != "donna"],
 			[AC_MSG_ERROR(only one ed25519 implementation can be defined)])
 		ed25519impl="donna"
 	],
@@ -127,7 +127,7 @@ AC_ARG_ENABLE([donna-sse2],
 	[AS_HELP_STRING([--enable-donna-sse2],
 		[use ed25519-donna SSE2 implementation @<:@default=no@:>@])],
 	[
-		AS_IF([test "x$ed25519impl" != "x" -a "$ed25519impl" != "donna-sse2"],
+		AS_IF([test x"$ed25519impl" != x"" -a "$ed25519impl" != "donna-sse2"],
 			[AC_MSG_ERROR(only one ed25519 implementation can be defined)])
 		ed25519impl="donna-sse2"
 	],
@@ -135,7 +135,7 @@ AC_ARG_ENABLE([donna-sse2],
 )
 
 # default
-AS_IF([test "x$ed25519impl" = "x"],[ed25519impl="donna"])
+AS_IF([test x"$ed25519impl" = x""],[ed25519impl="donna"])
 
 if test "$ed25519impl" = "donna-sse2"
 then
@@ -232,7 +232,7 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
 	[AC_MSG_RESULT([no])]
 )
 
-if test "x$c99" = "xyes" -a "x$ed25519impl" != "xdonna" -a "x$enable_intfilter" != "x128"
+if test x"$c99" = x"yes" -a x"$ed25519impl" != x"donna" -a x"$enable_intfilter" != x"128"
 then
 	CFLAGS="$cstd -pedantic"
 	AC_MSG_CHECKING([whether CC supports -pedantic])
@@ -253,13 +253,24 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#ifndef _WIN32
 	[AC_MSG_RESULT([no])]
 )
 
-if test "x$ed25519impl" = "xdonna"
+if test x"$ed25519impl" = x"donna"
 then
 	CFLAGS="$cstd -Wno-unused-function -Werror"
 	AC_MSG_CHECKING([whether CC supports -Wno-unused-function])
 	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
 		[AC_MSG_RESULT([yes])]
 		[cstd="$cstd -Wno-unused-function"],
+		[AC_MSG_RESULT([no])]
+	)
+fi
+
+if test x"$ed25519impl" = x"amd64_64_24k"
+then
+	CFLAGS="$cstd -Wno-unused-const-variable -Werror"
+	AC_MSG_CHECKING([whether CC supports -Wno-unused-const-variable])
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+		[AC_MSG_RESULT([yes])]
+		[cstd="$cstd -Wno-unused-const-variable"],
 		[AC_MSG_RESULT([no])]
 	)
 fi
@@ -288,7 +299,7 @@ AC_ARG_ENABLE([binfilterlen],
 		[set binary string filter length (if you don't use intfilter) @<:@default=32@:>@])],
 	[], [enable_binfilterlen=no]
 )
-if test "x$enable_binfilterlen" != "xyes" -a "x$enable_binfilterlen" != "xno"
+if test x"$enable_binfilterlen" != x"yes" -a x"$enable_binfilterlen" != x"no"
 then
 	MYDEFS="$MYDEFS -DBINFILTERLEN=$enable_binfilterlen"
 fi
@@ -298,7 +309,7 @@ AC_ARG_ENABLE([binsearch],
 		[enable binary search algoritm; MUCH faster if there are a lot of filters @<:@default=no@:>@])],
 	[], [enable_binsearch=no]
 )
-if test "x$enable_binsearch" = "xyes"
+if test x"$enable_binsearch" = x"yes"
 then
 	MYDEFS="$MYDEFS -DBINSEARCH"
 fi
@@ -308,7 +319,7 @@ AC_ARG_ENABLE([besort],
 		[force intfilter binsearch case to use big endian sorting and not omit masks from filters; useful if your filters aren't of same length @<:@default=no@:>@])],
 	[], [enable_besort=no]
 )
-if test "x$enable_besort" = "xyes"
+if test x"$enable_besort" = x"yes"
 then
 	MYDEFS="$MYDEFS -DBESORT"
 fi
@@ -318,7 +329,7 @@ AC_ARG_ENABLE([statistics],
 		[collect statistics @<:@default=yes@:>@])],
 	[], [enable_statistics=yes]
 )
-if test "x$enable_statistics" = "xyes"
+if test x"$enable_statistics" = x"yes"
 then
 	MYDEFS="$MYDEFS -DSTATISTICS"
 fi

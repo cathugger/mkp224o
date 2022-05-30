@@ -57,7 +57,7 @@ void sc25519_mul_shortsc(sc25519 *r, const sc25519 *x, const shortsc25519 *y);
 /* Convert s into a representation of the form \sum_{i=0}^{63}r[i]2^(4*i)
  * with r[i] in {-8,...,7}
  */
-void sc25519_window4(signed char r[85], const sc25519 *s);
+void sc25519_window4(signed char r[64], const sc25519 *s);
 
 void sc25519_slide(signed char r[256], const sc25519 *s, int swindowsize);
 
