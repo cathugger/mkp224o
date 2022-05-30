@@ -1,6 +1,8 @@
 #ifndef SC25519_H
 #define SC25519_H
 
+#include "compat.h"
+
 #define sc25519                  CRYPTO_NAMESPACE(batch_sc25519)
 #define shortsc25519             CRYPTO_NAMESPACE(batch_shortsc25519)
 #define sc25519_from32bytes      CRYPTO_NAMESPACE(batch_sc25519_from32bytes)
@@ -21,15 +23,15 @@
 #define sc25519_2interleave2     CRYPTO_NAMESPACE(batch_sc25519_2interleave2)
 #define sc25519_barrett CRYPTO_NAMESPACE(batch_sc25519_barrett)
 
-typedef struct 
+typedef struct
 {
-  unsigned long long v[4]; 
+  unsigned long long v[4];
 }
 sc25519;
 
-typedef struct 
+typedef struct
 {
-  unsigned long long v[2]; 
+  unsigned long long v[2];
 }
 shortsc25519;
 
@@ -43,11 +45,11 @@ void sc25519_to32bytes(unsigned char r[32], const sc25519 *x);
 
 int sc25519_iszero_vartime(const sc25519 *x);
 
-int sc25519_lt(const sc25519 *x, const sc25519 *y);
+int sc25519_lt(const sc25519 *x, const sc25519 *y) SYSVABI;
 
-void sc25519_add(sc25519 *r, const sc25519 *x, const sc25519 *y);
+void sc25519_add(sc25519 *r, const sc25519 *x, const sc25519 *y) SYSVABI;
 
-void sc25519_sub_nored(sc25519 *r, const sc25519 *x, const sc25519 *y);
+void sc25519_sub_nored(sc25519 *r, const sc25519 *x, const sc25519 *y) SYSVABI;
 
 void sc25519_mul(sc25519 *r, const sc25519 *x, const sc25519 *y);
 
@@ -64,6 +66,6 @@ void sc25519_slide(signed char r[256], const sc25519 *s, int swindowsize);
 
 void sc25519_2interleave2(unsigned char r[127], const sc25519 *s1, const sc25519 *s2);
 
-void sc25519_barrett(sc25519 *r, unsigned long long x[8]);
+void sc25519_barrett(sc25519 *r, unsigned long long x[8]) SYSVABI;
 
 #endif

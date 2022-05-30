@@ -3,6 +3,7 @@
 
 #include "fe25519.h"
 #include "sc25519.h"
+#include "compat.h"
 
 #define ge25519                           CRYPTO_NAMESPACE(ge25519)
 #define ge25519_base                      CRYPTO_NAMESPACE(ge25519_base)
@@ -66,14 +67,14 @@ typedef struct
 
 typedef unsigned char bytes32[32];
 
-extern void ge25519_p1p1_to_p2(ge25519_p2 *r, const ge25519_p1p1 *p);
-extern void ge25519_p1p1_to_p3(ge25519_p3 *r, const ge25519_p1p1 *p);
-extern void ge25519_add_p1p1(ge25519_p1p1 *r, const ge25519_p3 *p, const ge25519_p3 *q);
-extern void ge25519_dbl_p1p1(ge25519_p1p1 *r, const ge25519_p2 *p);
-extern void choose_t(ge25519_niels *t, unsigned long long pos, signed long long b, const ge25519_niels *base_multiples);
-extern void ge25519_nielsadd2(ge25519_p3 *r, const ge25519_niels *q);
-extern void ge25519_nielsadd_p1p1(ge25519_p1p1 *r, const ge25519_p3 *p, const ge25519_niels *q);
-extern void ge25519_pnielsadd_p1p1(ge25519_p1p1 *r, const ge25519_p3 *p, const ge25519_pniels *q);
+extern void ge25519_p1p1_to_p2(ge25519_p2 *r, const ge25519_p1p1 *p) SYSVABI;
+extern void ge25519_p1p1_to_p3(ge25519_p3 *r, const ge25519_p1p1 *p) SYSVABI;
+extern void ge25519_add_p1p1(ge25519_p1p1 *r, const ge25519_p3 *p, const ge25519_p3 *q) SYSVABI;
+extern void ge25519_dbl_p1p1(ge25519_p1p1 *r, const ge25519_p2 *p) SYSVABI;
+extern void choose_t(ge25519_niels *t, unsigned long long pos, signed long long b, const ge25519_niels *base_multiples) SYSVABI;
+extern void ge25519_nielsadd2(ge25519_p3 *r, const ge25519_niels *q) SYSVABI;
+extern void ge25519_nielsadd_p1p1(ge25519_p1p1 *r, const ge25519_p3 *p, const ge25519_niels *q) SYSVABI;
+extern void ge25519_pnielsadd_p1p1(ge25519_p1p1 *r, const ge25519_p3 *p, const ge25519_pniels *q) SYSVABI;
 
 extern const ge25519 ge25519_base;
 

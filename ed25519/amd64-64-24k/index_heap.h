@@ -2,6 +2,7 @@
 #define INDEX_HEAP_H
 
 #include "sc25519.h"
+#include "compat.h"
 
 #define heap_init                CRYPTO_NAMESPACE(heap_init)
 #define heap_extend              CRYPTO_NAMESPACE(heap_extend)
@@ -23,9 +24,9 @@ void heap_push(unsigned long long *h, unsigned long long *hlen, unsigned long lo
 
 void heap_get2max(unsigned long long *h, unsigned long long *max1, unsigned long long *max2, sc25519 *scalars);
 
-void heap_rootreplaced(unsigned long long *h, unsigned long long hlen, sc25519 *scalars);
-void heap_rootreplaced_3limbs(unsigned long long *h, unsigned long long hlen, sc25519 *scalars);
-void heap_rootreplaced_2limbs(unsigned long long *h, unsigned long long hlen, sc25519 *scalars);
-void heap_rootreplaced_1limb(unsigned long long *h, unsigned long long hlen, sc25519 *scalars);
+void heap_rootreplaced(unsigned long long *h, unsigned long long hlen, sc25519 *scalars) SYSVABI;
+void heap_rootreplaced_3limbs(unsigned long long *h, unsigned long long hlen, sc25519 *scalars) SYSVABI;
+void heap_rootreplaced_2limbs(unsigned long long *h, unsigned long long hlen, sc25519 *scalars) SYSVABI;
+void heap_rootreplaced_1limb(unsigned long long *h, unsigned long long hlen, sc25519 *scalars) SYSVABI;
 
 #endif
