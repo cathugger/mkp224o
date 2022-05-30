@@ -7,6 +7,8 @@ D=$(realpath "$0")
 D=$(dirname "$D")
 cd "$D"
 
+export TZ=UTC
+
 mkdir -p build
 
 export WINEARCH=win64
@@ -66,13 +68,11 @@ export PATH=$OPATH
 
 # compress stuff
 cd "$D/out"
-export TZ=UTC
 
-tar --portability --no-acls --no-selinux --no-xattrs --owner root:0 --group=root:0 --sort=name -c -f $SV.tar $SV
-zopfli -c $SV.tar > $SV.tar.gz
-zstd -19 -f $SV.tar -o $SV.tar.zst
-rm $SV.tar
+tar --portability --no-acls --no-selinux --no-xattrs --owner root:0 --group=root:0 --sort=name -c -f $SV-src.tar $SV
+zopfli   -c $SV-src.tar  > $SV-src.tar.gz
+zstd -19 -f $SV-src.tar -o $SV-src.tar.zst
+rm $SV-src.tar
 
 zip -9 -X -r $SV-w32.zip $SV-w32
 zip -9 -X -r $SV-w64.zip $SV-w64
-
