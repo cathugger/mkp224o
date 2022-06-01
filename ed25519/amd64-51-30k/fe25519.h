@@ -17,7 +17,6 @@
 #define fe25519_add          CRYPTO_NAMESPACE(batch_fe25519_add)
 #define fe25519_sub          CRYPTO_NAMESPACE(batch_fe25519_sub)
 #define fe25519_mul          CRYPTO_NAMESPACE(batch_fe25519_mul)
-#define fe25519_mul121666    CRYPTO_NAMESPACE(batch_fe25519_mul121666)
 #define fe25519_square       CRYPTO_NAMESPACE(batch_fe25519_square)
 #define fe25519_nsquare       CRYPTO_NAMESPACE(batch_fe25519_nsquare)
 #define fe25519_invert       CRYPTO_NAMESPACE(batch_fe25519_invert)
@@ -55,8 +54,6 @@ void fe25519_add(fe25519 *r, const fe25519 *x, const fe25519 *y);
 void fe25519_sub(fe25519 *r, const fe25519 *x, const fe25519 *y);
 
 void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y) SYSVABI;
-
-void fe25519_mul121666(fe25519 *r, const fe25519 *x);
 
 void fe25519_square(fe25519 *r, const fe25519 *x) SYSVABI;
 

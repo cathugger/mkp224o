@@ -29,7 +29,6 @@ Bounds on each t[i] vary depending on context.
 #define fe_mul CRYPTO_NAMESPACE(fe_mul)
 #define fe_sq CRYPTO_NAMESPACE(fe_sq)
 #define fe_sq2 CRYPTO_NAMESPACE(fe_sq2)
-#define fe_mul121666 CRYPTO_NAMESPACE(fe_mul121666)
 #define fe_invert CRYPTO_NAMESPACE(fe_invert)
 #define fe_batchinvert CRYPTO_NAMESPACE(fe_batchinvert)
 #define fe_pow22523 CRYPTO_NAMESPACE(fe_pow22523)
@@ -51,7 +50,6 @@ extern void fe_neg(fe,const fe);
 extern void fe_mul(fe,const fe,const fe);
 extern void fe_sq(fe,const fe);
 extern void fe_sq2(fe,const fe);
-extern void fe_mul121666(fe,const fe);
 extern void fe_invert(fe,const fe);
 extern void fe_batchinvert(fe *out,fe *in,fe *tmp,size_t num,size_t shift);
 extern void fe_pow22523(fe,const fe);

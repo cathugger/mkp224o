@@ -54,7 +54,6 @@
 #undef ge25519_add_p1p1
 #undef ge25519_dbl_p1p1
 #undef choose_t
-#undef choose_t_smultq
 #undef ge25519_nielsadd2
 #undef ge25519_nielsadd_p1p1
 #undef ge25519_pnielsadd_p1p1
