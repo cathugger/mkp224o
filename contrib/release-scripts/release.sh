@@ -22,6 +22,7 @@ mkdir -p out
 SV=mkp224o-$V
 SO=$(realpath ./out/$SV)
 git clone ../../ "$SO"
+git -C ../../ diff | git -C "$SO" apply
 cd "$SO"
 rm -rf .git
 ./autogen.sh

@@ -221,22 +221,29 @@ int createdir(const char *path,int secret)
 static int syncwritefile(const char *filename,const char *tmpname,int secret,const u8 *data,size_t datalen)
 {
 	FH f = createfile(tmpname,secret);
-	if (f == FH_invalid)
+	if (f == FH_invalid) {
+		//fprintf(stderr,"!failed to create\n");
 		return -1;
+	}
+
 
 	if (writeall(f,data,datalen) < 0) {
+		//fprintf(stderr,"!failed to write\n");
 		goto failclose;
 	}
 
 	if (FlushFileBuffers(f) == 0) {
+		//fprintf(stderr,"!failed to flush\n");
 		goto failclose;
 	}
 
 	if (closefile(f) < 0) {
+		//fprintf(stderr,"!failed to close\n");
 		goto failrm;
 	}
 
-	if (MoveFileA(tmpname,filename) == 0) {
+	if (MoveFileExA(tmpname,filename,MOVEFILE_REPLACE_EXISTING) == 0) {
+		//fprintf(stderr,"!failed to move\n");
 		goto failrm;
 	}
 
