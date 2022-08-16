@@ -47,6 +47,9 @@ Use `-h` switch to obtain all available options.
 I highly recommend reading [OPTIMISATION.txt][OPTIMISATION] for
 performance-related tips.
 
+### Nix
+You can access this software via nix flakes by running `nix run github:JonathanLorimer/mkp224o.nix`
+
 ### FAQ and other useful info
 
 * How do I generate address?
