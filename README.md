@@ -15,7 +15,7 @@ formely known as proposal 224) onion addresses.
 For debian-like linux distros, this should be enough to prepare for building:
 
 ```bash
-apt install gcc libsodium-dev make autoconf
+apt install gcc libc6-dev libsodium-dev make autoconf
 ```
 
 ### Building
