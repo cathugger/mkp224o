@@ -12,4 +12,4 @@ static size_t CRYPTO_NAMESPACE(worker_batch_memuse)(void)
 #include "worker_batch.inc.h"
 #include "worker_batch_pass.inc.h"
 
-#include "ed25519/ed25519_impl_post.h"
+// #include "ed25519/ed25519_impl_post.h"

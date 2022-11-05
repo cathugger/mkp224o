@@ -274,6 +274,7 @@ enum worker_type {
 #include "ed25519/ed25519_impl_pre.h"
 static void genbase(const char *privpath, const char *pubpath)
 {
+#ifdef ED25519_donna
 	u8 base_sk[32];
 	u8 base_pk[32];
 	hash_512bits base_extsk;
@@ -312,10 +313,15 @@ static void genbase(const char *privpath, const char *pubpath)
 	fclose(fp);
 
 	puts("done.");
+#else
+	fprintf(stderr, "Please compile with ed25519-donna to use this flag.\n");
+	exit(1);
+#endif
 }
 
 static void combine(const char *privpath, const char *hs_secretkey)
 {
+#ifdef ED25519_donna
 	u8 base_sk[32], secret[96];
 	FILE *fp;
  
@@ -414,6 +420,10 @@ static void combine(const char *privpath, const char *hs_secretkey)
 		exit(1);
 	}
 	fclose(fp);
+#else
+	fprintf(stderr, "Please compile with ed25519-donna to use this flag.\n");
+	exit(1);
+#endif
 }
 #include "ed25519/ed25519_impl_post.h"
 

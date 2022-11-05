@@ -265,33 +265,30 @@ void worker_init(void)
 // so i just add them there
 // i don't understand how this codebase is organized :(
 
-ge25519 ALIGN(16) PUBKEY_BASE = {0};
+ge_p3 ALIGN(16) PUBKEY_BASE = {0};
 int pubkey_base_initialized;
 
 void ed25519_pubkey_setbase(const u8 base_pk[32])
 {
 	u8 tmp_pk[32];
-	ge25519_unpack_negative_vartime(&PUBKEY_BASE, base_pk);
+	ge_frombytes_negate_vartime(&PUBKEY_BASE, base_pk);
 	// dumb hack: unpack flips the point. to get the original point
 	//            back, i just pack and unpack it again
-	ge25519_pack(tmp_pk, &PUBKEY_BASE);
-	ge25519_unpack_negative_vartime(&PUBKEY_BASE, tmp_pk);
+	ge_p3_tobytes(tmp_pk, &PUBKEY_BASE);
+	ge_frombytes_negate_vartime(&PUBKEY_BASE, tmp_pk);
 	pubkey_base_initialized = 1;
 }
 
 static int ed25519_pubkey_onbase(u8 *pk,const u8 *sk)
 {
-	bignum256modm a;
-	ge25519 ALIGN(16) A;
+	ge_p3 ALIGN(16) A;
 
 	if (unlikely(pubkey_base_initialized == 0))
 		abort();
 
-	// ge_scalarmult_base(&A, sk);
-	expand256_modm(a,sk,32);
-	ge25519_scalarmult_base_niels(&A,ge25519_niels_base_multiples,a);
+	ge_scalarmult_base(&A, sk);
 	ge25519_add(&A, &A, &PUBKEY_BASE);
-	ge25519_pack(pk,&A);
+	ge_p3_tobytes(pk,&A);
 
 	return 0;
 }

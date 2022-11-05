@@ -79,6 +79,7 @@ inline static void ge_initeightpoint(void) {}
 #define ge_p3         ge25519_p3
 #define ge_p1p1_to_p3 ge25519_p1p1_to_p3
 #define ge_p3_tobytes ge25519_pack
+#define ge_frombytes_negate_vartime ge25519_unpackneg_vartime
 #define ge_add        ge25519_pnielsadd_p1p1
 
 #define ge_p3_batchtobytes_destructive_1      ge25519_batchpack_destructive_1
@@ -190,6 +191,7 @@ static int ed25519_keypair(unsigned char *pk,unsigned char *sk)
 
 #define ge_p1p1_to_p3 ge25519_p1p1_to_full
 #define ge_p3_tobytes ge25519_pack
+#define ge_frombytes_negate_vartime ge25519_unpack_negative_vartime
 
 #define ge_p3_batchtobytes_destructive_1      ge25519_batchpack_destructive_1
 #define ge_p3_batchtobytes_destructive_finish ge25519_batchpack_destructive_finish

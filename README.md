@@ -26,7 +26,7 @@ $ cp out/zzz*.onion/hs_ed25519_secret_key.fixed /var/lib/tor/hidden_service/hs_e
 #### the ugly
 * i'm an amateur, the math might not check out
 * horrible code organization - i'm not familiar with this style of codebases at all
-* depends on ed25519-donna
+* no support for ref10, partial support for supercop amd64
 * only works with slow key generation (-Z)
 
 ### Requirements
