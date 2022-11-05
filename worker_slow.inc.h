@@ -42,7 +42,7 @@ again:
 	if (unlikely(endwork))
 		goto end;
 
-	ed25519_pubkey(pk,sk);
+	ed25519_pubkey_onbase(pk,sk);
 
 #ifdef STATISTICS
 	++st->numcalc.v;

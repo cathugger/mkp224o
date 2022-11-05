@@ -3,6 +3,32 @@
 This tool generates vanity ed25519 ([hidden service version 3][v3],
 formely known as proposal 224) onion addresses.
 
+### What is this fork?
+This is my shot at implementing [trustless mining](https://github.com/cathugger/mkp224o/issues/60).
+It's a garbage implementation, but it (kinda?) works.
+
+#### Usage
+```
+$ ./mkp224o --genbase out/base.priv out/base.pub
+writing private base key to 'out/base.priv'
+writing public base key to 'out/base.pub'
+done.
+
+$ ./mkp224o -n 1 -d out -Z --basekey out/base.pub zzz
+
+$ ./mkp224o --combine out/base.priv out/zzz*.onion/hs_ed25519_secret_key
+new pk: [...]
+saving to out/zzzkzmpje34nnp2yvgz7slr7rgpajzlpihsr3rpzgmekrjosnpprf2id.onion/hs_ed25519_secret_key.fixed
+
+$ cp out/zzz*.onion/hs_ed25519_secret_key.fixed /var/lib/tor/hidden_service/hs_ed25519_secret_key
+```
+
+#### the ugly
+* i'm an amateur, the math might not check out
+* horrible code organization - i'm not familiar with this style of codebases at all
+* depends on ed25519-donna
+* only works with slow key generation (-Z)
+
 ### Requirements
 
 * C99 compatible compiler (gcc and clang should work)

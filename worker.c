@@ -60,6 +60,9 @@ pthread_mutex_t determseed_mutex;
 u8 determseed[SEED_LEN];
 #endif
 
+static int ed25519_pubkey_onbase(u8 *pk,const u8 *sk);
+static void sanitycheck(const u8 *sk, const u8 *pk);
+
 
 char *makesname(void)
 {
@@ -88,16 +91,7 @@ static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 		pthread_mutex_unlock(&keysgenerated_mutex);
 	}
 
-	// disabled as this was never ever triggered as far as I'm aware
-#if 0
-	// Sanity check that the public key matches the private one.
-	ge_p3 ALIGN(16) point;
-	u8 testpk[PUBLIC_LEN];
-	ge_scalarmult_base(&point,&secret[SKPREFIX_SIZE]);
-	ge_p3_tobytes(testpk,&point);
-	if (memcmp(testpk,&pubonion[PKPREFIX_SIZE],PUBLIC_LEN) != 0)
-		abort();
-#endif
+	sanitycheck(&secret[SKPREFIX_SIZE], &pubonion[PKPREFIX_SIZE]);
 
 	if (!yamloutput) {
 		if (createdir(sname,1) != 0) {
@@ -265,4 +259,49 @@ void worker_init(void)
 #ifdef ED25519_donna
 	crypto_sign_ed25519_donna_ge_initeightpoint();
 #endif
+}
+
+// there's not really any good place to add ed25519 functions
+// so i just add them there
+// i don't understand how this codebase is organized :(
+
+ge25519 ALIGN(16) PUBKEY_BASE = {0};
+int pubkey_base_initialized;
+
+void ed25519_pubkey_setbase(const u8 base_pk[32])
+{
+	u8 tmp_pk[32];
+	ge25519_unpack_negative_vartime(&PUBKEY_BASE, base_pk);
+	// dumb hack: unpack flips the point. to get the original point
+	//            back, i just pack and unpack it again
+	ge25519_pack(tmp_pk, &PUBKEY_BASE);
+	ge25519_unpack_negative_vartime(&PUBKEY_BASE, tmp_pk);
+	pubkey_base_initialized = 1;
+}
+
+static int ed25519_pubkey_onbase(u8 *pk,const u8 *sk)
+{
+	bignum256modm a;
+	ge25519 ALIGN(16) A;
+
+	if (unlikely(pubkey_base_initialized == 0))
+		abort();
+
+	// ge_scalarmult_base(&A, sk);
+	expand256_modm(a,sk,32);
+	ge25519_scalarmult_base_niels(&A,ge25519_niels_base_multiples,a);
+	ge25519_add(&A, &A, &PUBKEY_BASE);
+	ge25519_pack(pk,&A);
+
+	return 0;
+}
+
+
+static void sanitycheck(const u8 *sk, const u8 *pk) {
+	u8 testpk[PUBLIC_LEN];
+	ed25519_pubkey_onbase(testpk, sk);
+	if (memcmp(testpk,pk,PUBLIC_LEN) != 0) {
+		fprintf(stderr, "Sanity check failed. Either I fucked something up, or you're using an unsupported combination of options. Probably both.\n");
+		abort();
+	}
 }

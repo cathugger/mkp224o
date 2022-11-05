@@ -132,6 +132,13 @@ static void printhelp(FILE *out,const char *progname)
 #endif
 		"      --rawyaml         raw (unprefixed) public/secret keys for -y/-Y\n"
 		"                        (may be useful for tor controller API)\n"
+		"  --basekey base.pub\n"
+		"                        trustless mining: the private keys found will need\n"
+		"                        to be --combine'd with base.priv before use\n"
+		"  --genbase base.priv base.pub\n"
+		"                        generate base keys for trustless mining\n"
+		"  --combine base.priv hs_secret_key\n"
+		"                        combine a mined hs_secret key with a base key\n"
 		"  -h, --help, --usage   print help to stdout and quit\n"
 		"  -V, --version         print version information to stdout and exit\n"
 		,progname,progname);
@@ -262,11 +269,160 @@ enum worker_type {
 	WT_BATCH,
 };
 
+// i'm so sorry for including an implementation header
+// i didn't find another way to get access to the functions
+#include "ed25519/ed25519_impl_pre.h"
+static void genbase(const char *privpath, const char *pubpath)
+{
+	u8 base_sk[32];
+	u8 base_pk[32];
+	hash_512bits base_extsk;
+	ge25519 ALIGN(16) A;
+	bignum256modm ALIGN(16) base;
+	FILE *fp;
+
+	randombytes(base_sk, sizeof base_sk);
+	ed25519_seckey_expand(base_extsk, base_sk);
+	expand256_modm(base, base_extsk, 32);
+	ge25519_scalarmult_base_niels(&A, ge25519_niels_base_multiples, base);
+	ge25519_pack(base_pk, &A);
+
+	printf("writing private base key to '%s'\n", privpath);
+	fp = fopen(privpath, "w");
+	if (!fp) {
+		perror("couldn't open");
+		exit(1);
+	}
+	if (fwrite(base_sk, 1, 32, fp) != 32) {
+		perror("write");
+		exit(1);
+	}
+	fclose(fp);
+
+	printf("writing public base key to '%s'\n", pubpath);
+	fp = fopen(pubpath, "w");
+	if (!fp) {
+		perror("couldn't open");
+		exit(1);
+	}
+	if (fwrite(base_pk, 1, 32, fp) != 32) {
+		perror("write");
+		exit(1);
+	}
+	fclose(fp);
+
+	puts("done.");
+}
+
+static void combine(const char *privpath, const char *hs_secretkey)
+{
+	u8 base_sk[32], secret[96];
+	FILE *fp;
+ 
+	fp = fopen(hs_secretkey, "r");
+	if (fp == NULL) {
+		perror("failed to open hs_secret_key");
+		exit(1);
+	}
+	if (fread(secret, 1, 96, fp) != 96) {
+		perror("failed to read hs_secret_key");
+		exit(1);
+	}
+	if (memcmp(secret, "== ed25519v1-secret: type0 ==\0\0\0", 32) != 0) {
+		fprintf(stderr, "invalid hs_secret_key format.\nare you sure you picked the right file?\n");
+		exit(1);
+	}
+	fclose(fp);
+
+	fp = fopen(privpath, "r");
+	if (fp == NULL) {
+		perror("failed to open base.priv");
+		exit(1);
+	}
+	if (fread(base_sk, 1, sizeof base_sk, fp) != sizeof base_sk) {
+		perror("failed to read base.priv");
+		exit(1);
+	}
+	fclose(fp);
+
+#if 0
+	u8 pk[32];
+
+	hash_512bits base_extsk;
+	ed25519_seckey_expand(base_extsk, base_sk);
+
+	bignum256modm ALIGN(16) base;
+	expand256_modm(base, base_extsk, 32);
+
+	ge25519 ALIGN(16) A, B;
+	ge25519_scalarmult_base_niels(&B, ge25519_niels_base_multiples, base);
+	u8 base_pk[32];
+	ge25519_pack(base_pk, &B);
+	ge25519_unpack_negative_vartime(&B, base_pk);
+	ge25519_pack(base_pk, &B);
+	ge25519_unpack_negative_vartime(&B, base_pk);
+
+	bignum256modm ALIGN(16) a;
+	expand256_modm(a, &secret[SKPREFIX_SIZE], 32);
+	ge25519_scalarmult_base_niels(&A, ge25519_niels_base_multiples, a);
+	ge25519_add(&A, &A, &B);
+	ge25519_pack(pk, &A);
+
+	printf("pk from public: ");
+	for (size_t i = 0; i < sizeof(pk); i++)
+		printf("%02x ", pk[i]);
+	puts("");
+#endif
+
+	hash_512bits base_extsk;
+	bignum256modm ALIGN(16) a, b;
+	ge25519 ALIGN(16) A;
+	u8 pk[32];
+
+	expand256_modm(a, &secret[32], 32);
+	ed25519_seckey_expand(base_extsk, base_sk);
+	expand256_modm(b, base_extsk, 32);
+
+	add256_modm(a, a, b);
+
+	ge25519_scalarmult_base_niels(&A, ge25519_niels_base_multiples, a);
+	ge25519_pack(pk, &A);
+
+	contract256_modm(&secret[32], a);
+
+	expand256_modm(a, &secret[32], 32);
+	ge25519_scalarmult_base_niels(&A, ge25519_niels_base_multiples, a);
+	ge25519_pack(pk, &A);
+
+	printf("new pk: ");
+	for (size_t i = 0; i < sizeof(pk); i++)
+		printf("%02x ", pk[i]);
+	puts("");
+
+	char *newname = malloc(strlen(hs_secretkey) + strlen(".fixed") + 1);
+	strcpy(newname, hs_secretkey);
+	strcat(newname, ".fixed");
+	printf("saving to %s\n", newname);
+
+	fp = fopen(newname, "w");
+	if (!fp) {
+		perror("couldn't open");
+		exit(1);
+	}
+	if (fwrite(secret, 1, sizeof secret, fp) != sizeof secret) {
+		perror("failed to write fixed privkey");
+		exit(1);
+	}
+	fclose(fp);
+}
+#include "ed25519/ed25519_impl_post.h"
+
 int main(int argc,char **argv)
 {
 	const char *outfile = 0;
 	const char *infile = 0;
 	const char *onehostname = 0;
+	const char *basekeyfile = 0;
 	const char *arg;
 	int ignoreargs = 0;
 	int dirnameflag = 0;
@@ -325,6 +481,28 @@ int main(int argc,char **argv)
 				else if (!strcmp(arg,"version")) {
 					printversion();
 					exit(0);
+				}
+				else if (!strcmp(arg,"combine")) {
+					if (argc != 2) {
+						printhelp(stdout,progname);
+						exit(0);
+					}
+					combine(argv[0],argv[1]);
+					exit(0);
+				}
+				else if (!strcmp(arg,"genbase")) {
+					if (argc != 2) {
+						printhelp(stdout,progname);
+						exit(0);
+					}
+					genbase(argv[0],argv[1]);
+					exit(0);
+				}
+				else if (!strcmp(arg,"basekey")) {
+					if (argc--)
+						basekeyfile = *argv++;
+					else
+						e_additional();
 				}
 				else if (!strcmp(arg,"rawyaml"))
 					yamlraw = 1;
@@ -495,6 +673,28 @@ int main(int argc,char **argv)
 		}
 		else
 			filters_add(arg);
+	}
+
+	if (wt != WT_SLOW) {
+		fprintf(stderr,"you're not using -Z. this will probably break.");
+	}
+
+	if (basekeyfile) {
+		u8 base_pk[32];
+		FILE *fp = fopen(basekeyfile, "r");
+		if (!fp) {
+			perror("couldn't open basekey");
+			exit(1);
+		}
+		if (fread(base_pk, 1, sizeof base_pk, fp) != sizeof base_pk) {
+			perror("incomplete read of base_pk");
+			exit(1);
+		}
+		fclose(fp);
+		ed25519_pubkey_setbase(base_pk);
+	} else {
+		fprintf(stderr, "This build requires using --basekey.\n");
+		exit(1);
 	}
 
 	if (yamlinput && yamloutput) {
