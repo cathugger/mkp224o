@@ -29,7 +29,6 @@ I recommend doing a test run with a short filter before mining "for real". Some 
 * horrible code organization - i'm not familiar with this style of codebases at all
 * no support for ref10
 * no automated tests
-* only works with slow key generation (-Z)
 
 ### Requirements
 
