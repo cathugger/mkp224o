@@ -360,15 +360,15 @@ static void combine(const char *privpath, const char *hs_secretkey)
 	// Save secret scalar.
 	sc25519_to32bytes(&secret[32], &a);
 
-	// Compute second half of the key.
+	// Compute the key's hash prefix.
 	// See "Pseudorandom generation of r.", page 8 of https://ed25519.cr.yp.to/ed25519-20110926.pdf
 	// You're supposed to generate it together with the secret scalar, but
 	// we can't really do that here. As far as I can tell, it just needs to
 	// be another secret value.
 	// In normal Ed25519 you never have a pair of keys with the same secret
-	// scalar but different second halves (I can't find the proper term for
-	// it...). If I generated them independently from the secret scalar,
-	// someone could run --combine and get such a pair of keys.
+	// scalar but different hash prefixes. If I generated hash prefixes
+	// independently from the secret scalar (such as by just using random
+	// bytes), you could get such a pair by running --combine multiple times.
 	// I don't know if that would mess anything up, but to err on the side
 	// of caution, I'm setting it to a hash of the secret scalar and the
 	// original generated key.
