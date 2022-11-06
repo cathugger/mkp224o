@@ -22,11 +22,13 @@ saving to out/zzzkzmpje34nnp2yvgz7slr7rgpajzlpihsr3rpzgmekrjosnpprf2id.onion/hs_
 
 $ cp out/zzz*.onion/hs_ed25519_secret_key.fixed /var/lib/tor/hidden_service/hs_ed25519_secret_key
 ```
+I recommend doing a test run with a short filter before mining "for real". Some settings are currently broken.
 
 #### the ugly
 * i'm an amateur, the math might not check out
 * horrible code organization - i'm not familiar with this style of codebases at all
-* no support for ref10, partial support for supercop amd64
+* no support for ref10
+* no automated tests
 * only works with slow key generation (-Z)
 
 ### Requirements

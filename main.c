@@ -274,18 +274,15 @@ enum worker_type {
 #include "ed25519/ed25519_impl_pre.h"
 static void genbase(const char *privpath, const char *pubpath)
 {
-#ifdef ED25519_donna
 	u8 base_sk[32];
 	u8 base_pk[32];
-	hash_512bits base_extsk;
-	ge25519 ALIGN(16) A;
-	bignum256modm ALIGN(16) base;
+	u8 base_extsk[64];
+	ge_p3 ALIGN(16) A;
 	FILE *fp;
 
 	randombytes(base_sk, sizeof base_sk);
 	ed25519_seckey_expand(base_extsk, base_sk);
-	expand256_modm(base, base_extsk, 32);
-	ge25519_scalarmult_base_niels(&A, ge25519_niels_base_multiples, base);
+	ge_scalarmult_base(&A, base_extsk);
 	ge25519_pack(base_pk, &A);
 
 	printf("writing private base key to '%s'\n", privpath);
@@ -313,15 +310,10 @@ static void genbase(const char *privpath, const char *pubpath)
 	fclose(fp);
 
 	puts("done.");
-#else
-	fprintf(stderr, "Please compile with ed25519-donna to use this flag.\n");
-	exit(1);
-#endif
 }
 
 static void combine(const char *privpath, const char *hs_secretkey)
 {
-#ifdef ED25519_donna
 	u8 base_sk[32], secret[96];
 	FILE *fp;
  
@@ -351,53 +343,24 @@ static void combine(const char *privpath, const char *hs_secretkey)
 	}
 	fclose(fp);
 
-#if 0
+	u8 base_extsk[64];;
+	sc25519 ALIGN(16) a, b;
+	ge_p3 ALIGN(16) A;
 	u8 pk[32];
 
-	hash_512bits base_extsk;
+	sc25519_from32bytes(&a, &secret[32]);
 	ed25519_seckey_expand(base_extsk, base_sk);
+	sc25519_from32bytes(&b, base_extsk);
 
-	bignum256modm ALIGN(16) base;
-	expand256_modm(base, base_extsk, 32);
+	sc25519_add(&a, &a, &b);
 
-	ge25519 ALIGN(16) A, B;
-	ge25519_scalarmult_base_niels(&B, ge25519_niels_base_multiples, base);
-	u8 base_pk[32];
-	ge25519_pack(base_pk, &B);
-	ge25519_unpack_negative_vartime(&B, base_pk);
-	ge25519_pack(base_pk, &B);
-	ge25519_unpack_negative_vartime(&B, base_pk);
-
-	bignum256modm ALIGN(16) a;
-	expand256_modm(a, &secret[SKPREFIX_SIZE], 32);
-	ge25519_scalarmult_base_niels(&A, ge25519_niels_base_multiples, a);
-	ge25519_add(&A, &A, &B);
+	ge25519_scalarmult_base(&A, &a);
 	ge25519_pack(pk, &A);
 
-	printf("pk from public: ");
-	for (size_t i = 0; i < sizeof(pk); i++)
-		printf("%02x ", pk[i]);
-	puts("");
-#endif
+	sc25519_to32bytes(&secret[32], &a);
 
-	hash_512bits base_extsk;
-	bignum256modm ALIGN(16) a, b;
-	ge25519 ALIGN(16) A;
-	u8 pk[32];
-
-	expand256_modm(a, &secret[32], 32);
-	ed25519_seckey_expand(base_extsk, base_sk);
-	expand256_modm(b, base_extsk, 32);
-
-	add256_modm(a, a, b);
-
-	ge25519_scalarmult_base_niels(&A, ge25519_niels_base_multiples, a);
-	ge25519_pack(pk, &A);
-
-	contract256_modm(&secret[32], a);
-
-	expand256_modm(a, &secret[32], 32);
-	ge25519_scalarmult_base_niels(&A, ge25519_niels_base_multiples, a);
+	sc25519_from32bytes(&a, &secret[32]);
+	ge25519_scalarmult_base(&A, &a);
 	ge25519_pack(pk, &A);
 
 	printf("new pk: ");
@@ -420,10 +383,6 @@ static void combine(const char *privpath, const char *hs_secretkey)
 		exit(1);
 	}
 	fclose(fp);
-#else
-	fprintf(stderr, "Please compile with ed25519-donna to use this flag.\n");
-	exit(1);
-#endif
 }
 #include "ed25519/ed25519_impl_post.h"
 
