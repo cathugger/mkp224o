@@ -41,8 +41,8 @@ initseed:
 	randombytes(seed,sizeof(seed));
 
 	ed25519_seckey_expand(sk,seed);
-
 	ge_scalarmult_base(&ge_public,sk);
+	ge25519_add(&ge_public, &ge_public, &PUBKEY_BASE);
 	ge_p3_tobytes(pk,&ge_public);
 
 	for (counter = 0;counter < SIZE_MAX-8;counter += 8) {

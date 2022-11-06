@@ -208,8 +208,47 @@ static void reseedright(u8 sk[SECRET_LEN])
 
 
 #include "ed25519/ed25519.h"
+#include "ed25519/ed25519_impl_pre.h"
 
-#include "worker_impl.inc.h"
+ge_p3 ALIGN(16) PUBKEY_BASE;
+int pubkey_base_initialized;
+
+#include "worker_impl.inc.h" // uses those globals
+
+void ed25519_pubkey_setbase(const u8 base_pk[32])
+{
+	u8 tmp_pk[32];
+	ge_frombytes_negate_vartime(&PUBKEY_BASE, base_pk);
+	// dumb hack: unpack flips the point. to get the original point
+	//            back, i just pack and unpack it again
+	ge_p3_tobytes(tmp_pk, &PUBKEY_BASE);
+	ge_frombytes_negate_vartime(&PUBKEY_BASE, tmp_pk);
+	pubkey_base_initialized = 1;
+}
+
+static int ed25519_pubkey_onbase(u8 *pk,const u8 *sk)
+{
+	ge_p3 ALIGN(16) A;
+
+	if (unlikely(pubkey_base_initialized == 0))
+		abort();
+
+	ge_scalarmult_base(&A, sk);
+	ge25519_add(&A, &A, &PUBKEY_BASE);
+	ge_p3_tobytes(pk,&A);
+
+	return 0;
+}
+
+
+static void sanitycheck(const u8 *sk, const u8 *pk) {
+	u8 testpk[PUBLIC_LEN];
+	ed25519_pubkey_onbase(testpk, sk);
+	if (memcmp(testpk,pk,PUBLIC_LEN) != 0) {
+		fprintf(stderr, "Sanity check failed. Either I fucked something up, or you're using an unsupported combination of options. Probably both.\n");
+		abort();
+	}
+}
 
 size_t worker_batch_memuse(void)
 {
@@ -259,46 +298,4 @@ void worker_init(void)
 #ifdef ED25519_donna
 	crypto_sign_ed25519_donna_ge_initeightpoint();
 #endif
-}
-
-// there's not really any good place to add ed25519 functions
-// so i just add them there
-// i don't understand how this codebase is organized :(
-
-ge_p3 ALIGN(16) PUBKEY_BASE = {0};
-int pubkey_base_initialized;
-
-void ed25519_pubkey_setbase(const u8 base_pk[32])
-{
-	u8 tmp_pk[32];
-	ge_frombytes_negate_vartime(&PUBKEY_BASE, base_pk);
-	// dumb hack: unpack flips the point. to get the original point
-	//            back, i just pack and unpack it again
-	ge_p3_tobytes(tmp_pk, &PUBKEY_BASE);
-	ge_frombytes_negate_vartime(&PUBKEY_BASE, tmp_pk);
-	pubkey_base_initialized = 1;
-}
-
-static int ed25519_pubkey_onbase(u8 *pk,const u8 *sk)
-{
-	ge_p3 ALIGN(16) A;
-
-	if (unlikely(pubkey_base_initialized == 0))
-		abort();
-
-	ge_scalarmult_base(&A, sk);
-	ge25519_add(&A, &A, &PUBKEY_BASE);
-	ge_p3_tobytes(pk,&A);
-
-	return 0;
-}
-
-
-static void sanitycheck(const u8 *sk, const u8 *pk) {
-	u8 testpk[PUBLIC_LEN];
-	ed25519_pubkey_onbase(testpk, sk);
-	if (memcmp(testpk,pk,PUBLIC_LEN) != 0) {
-		fprintf(stderr, "Sanity check failed. Either I fucked something up, or you're using an unsupported combination of options. Probably both.\n");
-		abort();
-	}
 }

@@ -659,8 +659,9 @@ int main(int argc,char **argv)
 			filters_add(arg);
 	}
 
-	if (wt != WT_SLOW) {
-		fprintf(stderr,"you're not using -Z. this will probably break.");
+	if (deterministic) {
+		fprintf(stderr, "deterministic trustless mining isn't supported yet.\n");
+		exit(1);
 	}
 
 	if (basekeyfile) {
