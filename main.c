@@ -134,7 +134,7 @@ static void printhelp(FILE *out,const char *progname)
 		"                        (may be useful for tor controller API)\n"
 		"  --basekey base.pub\n"
 		"                        trustless mining: the private keys found will need\n"
-		"                        to be --combine'd with thr private parts of all\n"
+		"                        to be --combine'd with the private parts of all\n"
 		"                        basekeys used\n"
 		"  --genbase base.priv base.pub\n"
 		"                        generate base keys for trustless mining\n"
