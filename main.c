@@ -134,11 +134,12 @@ static void printhelp(FILE *out,const char *progname)
 		"                        (may be useful for tor controller API)\n"
 		"  --basekey base.pub\n"
 		"                        trustless mining: the private keys found will need\n"
-		"                        to be --combine'd with base.priv before use\n"
+		"                        to be --combine'd with thr private parts of all\n"
+		"                        basekeys used\n"
 		"  --genbase base.priv base.pub\n"
 		"                        generate base keys for trustless mining\n"
-		"  --combine base.priv hs_secret_key\n"
-		"                        combine a mined hs_secret key with a base key\n"
+		"  --combine hs_secret_key base.priv..\n"
+		"                        combine a mined hs_secret key with base key(s)\n"
 		"  -h, --help, --usage   print help to stdout and quit\n"
 		"  -V, --version         print version information to stdout and exit\n"
 		,progname,progname);
@@ -312,12 +313,18 @@ static void genbase(const char *privpath, const char *pubpath)
 	puts("done.");
 }
 
-static void combine(const char *privpath, const char *hs_secretkey)
+static void combine(int argc, char **argv)
 {
-	u8 base_sk[32], secret[96];
+	u8 secret[96];
 	FILE *fp;
+	const char *minedpath = argv[0];
+
+	if (argc < 2) {
+		fprintf(stderr, "--combine requires one or more base private keys after the mined key.\n");
+		exit(1);
+	}
  
-	fp = fopen(hs_secretkey, "r");
+	fp = fopen(minedpath, "r");
 	if (fp == NULL) {
 		perror("failed to open hs_secret_key");
 		exit(1);
@@ -332,29 +339,31 @@ static void combine(const char *privpath, const char *hs_secretkey)
 	}
 	fclose(fp);
 
-	fp = fopen(privpath, "r");
-	if (fp == NULL) {
-		perror("failed to open base.priv");
-		exit(1);
-	}
-	if (fread(base_sk, 1, sizeof base_sk, fp) != sizeof base_sk) {
-		perror("failed to read base.priv");
-		exit(1);
-	}
-	fclose(fp);
-
-	u8 base_extsk[64];;
-	sc25519 ALIGN(16) a, b;
-	ge_p3 ALIGN(16) A;
-	u8 pk[32];
-
+	sc25519 ALIGN(16) a;
 	sc25519_from32bytes(&a, &secret[32]);
-	ed25519_seckey_expand(base_extsk, base_sk);
-	sc25519_from32bytes(&b, base_extsk);
 
-	sc25519_add(&a, &a, &b);
+	for (int i = 1; i < argc; i++) {
+		u8 base_sk[32], base_extsk[64];
+		fp = fopen(argv[i], "r");
+		if (fp == NULL) {
+			perror("failed to open base.priv");
+			exit(1);
+		}
+		if (fread(base_sk, 1, sizeof base_sk, fp) != sizeof base_sk) {
+			perror("failed to read base.priv");
+			exit(1);
+		}
+		fclose(fp);
 
+		sc25519 ALIGN(16) b;
+		ed25519_seckey_expand(base_extsk, base_sk);
+		sc25519_from32bytes(&b, base_extsk);
+		sc25519_add(&a, &a, &b);
+	}
+
+	ge_p3 ALIGN(16) A;
 	ge25519_scalarmult_base(&A, &a);
+	u8 pk[32];
 	ge25519_pack(pk, &A);
 
 	// Save secret scalar.
@@ -383,8 +392,8 @@ static void combine(const char *privpath, const char *hs_secretkey)
 		printf("%02x ", pk[i]);
 	puts("");
 
-	char *newname = malloc(strlen(hs_secretkey) + strlen(".fixed") + 1);
-	strcpy(newname, hs_secretkey);
+	char *newname = malloc(strlen(minedpath) + strlen(".fixed") + 1);
+	strcpy(newname, minedpath);
 	strcat(newname, ".fixed");
 	printf("saving to %s\n", newname);
 
@@ -406,7 +415,6 @@ int main(int argc,char **argv)
 	const char *outfile = 0;
 	const char *infile = 0;
 	const char *onehostname = 0;
-	const char *basekeyfile = 0;
 	const char *arg;
 	int ignoreargs = 0;
 	int dirnameflag = 0;
@@ -425,6 +433,7 @@ int main(int argc,char **argv)
 	int realtimestats = 1;
 #endif
 	int tret;
+	int basekeys = 0;
 
 	if (sodium_init() < 0) {
 		fprintf(stderr,"sodium_init() failed\n");
@@ -467,11 +476,7 @@ int main(int argc,char **argv)
 					exit(0);
 				}
 				else if (!strcmp(arg,"combine")) {
-					if (argc != 2) {
-						printhelp(stdout,progname);
-						exit(0);
-					}
-					combine(argv[0],argv[1]);
+					combine(argc,argv);
 					exit(0);
 				}
 				else if (!strcmp(arg,"genbase")) {
@@ -483,10 +488,23 @@ int main(int argc,char **argv)
 					exit(0);
 				}
 				else if (!strcmp(arg,"basekey")) {
-					if (argc--)
-						basekeyfile = *argv++;
-					else
+					if (argc--) {
+						u8 base_pk[32];
+						FILE *fp = fopen(*argv++, "r");
+						if (!fp) {
+							perror("couldn't open basekey");
+							exit(1);
+						}
+						if (fread(base_pk, 1, sizeof base_pk, fp) != sizeof base_pk) {
+							perror("incomplete read of base_pk");
+							exit(1);
+						}
+						fclose(fp);
+						ed25519_pubkey_addbase(base_pk);
+						basekeys++;
+					} else {
 						e_additional();
+					}
 				}
 				else if (!strcmp(arg,"rawyaml"))
 					yamlraw = 1;
@@ -664,20 +682,7 @@ int main(int argc,char **argv)
 		exit(1);
 	}
 
-	if (basekeyfile) {
-		u8 base_pk[32];
-		FILE *fp = fopen(basekeyfile, "r");
-		if (!fp) {
-			perror("couldn't open basekey");
-			exit(1);
-		}
-		if (fread(base_pk, 1, sizeof base_pk, fp) != sizeof base_pk) {
-			perror("incomplete read of base_pk");
-			exit(1);
-		}
-		fclose(fp);
-		ed25519_pubkey_setbase(base_pk);
-	} else {
+	if (basekeys == 0) {
 		fprintf(stderr, "This build requires using --basekey.\n");
 		exit(1);
 	}

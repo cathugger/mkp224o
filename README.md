@@ -16,13 +16,14 @@ done.
 
 $ ./mkp224o -n 1 -d out -Z --basekey out/base.pub zzz
 
-$ ./mkp224o --combine out/base.priv out/zzz*.onion/hs_ed25519_secret_key
+$ ./mkp224o --combine out/zzz*.onion/hs_ed25519_secret_key out/base.priv
 new pk: [...]
 saving to out/zzzkzmpje34nnp2yvgz7slr7rgpajzlpihsr3rpzgmekrjosnpprf2id.onion/hs_ed25519_secret_key.fixed
 
 $ cp out/zzz*.onion/hs_ed25519_secret_key.fixed /var/lib/tor/hidden_service/hs_ed25519_secret_key
 ```
 I recommend doing a test run with a short filter before mining "for real". Some settings are currently broken.
+It's also possible to specify [multiple basekeys](https://github.com/cathugger/mkp224o/issues/60#issuecomment-1305033288).
 
 #### the ugly
 * i'm an amateur, the math might not check out

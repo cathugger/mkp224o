@@ -215,15 +215,21 @@ int pubkey_base_initialized;
 
 #include "worker_impl.inc.h" // uses those globals
 
-void ed25519_pubkey_setbase(const u8 base_pk[32])
+void ed25519_pubkey_addbase(const u8 base_pk[32])
 {
+	ge_p3 ALIGN(16) A;
 	u8 tmp_pk[32];
-	ge_frombytes_negate_vartime(&PUBKEY_BASE, base_pk);
+	ge_frombytes_negate_vartime(&A, base_pk);
 	// dumb hack: unpack flips the point. to get the original point
 	//            back, i just pack and unpack it again
-	ge_p3_tobytes(tmp_pk, &PUBKEY_BASE);
-	ge_frombytes_negate_vartime(&PUBKEY_BASE, tmp_pk);
-	pubkey_base_initialized = 1;
+	ge_p3_tobytes(tmp_pk, &A);
+	ge_frombytes_negate_vartime(&A, tmp_pk);
+	if (!pubkey_base_initialized) {
+		pubkey_base_initialized = 1;
+		PUBKEY_BASE = A; // TODO use a proper cpy fn if any
+	} else {
+		ge25519_add(&PUBKEY_BASE, &PUBKEY_BASE, &A);
+	}
 }
 
 static int ed25519_pubkey_onbase(u8 *pk,const u8 *sk)
