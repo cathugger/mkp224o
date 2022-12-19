@@ -102,7 +102,7 @@ static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 	if (!yamloutput) {
 		if (createdir(sname,1) != 0) {
 			pthread_mutex_lock(&fout_mutex);
-			fprintf(stderr,"ERROR: could not create directory for key output\n");
+			fprintf(stderr,"ERROR: could not create directory \"%s\" for key output\n",sname);
 			pthread_mutex_unlock(&fout_mutex);
 			return;
 		}
