@@ -1,4 +1,8 @@
+#ifndef __APPLE__
 .section .rodata
+#else
+.const
+#endif
 
 .globl CRYPTO_NAMESPACE(121666)
 .globl CRYPTO_NAMESPACE(MU0)

@@ -1,4 +1,8 @@
+#ifndef __APPLE__
 .section .rodata
+#else
+.const
+#endif
 
 .globl CRYPTO_NAMESPACE(batch_REDMASK51)
 .globl CRYPTO_NAMESPACE(batch_121666_213)
