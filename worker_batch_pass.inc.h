@@ -54,6 +54,9 @@ initseed:
 	ed25519_seckey_expand(sk,seed);
 
 	ge_scalarmult_base(&ge_public,sk);
+	if (pubkey_base_initialized) {
+		ge25519_add(&ge_public, &ge_public, &PUBKEY_BASE);
+	}
 
 	for (counter = oldcounter = 0;counter < DETERMINISTIC_LOOP_COUNT - (BATCHNUM - 1) * 8;counter += BATCHNUM * 8) {
 		ge_p1p1 ALIGN(16) sum;

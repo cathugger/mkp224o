@@ -677,11 +677,6 @@ int main(int argc,char **argv)
 			filters_add(arg);
 	}
 
-	if (deterministic) {
-		fprintf(stderr, "deterministic trustless mining isn't supported yet.\n");
-		exit(1);
-	}
-
 	if (yamlinput && yamloutput) {
 		fprintf(stderr,"both -y and -Y does not make sense\n");
 		exit(1);
