@@ -211,7 +211,7 @@ static void reseedright(u8 sk[SECRET_LEN])
 #include "ed25519/ed25519_impl_pre.h"
 
 ge_p3 ALIGN(16) PUBKEY_BASE;
-int pubkey_base_initialized;
+int pubkey_base_initialized = 0;
 
 #include "worker_impl.inc.h" // uses those globals
 
@@ -219,14 +219,18 @@ void ed25519_pubkey_addbase(const u8 base_pk[32])
 {
 	ge_p3 ALIGN(16) A;
 	u8 tmp_pk[32];
+
 	ge_frombytes_negate_vartime(&A, base_pk);
-	// dumb hack: unpack flips the point. to get the original point
-	//            back, i just pack and unpack it again
+	// dumb hack: The only available frombytes function flips the point.
+	// To get the original point back, I can just pack and unpack it again.
 	ge_p3_tobytes(tmp_pk, &A);
 	ge_frombytes_negate_vartime(&A, tmp_pk);
+
 	if (!pubkey_base_initialized) {
+		// note: PUBKEY_BASE could be initialized to the point at infinity
+		// to remove the need for pubkey_base_initialized.
 		pubkey_base_initialized = 1;
-		PUBKEY_BASE = A; // TODO use a proper cpy fn if any
+		PUBKEY_BASE = A;
 	} else {
 		ge25519_add(&PUBKEY_BASE, &PUBKEY_BASE, &A);
 	}
@@ -235,14 +239,11 @@ void ed25519_pubkey_addbase(const u8 base_pk[32])
 static int ed25519_pubkey_onbase(u8 *pk,const u8 *sk)
 {
 	ge_p3 ALIGN(16) A;
-
-	if (unlikely(pubkey_base_initialized == 0))
-		abort();
-
 	ge_scalarmult_base(&A, sk);
-	ge25519_add(&A, &A, &PUBKEY_BASE);
+	if (pubkey_base_initialized) {
+		ge25519_add(&A, &A, &PUBKEY_BASE);
+	}
 	ge_p3_tobytes(pk,&A);
-
 	return 0;
 }
 
@@ -251,7 +252,7 @@ static void sanitycheck(const u8 *sk, const u8 *pk) {
 	u8 testpk[PUBLIC_LEN];
 	ed25519_pubkey_onbase(testpk, sk);
 	if (memcmp(testpk,pk,PUBLIC_LEN) != 0) {
-		fprintf(stderr, "Sanity check failed. Either I fucked something up, or you're using an unsupported combination of options. Probably both.\n");
+		fprintf(stderr, "Sanity check failed. Please report this on Github, including the command line parameters you've used.\n");
 		abort();
 	}
 }

@@ -25,9 +25,6 @@ void *CRYPTO_NAMESPACE(worker_batch)(void *task)
 	(void) task;
 #endif
 
-	if (unlikely(pubkey_base_initialized == 0))
-		abort();
-
 	PREFILTER
 
 	memcpy(secret,skprefix,SKPREFIX_SIZE);
@@ -50,7 +47,9 @@ initseed:
 
 	ed25519_seckey_expand(sk,seed);
 	ge_scalarmult_base(&ge_public,sk);
-	ge25519_add(&ge_public, &ge_public, &PUBKEY_BASE);
+	if (pubkey_base_initialized) {
+		ge25519_add(&ge_public, &ge_public, &PUBKEY_BASE);
+	}
 
 	for (counter = 0;counter < SIZE_MAX-(8*BATCHNUM);counter += 8*BATCHNUM) {
 		ge_p1p1 ALIGN(16) sum;

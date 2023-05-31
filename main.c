@@ -682,11 +682,6 @@ int main(int argc,char **argv)
 		exit(1);
 	}
 
-	if (basekeys == 0) {
-		fprintf(stderr, "This build requires using --basekey.\n");
-		exit(1);
-	}
-
 	if (yamlinput && yamloutput) {
 		fprintf(stderr,"both -y and -Y does not make sense\n");
 		exit(1);
