@@ -49,6 +49,9 @@ initseed:
 	ed25519_seckey_expand(sk,seed);
 
 	ge_scalarmult_base(&ge_public,sk);
+	if (pubkey_base_initialized) {
+		ge25519_add(&ge_public, &ge_public, &PUBKEY_BASE);
+	}
 	ge_p3_tobytes(pk,&ge_public);
 
 	for (counter = oldcounter = 0;counter < DETERMINISTIC_LOOP_COUNT;counter += 8) {

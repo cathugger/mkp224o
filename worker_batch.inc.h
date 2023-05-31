@@ -46,8 +46,10 @@ initseed:
 	randombytes(seed,sizeof(seed));
 
 	ed25519_seckey_expand(sk,seed);
-
 	ge_scalarmult_base(&ge_public,sk);
+	if (pubkey_base_initialized) {
+		ge25519_add(&ge_public, &ge_public, &PUBKEY_BASE);
+	}
 
 	for (counter = 0;counter < SIZE_MAX-(8*BATCHNUM);counter += 8*BATCHNUM) {
 		ge_p1p1 ALIGN(16) sum;

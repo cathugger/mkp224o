@@ -20,10 +20,14 @@
 #include "ioutil.h"
 #include "common.h"
 #include "yaml.h"
+#include "headers.h"
 
 #include "worker.h"
 
 #include "filters.h"
+
+#include "ed25519/ed25519.h"
+#include "ed25519/ed25519_impl_pre.h"
 
 #ifndef _WIN32
 #define FSZ "%zu"
@@ -51,6 +55,9 @@ size_t numneedgenerate = 0;
 char *workdir = 0;
 size_t workdirlen = 0;
 
+ge_p3 ALIGN(16) PUBKEY_BASE;
+int pubkey_base_initialized = 0;
+
 
 #ifdef PASSPHRASE
 // How many times we loop before a reseed
@@ -59,6 +66,9 @@ size_t workdirlen = 0;
 pthread_mutex_t determseed_mutex;
 u8 determseed[SEED_LEN];
 #endif
+
+static int ed25519_pubkey_onbase(u8 *pk,const u8 *sk);
+static void sanitycheck(const u8 *sk, const u8 *pk);
 
 
 char *makesname(void)
@@ -88,16 +98,7 @@ static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 		pthread_mutex_unlock(&keysgenerated_mutex);
 	}
 
-	// disabled as this was never ever triggered as far as I'm aware
-#if 0
-	// Sanity check that the public key matches the private one.
-	ge_p3 ALIGN(16) point;
-	u8 testpk[PUBLIC_LEN];
-	ge_scalarmult_base(&point,&secret[SKPREFIX_SIZE]);
-	ge_p3_tobytes(testpk,&point);
-	if (memcmp(testpk,&pubonion[PKPREFIX_SIZE],PUBLIC_LEN) != 0)
-		abort();
-#endif
+	sanitycheck(&secret[SKPREFIX_SIZE], &pubonion[PKPREFIX_SIZE]);
 
 	if (!yamloutput) {
 		if (createdir(sname,1) != 0) {
@@ -107,11 +108,36 @@ static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 			return;
 		}
 
-		strcpy(&sname[onionendpos],"/hs_ed25519_secret_key");
-		writetofile(sname,secret,FORMATTED_SECRET_LEN,1);
+		if (pubkey_base_initialized == 0) {
+			strcpy(&sname[onionendpos],"/hs_ed25519_secret_key");
+			writetofile(sname,secret,FORMATTED_SECRET_LEN,1);
 
-		strcpy(&sname[onionendpos],"/hs_ed25519_public_key");
-		writetofile(sname,pubonion,FORMATTED_PUBLIC_LEN,0);
+			strcpy(&sname[onionendpos],"/hs_ed25519_public_key");
+			writetofile(sname,pubonion,FORMATTED_PUBLIC_LEN,0);
+		} else {
+			strcpy(&sname[onionendpos],"/halfkey");
+			FILE *fp = fopen(sname,"w");
+			if (!fp) {
+				perror("couldn't create output file");
+				return;
+			}
+			if (fwrite(HEADER_HALFKEY,HEADER_HALFKEYLEN,1,fp) != 1) {
+				perror("couldn't write to output file");
+				fclose(fp);
+				return;
+			}
+			if (fwrite(&secret[SKPREFIX_SIZE],SECRET_LEN,1,fp) != 1) {
+				perror("couldn't write to output file");
+				fclose(fp);
+				return;
+			}
+			if (fwrite(&pubonion[PKPREFIX_SIZE],PUBLIC_LEN,1,fp) != 1) {
+				perror("couldn't write to output file");
+				fclose(fp);
+				return;
+			}
+			fclose(fp);
+		}
 
 		strcpy(&sname[onionendpos],"/hostname");
 		FILE *hfile = fopen(sname,"w");
@@ -212,10 +238,49 @@ static void reseedright(u8 sk[SECRET_LEN])
 	#define BATCHNUM 2048
 #endif
 
+#include "worker_impl.inc.h" // uses those globals
 
-#include "ed25519/ed25519.h"
+void ed25519_pubkey_addbase(const u8 base_pk[32])
+{
+	ge_p3 ALIGN(16) A;
+	u8 tmp_pk[32];
 
-#include "worker_impl.inc.h"
+	ge_frombytes_negate_vartime(&A, base_pk);
+	// dumb hack: The only available frombytes function flips the point.
+	// To get the original point back, I can just pack and unpack it again.
+	ge_p3_tobytes(tmp_pk, &A);
+	ge_frombytes_negate_vartime(&A, tmp_pk);
+
+	if (!pubkey_base_initialized) {
+		// note: PUBKEY_BASE could be initialized to the point at infinity
+		// to remove the need for pubkey_base_initialized.
+		pubkey_base_initialized = 1;
+		PUBKEY_BASE = A;
+	} else {
+		ge25519_add(&PUBKEY_BASE, &PUBKEY_BASE, &A);
+	}
+}
+
+static int ed25519_pubkey_onbase(u8 *pk,const u8 *sk)
+{
+	ge_p3 ALIGN(16) A;
+	ge_scalarmult_base(&A, sk);
+	if (pubkey_base_initialized) {
+		ge25519_add(&A, &A, &PUBKEY_BASE);
+	}
+	ge_p3_tobytes(pk,&A);
+	return 0;
+}
+
+
+static void sanitycheck(const u8 *sk, const u8 *pk) {
+	u8 testpk[PUBLIC_LEN];
+	ed25519_pubkey_onbase(testpk, sk);
+	if (memcmp(testpk,pk,PUBLIC_LEN) != 0) {
+		fprintf(stderr, "Sanity check failed. Please report this on Github, including the command line parameters you've used.\n");
+		abort();
+	}
+}
 
 size_t worker_batch_memuse(void)
 {

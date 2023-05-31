@@ -79,6 +79,7 @@ inline static void ge_initeightpoint(void) {}
 #define ge_p3         ge25519_p3
 #define ge_p1p1_to_p3 ge25519_p1p1_to_p3
 #define ge_p3_tobytes ge25519_pack
+#define ge_frombytes_negate_vartime ge25519_unpackneg_vartime
 #define ge_add        ge25519_pnielsadd_p1p1
 
 #define ge_p3_batchtobytes_destructive_1      ge25519_batchpack_destructive_1
@@ -185,19 +186,39 @@ static int ed25519_keypair(unsigned char *pk,unsigned char *sk)
 }
 
 #define fe      bignum25519
+#define sc25519 bignum256modm
 #define ge_p1p1 ge25519_p1p1
 #define ge_p3   ge25519
 
 #define ge_p1p1_to_p3 ge25519_p1p1_to_full
 #define ge_p3_tobytes ge25519_pack
+#define ge_frombytes_negate_vartime ge25519_unpack_negative_vartime
 
 #define ge_p3_batchtobytes_destructive_1      ge25519_batchpack_destructive_1
 #define ge_p3_batchtobytes_destructive_finish ge25519_batchpack_destructive_finish
 
-
 #define ge_add             CRYPTO_NAMESPACE(ge_add)
 #define ge_scalarmult_base CRYPTO_NAMESPACE(ge_scalarmult_base)
 
+static void sc25519_from32bytes(bignum256modm *r, const unsigned char x[32])
+{
+	expand256_modm(*r, x, 32);
+}
+
+static void sc25519_to32bytes(unsigned char r[32], const sc25519 *x)
+{
+	contract256_modm(r, *x);
+}
+
+static void sc25519_add(bignum256modm *r, const bignum256modm *x, const bignum256modm *y)
+{
+	add256_modm(*r, *x, *y);
+}
+
+static void ge25519_scalarmult_base(ge25519 *r, const bignum256modm *s)
+{
+	ge25519_scalarmult_base_niels(r,ge25519_niels_base_multiples,*s);
+}
 
 DONNA_INLINE static void ge_add(ge25519_p1p1 *r,const ge25519 *p,const ge25519_pniels *q)
 {

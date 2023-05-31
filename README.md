@@ -50,6 +50,33 @@ Use `-h` switch to obtain all available options.
 I highly recommend reading [OPTIMISATION.txt][OPTIMISATION] for
 performance-related tips.
 
+#### Trustless mining
+[Trustless mining](https://github.com/cathugger/mkp224o/issues/60) lets someone
+else safely mine a vanity .onion for you without letting them get its private
+key. Beware that it's an experimental feature - it's not yet completely tested,
+audited, nor does it work with all configurations.
+
+```
+# example usage
+$ ./mkp224o --genbase base.priv base.pub
+writing private base key to 'base.priv'
+writing public base key to 'base.pub'
+done.
+
+$ ./mkp224o --basekey base.pub -d ~/keys -n 1 neko
+set workdir: /home/dzwdz/keys/
+sorting filters... done.
+filters:
+        neko
+in total, 1 filter
+using 1 thread
+neko3q2neskgkol2gyg2hia46xnavwt4yfy2nvj2pulmvc7lxk6yfkad.onion
+waiting for threads to finish... done.
+
+$ ./mkp224o --combine ~/keys/neko3q2nes*.onion/halfkey base.priv
+saving to ~/keys/neko3q2neskgkol2gyg2hia46xnavwt4yfy2nvj2pulmvc7lxk6yfkad.onion/hs_ed25519_secret_key
+```
+
 ### FAQ and other useful info
 
 * How do I generate address?

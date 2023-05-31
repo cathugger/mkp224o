@@ -36,6 +36,7 @@ extern u8 determseed[SEED_LEN];
 #endif
 
 extern void worker_init(void);
+extern void ed25519_pubkey_addbase(const u8 base_pk[32]);
 
 extern char *makesname(void);
 extern size_t worker_batch_memuse(void);
