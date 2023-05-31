@@ -3,34 +3,6 @@
 This tool generates vanity ed25519 ([hidden service version 3][v3],
 formely known as proposal 224) onion addresses.
 
-### What is this fork?
-This is my shot at implementing [trustless mining](https://github.com/cathugger/mkp224o/issues/60).
-It's a garbage implementation, but it (kinda?) works.
-
-#### Usage
-```
-$ ./mkp224o --genbase out/base.priv out/base.pub
-writing private base key to 'out/base.priv'
-writing public base key to 'out/base.pub'
-done.
-
-$ ./mkp224o -n 1 -d out -Z --basekey out/base.pub zzz
-
-$ ./mkp224o --combine out/zzz*.onion/hs_ed25519_secret_key out/base.priv
-new pk: [...]
-saving to out/zzzkzmpje34nnp2yvgz7slr7rgpajzlpihsr3rpzgmekrjosnpprf2id.onion/hs_ed25519_secret_key.fixed
-
-$ cp out/zzz*.onion/hs_ed25519_secret_key.fixed /var/lib/tor/hidden_service/hs_ed25519_secret_key
-```
-I recommend doing a test run with a short filter before mining "for real". Some settings are currently broken.
-It's also possible to specify [multiple basekeys](https://github.com/cathugger/mkp224o/issues/60#issuecomment-1305033288).
-
-#### the ugly
-* i'm an amateur, the math might not check out
-* horrible code organization - i'm not familiar with this style of codebases at all
-* no support for ref10
-* no automated tests
-
 ### Requirements
 
 * C99 compatible compiler (gcc and clang should work)
@@ -74,6 +46,33 @@ Use `-h` switch to obtain all available options.
 
 I highly recommend reading [OPTIMISATION.txt][OPTIMISATION] for
 performance-related tips.
+
+#### Trustless mining
+[Trustless mining](https://github.com/cathugger/mkp224o/issues/60) lets someone
+else safely mine a vanity .onion for you without letting them get its private
+key. Beware that it's an experimental feature - it's not yet completely tested,
+audited, nor does it work with all configurations.
+
+```
+# example usage
+$ ./mkp224o --genbase base.priv base.pub
+writing private base key to 'base.priv'
+writing public base key to 'base.pub'
+done.
+
+$ ./mkp224o --basekey base.pub -d ~/keys -n 1 neko
+set workdir: /home/dzwdz/keys/
+sorting filters... done.
+filters:
+        neko
+in total, 1 filter
+using 1 thread
+neko3q2neskgkol2gyg2hia46xnavwt4yfy2nvj2pulmvc7lxk6yfkad.onion
+waiting for threads to finish... done.
+
+$ ./mkp224o --combine ~/keys/neko3q2nes*.onion/halfkey base.priv
+saving to ~/keys/neko3q2neskgkol2gyg2hia46xnavwt4yfy2nvj2pulmvc7lxk6yfkad.onion/hs_ed25519_secret_key
+```
 
 ### FAQ and other useful info
 

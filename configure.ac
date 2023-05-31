@@ -83,6 +83,7 @@ AC_ARG_ENABLE([ref10],
 	[AS_HELP_STRING([--enable-ref10],
 		[use SUPERCOP ref10 ed25519 implementation @<:@default=no@:>@])],
 	[
+		AC_MSG_ERROR(ref10 is temporarily unsupported. try using donna instead)
 		AS_IF([test x"$ed25519impl" != x"" -a "$ed25519impl" != "ref10"],
 			[AC_MSG_ERROR(only one ed25519 implementation can be defined)])
 		ed25519impl="ref10"
