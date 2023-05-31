@@ -223,7 +223,7 @@ static void savecheckpoint(void)
 
 	if (syncwrite(checkpointfile,1,checkpoint,SEED_LEN) < 0) {
 		pthread_mutex_lock(&fout_mutex);
-		fprintf(stderr,"ERROR: could not save checkpoint\n");
+		fprintf(stderr,"ERROR: could not save checkpoint to \"%s\"\n",checkpointfile);
 		pthread_mutex_unlock(&fout_mutex);
 	}
 }

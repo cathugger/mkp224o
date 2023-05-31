@@ -274,7 +274,7 @@ int yamlin_parseandcreate(
 			sigprocmask(SIG_BLOCK,&nset,&oset);
 #endif
 			if (createdir(sname,1) != 0) {
-				fprintf(stderr,"ERROR: could not create directory for key output\n");
+				fprintf(stderr,"ERROR: could not create directory \"%s\" for key output\n",sname);
 				return 1;
 			}
 

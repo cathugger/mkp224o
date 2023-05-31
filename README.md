@@ -3,7 +3,7 @@
 This tool generates vanity ed25519 ([hidden service version 3][v3],
 formely known as proposal 224) onion addresses.
 
-### Requirements
+### Requirements for building
 
 * C99 compatible compiler (gcc and clang should work)
 * libsodium (including headers)
@@ -20,23 +20,26 @@ apt install gcc libc6-dev libsodium-dev make autoconf
 
 ### Building
 
-`./autogen.sh` to generate configure script, if it's not there already.
+Run `./autogen.sh` to generate a configure script, if there isn't one already.
 
-`./configure` to generate makefile; in \*BSD platforms you probably want to use
+Run `./configure` to generate a makefile.
+On \*BSD platforms you may need to specify extra include/library paths:
 `./configure CPPFLAGS="-I/usr/local/include" LDFLAGS="-L/usr/local/lib"`.
 
 On AMD64 platforms, you probably also want to pass something like
-`--enable-amd64-51-30k`  to configure script for faster key generation;
+`--enable-amd64-51-30k` to the configure script invocation for faster key generation;
 run `./configure --help` to see all available options.
 
 Finally, `make` to start building (`gmake` in \*BSD platforms).
 
 ### Usage
 
-Generator needs one or more filters to work.
+mkp224o needs one or more filters to work.
+You may specify them as command line arguments,
+eg `./mkp224o test`, or load them from file with `-f` switch.
 
-It makes directory with secret/public keys and hostname
-for each discovered service. By default root is current
+It makes directories with secret/public keys and hostnames
+for each discovered service. By default, the working directory is the current
 directory, but that can be overridden with `-d` switch.
 
 Use `-s` switch to enable printing of statistics, which may be useful
