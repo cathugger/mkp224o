@@ -24,6 +24,7 @@
 #include "ioutil.h"
 #include "common.h"
 #include "yaml.h"
+#include "headers.h"
 
 #include "filters.h"
 
@@ -292,6 +293,10 @@ static void genbase(const char *privpath, const char *pubpath)
 		perror("couldn't open");
 		exit(1);
 	}
+	if (fwrite(HEADER_BASESK, 1, HEADER_BASESKLEN, fp) != HEADER_BASESKLEN) {
+		perror("write");
+		exit(1);
+	}
 	if (fwrite(base_sk, 1, 32, fp) != 32) {
 		perror("write");
 		exit(1);
@@ -302,6 +307,10 @@ static void genbase(const char *privpath, const char *pubpath)
 	fp = fopen(pubpath, "w");
 	if (!fp) {
 		perror("couldn't open");
+		exit(1);
+	}
+	if (fwrite(HEADER_BASEPK, 1, HEADER_BASEPKLEN, fp) != HEADER_BASEPKLEN) {
+		perror("write");
 		exit(1);
 	}
 	if (fwrite(base_pk, 1, 32, fp) != 32) {
@@ -346,11 +355,19 @@ static void combine(int argc, char **argv)
 		u8 base_sk[32], base_extsk[64];
 		fp = fopen(argv[i], "r");
 		if (fp == NULL) {
-			perror("failed to open base.priv");
+			perror("couldn't open basekey");
+			exit(1);
+		}
+		if (fread(base_sk, 1, HEADER_BASESKLEN, fp) != HEADER_BASESKLEN) {
+			perror("read");
+			exit(1);
+		}
+		if (memcmp(base_sk, HEADER_BASESK, HEADER_BASESKLEN) != 0) {
+			fprintf(stderr, "\"%s\" isn't a valid base secret key.\n", argv[-1]);
 			exit(1);
 		}
 		if (fread(base_sk, 1, sizeof base_sk, fp) != sizeof base_sk) {
-			perror("failed to read base.priv");
+			perror("read");
 			exit(1);
 		}
 		fclose(fp);
@@ -495,8 +512,16 @@ int main(int argc,char **argv)
 							perror("couldn't open basekey");
 							exit(1);
 						}
+						if (fread(base_pk, 1, HEADER_BASEPKLEN, fp) != HEADER_BASEPKLEN) {
+							perror("read");
+							exit(1);
+						}
+						if (memcmp(base_pk, HEADER_BASEPK, HEADER_BASEPKLEN) != 0) {
+							fprintf(stderr, "\"%s\" isn't a valid base public key.\n", argv[-1]);
+							exit(1);
+						}
 						if (fread(base_pk, 1, sizeof base_pk, fp) != sizeof base_pk) {
-							perror("incomplete read of base_pk");
+							perror("read");
 							exit(1);
 						}
 						fclose(fp);
