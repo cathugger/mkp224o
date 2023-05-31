@@ -20,10 +20,14 @@
 #include "ioutil.h"
 #include "common.h"
 #include "yaml.h"
+#include "headers.h"
 
 #include "worker.h"
 
 #include "filters.h"
+
+#include "ed25519/ed25519.h"
+#include "ed25519/ed25519_impl_pre.h"
 
 #ifndef _WIN32
 #define FSZ "%zu"
@@ -50,6 +54,9 @@ size_t numneedgenerate = 0;
 // output directory
 char *workdir = 0;
 size_t workdirlen = 0;
+
+ge_p3 ALIGN(16) PUBKEY_BASE;
+int pubkey_base_initialized = 0;
 
 
 #ifdef PASSPHRASE
@@ -101,11 +108,36 @@ static void onionready(char *sname,const u8 *secret,const u8 *pubonion)
 			return;
 		}
 
-		strcpy(&sname[onionendpos],"/hs_ed25519_secret_key");
-		writetofile(sname,secret,FORMATTED_SECRET_LEN,1);
+		if (pubkey_base_initialized == 0) {
+			strcpy(&sname[onionendpos],"/hs_ed25519_secret_key");
+			writetofile(sname,secret,FORMATTED_SECRET_LEN,1);
 
-		strcpy(&sname[onionendpos],"/hs_ed25519_public_key");
-		writetofile(sname,pubonion,FORMATTED_PUBLIC_LEN,0);
+			strcpy(&sname[onionendpos],"/hs_ed25519_public_key");
+			writetofile(sname,pubonion,FORMATTED_PUBLIC_LEN,0);
+		} else {
+			strcpy(&sname[onionendpos],"/halfkey");
+			FILE *fp = fopen(sname,"w");
+			if (!fp) {
+				perror("couldn't create output file");
+				return;
+			}
+			if (fwrite(HEADER_HALFKEY,HEADER_HALFKEYLEN,1,fp) != 1) {
+				perror("couldn't write to output file");
+				fclose(fp);
+				return;
+			}
+			if (fwrite(&secret[SKPREFIX_SIZE],SECRET_LEN,1,fp) != 1) {
+				perror("couldn't write to output file");
+				fclose(fp);
+				return;
+			}
+			if (fwrite(&pubonion[PKPREFIX_SIZE],PUBLIC_LEN,1,fp) != 1) {
+				perror("couldn't write to output file");
+				fclose(fp);
+				return;
+			}
+			fclose(fp);
+		}
 
 		strcpy(&sname[onionendpos],"/hostname");
 		FILE *hfile = fopen(sname,"w");
@@ -205,13 +237,6 @@ static void reseedright(u8 sk[SECRET_LEN])
 #if !defined(BATCHNUM)
 	#define BATCHNUM 2048
 #endif
-
-
-#include "ed25519/ed25519.h"
-#include "ed25519/ed25519_impl_pre.h"
-
-ge_p3 ALIGN(16) PUBKEY_BASE;
-int pubkey_base_initialized = 0;
 
 #include "worker_impl.inc.h" // uses those globals
 

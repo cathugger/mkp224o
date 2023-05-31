@@ -139,7 +139,7 @@ static void printhelp(FILE *out,const char *progname)
 		"                        basekeys used\n"
 		"  --genbase base.priv base.pub\n"
 		"                        generate base keys for trustless mining\n"
-		"  --combine hs_secret_key base.priv..\n"
+		"  --combine halfkey base.priv..\n"
 		"                        combine a mined hs_secret key with base key(s)\n"
 		"  -h, --help, --usage   print help to stdout and quit\n"
 		"  -V, --version         print version information to stdout and exit\n"
@@ -324,7 +324,8 @@ static void genbase(const char *privpath, const char *pubpath)
 
 static void combine(int argc, char **argv)
 {
-	u8 secret[96];
+	u8 halfkey[HEADER_HALFKEYLEN + SECRET_LEN + PUBLIC_LEN];
+	u8 result[FORMATTED_SECRET_LEN];
 	FILE *fp;
 	const char *minedpath = argv[0];
 
@@ -335,21 +336,21 @@ static void combine(int argc, char **argv)
  
 	fp = fopen(minedpath, "r");
 	if (fp == NULL) {
-		perror("failed to open hs_secret_key");
+		perror("failed to open halfkey");
 		exit(1);
 	}
-	if (fread(secret, 1, 96, fp) != 96) {
+	if (fread(halfkey, sizeof halfkey, 1, fp) != 1) {
 		perror("failed to read hs_secret_key");
 		exit(1);
 	}
-	if (memcmp(secret, "== ed25519v1-secret: type0 ==\0\0\0", 32) != 0) {
-		fprintf(stderr, "invalid hs_secret_key format.\nare you sure you picked the right file?\n");
+	if (memcmp(halfkey, HEADER_HALFKEY, HEADER_HALFKEYLEN) != 0) {
+		fprintf(stderr, "Invalid halfkey format. The halfkey must be the first argument.\n");
 		exit(1);
 	}
 	fclose(fp);
 
 	sc25519 ALIGN(16) a;
-	sc25519_from32bytes(&a, &secret[32]);
+	sc25519_from32bytes(&a, &halfkey[HEADER_HALFKEYLEN]);
 
 	for (int i = 1; i < argc; i++) {
 		u8 base_sk[32], base_extsk[64];
@@ -363,7 +364,7 @@ static void combine(int argc, char **argv)
 			exit(1);
 		}
 		if (memcmp(base_sk, HEADER_BASESK, HEADER_BASESKLEN) != 0) {
-			fprintf(stderr, "\"%s\" isn't a valid base secret key.\n", argv[-1]);
+			fprintf(stderr, "\"%s\" isn't a valid base secret key.\n", argv[i]);
 			exit(1);
 		}
 		if (fread(base_sk, 1, sizeof base_sk, fp) != sizeof base_sk) {
@@ -384,43 +385,41 @@ static void combine(int argc, char **argv)
 	ge25519_pack(pk, &A);
 
 	// Save secret scalar.
-	sc25519_to32bytes(&secret[32], &a);
+	memcpy(result, "== ed25519v1-secret: type0 ==\0\0\0", SKPREFIX_SIZE);
+	sc25519_to32bytes(&result[SKPREFIX_SIZE], &a);
 
 	// Compute the key's hash prefix.
 	// See "Pseudorandom generation of r.", page 8 of https://ed25519.cr.yp.to/ed25519-20110926.pdf
-	// You're supposed to generate it together with the secret scalar, but
-	// we can't really do that here. As far as I can tell, it just needs to
-	// be another secret value.
-	// In normal Ed25519 you never have a pair of keys with the same secret
-	// scalar but different hash prefixes. If I generated hash prefixes
-	// independently from the secret scalar (such as by just using random
-	// bytes), you could get such a pair by running --combine multiple times.
-	// I don't know if that would mess anything up, but to err on the side
-	// of caution, I'm setting it to a hash of the secret scalar and the
-	// original generated key.
-	FIPS202_SHAKE256(secret, sizeof secret, &secret[64], 32);
+	// Usually it's generated together with the secret scalar using a hash
+	// function, but we can't do that here. As far as I can tell, it just
+	// needs to be another secret value.
+	// I'm setting it to a hash of the secret scalar to prevent generating
+	// multiple keys with the same secret scalar but different hash prefixes,
+	// which never occurs in normal ed25519.
+	FIPS202_SHAKE256(&result[SKPREFIX_SIZE], 32, &result[64], 32);
 	
-	sc25519_from32bytes(&a, &secret[32]);
 	ge25519_scalarmult_base(&A, &a);
 	ge25519_pack(pk, &A);
 
-	printf("new pk: ");
-	for (size_t i = 0; i < sizeof(pk); i++)
-		printf("%02x ", pk[i]);
-	puts("");
+	if (memcmp(pk, &halfkey[HEADER_HALFKEYLEN + SECRET_LEN], PUBLIC_LEN) != 0) {
+		fprintf(stderr,"Didn't get the expected public key. You probably didn't use the right basekey(s).\n");
+		exit(1);
+	}
 
-	char *newname = malloc(strlen(minedpath) + strlen(".fixed") + 1);
-	strcpy(newname, minedpath);
-	strcat(newname, ".fixed");
-	printf("saving to %s\n", newname);
+	char *newpath = malloc(strlen(minedpath) + strlen("hs_ed25519_secret_key") + 1);
+	strcpy(newpath, minedpath);
+	char *slash = strrchr(newpath, '/');
+	slash = slash ? slash + 1 : newpath;
+	strcpy(slash, "hs_ed25519_secret_key");
+	printf("saving to %s\n", newpath);
 
-	fp = fopen(newname, "w");
+	fp = fopen(newpath, "w");
 	if (!fp) {
 		perror("couldn't open");
 		exit(1);
 	}
-	if (fwrite(secret, 1, sizeof secret, fp) != sizeof secret) {
-		perror("failed to write fixed privkey");
+	if (fwrite(result, sizeof result, 1, fp) != 1) {
+		perror("failed to write hs_ed25519_secret_key");
 		exit(1);
 	}
 	fclose(fp);
@@ -709,6 +708,11 @@ int main(int argc,char **argv)
 
 	if (yamlraw && !yamlinput && !yamloutput) {
 		fprintf(stderr,"--rawyaml requires either -y or -Y to do anything\n");
+		exit(1);
+	}
+
+	if (yamloutput && 0 < basekeys) {
+		fprintf(stderr,"-y is incompatible with --basekey\n");
 		exit(1);
 	}
 
