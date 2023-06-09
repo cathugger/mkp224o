@@ -110,10 +110,9 @@ static void printhelp(FILE *out,const char *progname)
 		"  -j NUMTHREADS         same as -t\n"
 		"  -n NUMKEYS            specify number of keys (default - 0 - unlimited)\n"
 		"  -N NUMWORDS           specify number of words per key (default - 1)\n"
-		"  -Z                    use \"slower\" key generation method (initial default)\n"
-		"  -z                    use \"faster\" key generation method (later default)\n"
-		"  -B                    use batching key generation method\n"
-		"                        (>10x faster than -z, current default)\n"
+		"  -Z                    deprecated, does nothing\n"
+		"  -z                    deprecated, does nothing\n"
+		"  -B                    use batching key generation method (current default)\n"
 		"  -s                    print statistics each 10 seconds\n"
 		"  -S SECONDS            print statistics every specified amount of seconds\n"
 		"  -T                    do not reset statistics counters when printing\n"
@@ -257,8 +256,6 @@ VEC_STRUCT(threadvec,pthread_t);
 #include "filters_main.inc.h"
 
 enum worker_type {
-	WT_SLOW,
-	WT_FAST,
 	WT_BATCH,
 };
 
@@ -417,9 +414,9 @@ int main(int argc,char **argv)
 					e_additional();
 			}
 			else if (*arg == 'Z')
-				wt = WT_SLOW;
+				/* ignored */ ;
 			else if (*arg == 'z')
-				wt = WT_FAST;
+				/* ignored */ ;
 			else if (*arg == 'B')
 				wt = WT_BATCH;
 			else if (*arg == 's') {
@@ -665,17 +662,10 @@ int main(int argc,char **argv)
 			tattrp,
 #ifdef PASSPHRASE
 			deterministic
-				? (wt == WT_BATCH
-					? CRYPTO_NAMESPACE(worker_batch_pass)
-					: CRYPTO_NAMESPACE(worker_fast_pass))
+				? CRYPTO_NAMESPACE(worker_batch_pass)
 				:
 #endif
-			wt == WT_BATCH
-				? CRYPTO_NAMESPACE(worker_batch)
-				:
-			wt == WT_FAST
-				? CRYPTO_NAMESPACE(worker_fast)
-				: CRYPTO_NAMESPACE(worker_slow),
+			CRYPTO_NAMESPACE(worker_batch),
 			tp
 		);
 		if (tret) {

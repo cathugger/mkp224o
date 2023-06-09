@@ -40,10 +40,7 @@ extern void worker_init(void);
 extern char *makesname(void);
 extern size_t worker_batch_memuse(void);
 
-extern void *CRYPTO_NAMESPACE(worker_slow)(void *task);
-extern void *CRYPTO_NAMESPACE(worker_fast)(void *task);
 extern void *CRYPTO_NAMESPACE(worker_batch)(void *task);
 #ifdef PASSPHRASE
-extern void *CRYPTO_NAMESPACE(worker_fast_pass)(void *task);
 extern void *CRYPTO_NAMESPACE(worker_batch_pass)(void *task);
 #endif
