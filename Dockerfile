@@ -8,4 +8,4 @@ RUN make
 FROM debian:bookworm-slim
 WORKDIR /app
 COPY --from=builder /app/mkp224o .
-CMD [ "./mkp224o" ]
+ENTRYPOINT [ "./mkp224o" ]
