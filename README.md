@@ -109,7 +109,7 @@ performance-related tips.
   the `ghcr.io/cathugger/mkp224o` image like so:
 
   ```bash
-  docker run --rm -it -v $PWD:/keys ghcr.io/cathugger/mkp224o -d /keys neko
+  docker run --rm -it -v $PWD:/keys ghcr.io/cathugger/mkp224o:master -d /keys neko
   ```
 
 ### Acknowledgements & Legal
