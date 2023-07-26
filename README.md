@@ -78,7 +78,7 @@ performance-related tips.
   Then edit `torrc` and add new service with that folder.\
   After reload/restart tor should pick it up.
 
-* Generate addresses with `1-2` and `7-9` digits?
+* How to generate addresses with `0-1` and `8-9` digits?
 
   Onion addresses use base32 encoding which does not include `0,1,8,9`
   numbers.\
