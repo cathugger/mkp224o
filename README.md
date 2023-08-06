@@ -103,6 +103,15 @@ performance-related tips.
   It appears that onionbalance supports loading usual
   `hs_ed25519_secret_key` key so it should work.
 
+* Is there a docker image?
+
+  Yes, if you do not wish to compile mkp224o yourself, you can use
+  the `ghcr.io/cathugger/mkp224o` image like so:
+
+  ```bash
+  docker run --rm -it -v $PWD:/keys ghcr.io/cathugger/mkp224o:master -d /keys neko
+  ```
+
 ### Acknowledgements & Legal
 
 To the extent possible under law, the author(s) have dedicated all
