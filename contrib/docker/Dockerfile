@@ -1,21 +1,14 @@
-FROM alpine:3.12.0
+FROM alpine:latest AS builder
+RUN apk add --no-cache gcc libc-dev libsodium-dev libsodium-static make autoconf git
+WORKDIR /app
+COPY . .
+RUN ./autogen.sh
+RUN ./configure --enable-amd64-51-30k CFLAGS="-O3 -march=x86-64 -mtune=generic -fomit-frame-pointer" LDFLAGS="-static"
+RUN make
+RUN strip mkp224o
 
-LABEL maintainer="sstefin@bk.ru"
+FROM scratch
+WORKDIR /app
+COPY --from=builder /app/mkp224o .
 
-#Installing all the dependencies
-RUN apk add --no-cache gcc libsodium-dev make autoconf build-base
-
-WORKDIR /mkp224o
-
-COPY . /mkp224o/
-
-RUN ./autogen.sh \
-  && ./configure \
-  && make \
-  && cp /mkp224o/mkp224o /usr/local/bin/
-
-VOLUME /root/data
-
-WORKDIR /root/data
-
-ENTRYPOINT ["mkp224o"]
+ENTRYPOINT ["./mkp224o"]
