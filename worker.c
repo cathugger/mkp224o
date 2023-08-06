@@ -150,6 +150,7 @@ union pubonionunion {
 	} i;
 } ;
 
+/*
 // little endian inc
 static void addsk32(u8 *sk)
 {
@@ -160,6 +161,7 @@ static void addsk32(u8 *sk)
 		if (!c) break;
 	}
 }
+*/
 
 // 0123 4567 xxxx --3--> 3456 7xxx
 // 0123 4567 xxxx --1--> 1234 567x
