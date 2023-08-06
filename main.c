@@ -612,8 +612,11 @@ int main(int argc,char **argv)
 				fclose(checkout);
 
 				// Apply checkpoint to determseed
-				for (int i = 0; i < SEED_LEN; i++)
-					determseed[i] += checkpoint[i];
+				bool carry = 0;
+				for (int i = 0; i < SEED_LEN; i++) {
+					determseed[i] += checkpoint[i] + carry;
+					carry = determseed[i] < checkpoint[i];
+				}
 			}
 		}
 	}
