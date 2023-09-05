@@ -89,9 +89,9 @@ VEC_STRUCT(tstatsvec,struct tstatstruct);
 
 static void printhelp(FILE *out,const char *progname)
 {
+	fprintf(out,
 	//   0         1         2         3         4         5         6         7
 	//   01234567890123456789012345678901234567890123456789012345678901234567890123456789
-	fprintf(out,
 		"Usage: %s FILTER [FILTER...] [OPTION]\n"
 		"       %s -f FILTERFILE [OPTION]\n"
 		"Options:\n"
@@ -614,6 +614,8 @@ int main(int argc,char **argv)
 				"CAUTION: avoid using keys generated with the same password for unrelated\n"
 				"         services, as single leaked key may help an attacker to regenerate\n"
 				"		  related keys; to silence this warning, pass --skipnear or --warnnear.\n");
+		if (pw_warnnear)
+			pw_skipnear = 0;
 		if (checkpointfile) {
 			memcpy(orig_determseed,determseed,sizeof(determseed));
 			// Read current checkpoint position if file exists
