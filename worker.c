@@ -130,6 +130,8 @@ static void onionready(char *sname,const u8 *secret,const u8 *pubonion,int warnn
 				strcpy(&sname[onionendpos],pwarn);
 			const size_t oprintlen = printlen;
 			const size_t printlen = oprintlen + (warnnear ? strlen(pwarn)-1 : 0);
+#else
+			(void) warnnear;
 #endif
 			fwrite(&sname[printstartpos],printlen,1,fout);
 			fflush(fout);
