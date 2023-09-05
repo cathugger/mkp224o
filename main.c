@@ -338,10 +338,14 @@ int main(int argc,char **argv)
 					else
 						e_additional();
 				}
-				else if (!strcmp(arg,"skipnear"))
+				else if (!strcmp(arg,"skipnear")) {
 					pw_skipnear = 1;
-				else if (!strcmp(arg,"warnnear"))
+					pw_warnnear = 0;
+				}
+				else if (!strcmp(arg,"warnnear")) {
 					pw_warnnear = 1;
+					pw_skipnear = 0;
+				}
 #endif // PASSPHRASE
 				else {
 					fprintf(stderr,"unrecognised argument: --%s\n",arg);
@@ -614,8 +618,6 @@ int main(int argc,char **argv)
 				"CAUTION: avoid using keys generated with the same password for unrelated\n"
 				"         services, as single leaked key may help an attacker to regenerate\n"
 				"		  related keys; to silence this warning, pass --skipnear or --warnnear.\n");
-		if (pw_warnnear)
-			pw_skipnear = 0;
 		if (checkpointfile) {
 			memcpy(orig_determseed,determseed,sizeof(determseed));
 			// Read current checkpoint position if file exists
