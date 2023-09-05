@@ -96,43 +96,49 @@ static void printhelp(FILE *out,const char *progname)
 		"       %s -f FILTERFILE [OPTION]\n"
 		"Options:\n"
 		"  -f FILTERFILE         specify filter file which contains filters separated\n"
-		"                        by newlines\n"
-		"  -D                    deduplicate filters\n"
-		"  -q                    do not print diagnostic output to stderr\n"
-		"  -x                    do not print onion names\n"
-		"  -v                    print more diagnostic data\n"
-		"  -o FILENAME           output onion names to specified file (append)\n"
-		"  -O FILENAME           output onion names to specified file (overwrite)\n"
-		"  -F                    include directory names in onion names output\n"
-		"  -d DIRNAME            output directory\n"
+		"                        by newlines.\n"
+		"  -D                    deduplicate filters.\n"
+		"  -q                    do not print diagnostic output to stderr.\n"
+		"  -x                    do not print onion names.\n"
+		"  -v                    print more diagnostic data.\n"
+		"  -o FILENAME           output onion names to specified file (append).\n"
+		"  -O FILENAME           output onion names to specified file (overwrite).\n"
+		"  -F                    include directory names in onion names output.\n"
+		"  -d DIRNAME            output directory.\n"
 		"  -t NUMTHREADS         specify number of threads to utilise\n"
-		"                        (default - try detecting CPU core count)\n"
-		"  -j NUMTHREADS         same as -t\n"
-		"  -n NUMKEYS            specify number of keys (default - 0 - unlimited)\n"
-		"  -N NUMWORDS           specify number of words per key (default - 1)\n"
-		"  -Z                    deprecated, does nothing\n"
-		"  -z                    deprecated, does nothing\n"
-		"  -B                    use batching key generation method (current default)\n"
-		"  -s                    print statistics each 10 seconds\n"
-		"  -S SECONDS            print statistics every specified amount of seconds\n"
-		"  -T                    do not reset statistics counters when printing\n"
+		"                        (default - try detecting CPU core count).\n"
+		"  -j NUMTHREADS         same as -t.\n"
+		"  -n NUMKEYS            specify number of keys (default - 0 - unlimited).\n"
+		"  -N NUMWORDS           specify number of words per key (default - 1).\n"
+		"  -Z                    deprecated, does nothing.\n"
+		"  -z                    deprecated, does nothing.\n"
+		"  -B                    use batching key generation method (current default).\n"
+		"  -s                    print statistics each 10 seconds.\n"
+		"  -S SECONDS            print statistics every specified amount of seconds.\n"
+		"  -T                    do not reset statistics counters when printing.\n"
 		"  -y                    output generated keys in YAML format instead of\n"
-		"                        dumping them to filesystem\n"
+		"                        dumping them to filesystem.\n"
 		"  -Y [FILENAME [host.onion]]\n"
 		"                        parse YAML encoded input and extract key(s) to\n"
-		"                        filesystem\n"
+		"                        filesystem.\n"
 #ifdef PASSPHRASE
-		"  -p PASSPHRASE         use passphrase to initialize the random seed with\n"
+		"  -p PASSPHRASE         use passphrase to initialize the random seed with.\n"
 		"  -P                    same as -p, but takes passphrase from PASSPHRASE\n"
-		"                        environment variable\n"
+		"                        environment variable.\n"
 		"  --checkpoint filename\n"
 		"                        load/save checkpoint of progress to specified file\n"
-		"                        (requires passphrase)\n"
+		"                        (requires passphrase).\n"
+		"  --skipnear            skip near passphrase keys; you probably want this\n"
+		"                        because of improved safety unless you're trying to\n"
+		"                        regenerate an old key; possible future default.\n"
+		"  --warnnear            print warning about passphrase key being near another\n"
+		"                        (safety hazard); prefer --skipnear to this unless\n"
+		"                        you're regenerating an old key.\n"
 #endif
 		"      --rawyaml         raw (unprefixed) public/secret keys for -y/-Y\n"
-		"                        (may be useful for tor controller API)\n"
-		"  -h, --help, --usage   print help to stdout and quit\n"
-		"  -V, --version         print version information to stdout and exit\n"
+		"                        (may be useful for tor controller API).\n"
+		"  -h, --help, --usage   print help to stdout and quit.\n"
+		"  -V, --version         print version information to stdout and exit.\n"
 		,progname,progname);
 	fflush(out);
 }
@@ -332,6 +338,10 @@ int main(int argc,char **argv)
 					else
 						e_additional();
 				}
+				else if (!strcmp(arg,"skipnear"))
+					pw_skipnear = 1;
+				else if (!strcmp(arg,"warnnear"))
+					pw_warnnear = 1;
 #endif // PASSPHRASE
 				else {
 					fprintf(stderr,"unrecognised argument: --%s\n",arg);
@@ -597,8 +607,13 @@ int main(int argc,char **argv)
 
 #ifdef PASSPHRASE
 	if (deterministic) {
-		if (!quietflag && numneedgenerate != 1)
-			fprintf(stderr,"CAUTION: avoid using keys generated with same password for unrelated services, as single leaked key may help attacker to regenerate related keys.\n");
+		if (!quietflag && numneedgenerate != 1 && !pw_skipnear && !pw_warnnear)
+			fprintf(stderr,
+			//   0         1         2         3         4         5         6         7
+			//   01234567890123456789012345678901234567890123456789012345678901234567890123456789
+				"CAUTION: avoid using keys generated with the same password for unrelated\n"
+				"         services, as single leaked key may help an attacker to regenerate\n"
+				"		  related keys; to silence this warning, pass --skipnear or --warnnear.\n");
 		if (checkpointfile) {
 			memcpy(orig_determseed,determseed,sizeof(determseed));
 			// Read current checkpoint position if file exists

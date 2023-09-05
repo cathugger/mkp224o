@@ -38,17 +38,21 @@ void *CRYPTO_NAMESPACE(worker_batch_pass)(void *task)
 
 	sname = makesname();
 
+	int seednear;
+
 initseed:
 
 #ifdef STATISTICS
 	++st->numrestart.v;
 #endif
 
+	seednear = 0;
+
 	pthread_mutex_lock(&determseed_mutex);
 	for (int i = 0; i < SEED_LEN; i++)
 		if (++determseed[i])
 			break;
-	memcpy(seed, determseed, SEED_LEN);
+	memcpy(seed,determseed,SEED_LEN);
 	pthread_mutex_unlock(&determseed_mutex);
 
 	ed25519_seckey_expand(sk,seed);
@@ -112,8 +116,12 @@ initseed:
 				pk[PUBLIC_LEN + 2] = 0x03;
 				// full name
 				strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
-				onionready(sname,secret,pubonion.raw);
+				onionready(sname,secret,pubonion.raw,seednear && pw_warnnear);
 				pk[PUBLIC_LEN] = 0; // what is this for?
+
+				if (pw_skipnear)
+					goto initseed;
+				seednear = 1;
 			});
 		next:
 			;
@@ -180,8 +188,12 @@ initseed:
 				pk[PUBLIC_LEN + 2] = 0x03;
 				// full name
 				strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
-				onionready(sname,secret,pubonion.raw);
+				onionready(sname,secret,pubonion.raw,seednear && pw_warnnear);
 				pk[PUBLIC_LEN] = 0; // what is this for?
+
+				if (pw_skipnear)
+					goto initseed;
+				seednear = 1;
 			});
 		next2:
 			;

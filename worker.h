@@ -33,6 +33,8 @@ VEC_STRUCT(statsvec,struct statstruct);
 #ifdef PASSPHRASE
 extern pthread_mutex_t determseed_mutex;
 extern u8 determseed[SEED_LEN];
+extern int pw_skipnear;
+extern int pw_warnnear;
 #endif
 
 extern void worker_init(void);

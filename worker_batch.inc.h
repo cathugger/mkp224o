@@ -102,7 +102,7 @@ initseed:
 				pk[PUBLIC_LEN + 2] = 0x03;
 				// full name
 				strcpy(base32_to(&sname[direndpos],pk,PUBONION_LEN),".onion");
-				onionready(sname,secret,pubonion.raw);
+				onionready(sname,secret,pubonion.raw,0);
 				pk[PUBLIC_LEN] = 0; // what is this for?
 				// don't reuse same seed
 				goto initseed;
