@@ -90,8 +90,8 @@ VEC_STRUCT(tstatsvec,struct tstatstruct);
 static void printhelp(FILE *out,const char *progname)
 {
 	fprintf(out,
-	//	 0         1         2         3         4         5         6         7
-	//	 01234567890123456789012345678901234567890123456789012345678901234567890123456789
+		//         1         2         3         4         5         6         7
+		//1234567890123456789012345678901234567890123456789012345678901234567890123456789
 		"Usage: %s FILTER [FILTER...] [OPTION]\n"
 		"       %s -f FILTERFILE [OPTION]\n"
 		"Options:\n"
@@ -613,8 +613,8 @@ int main(int argc,char **argv)
 	if (deterministic) {
 		if (!quietflag && numneedgenerate != 1 && !pw_skipnear && !pw_warnnear)
 			fprintf(stderr,
-			//	 0         1         2         3         4         5         6         7
-			//	 01234567890123456789012345678901234567890123456789012345678901234567890123456789
+				//         1         2         3         4         5         6         7
+				//1234567890123456789012345678901234567890123456789012345678901234567890123456789
 				"CAUTION: avoid using keys generated with the same password for unrelated\n"
 				"         services, as single leaked key may help an attacker to regenerate\n"
 				"		  related keys; to silence this warning, pass --skipnear or --warnnear.\n");
