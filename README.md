@@ -131,8 +131,6 @@ along with this software. If not, see [CC0][].
 * Passphrase-based generation code and idea used in `worker_batch()`
   contributed by [foobar2019][]
 
-[^1]: https://spec.torproject.org/rend-spec/index.html
-[^2]: https://gitlab.torproject.org/tpo/core/torspec/-/raw/main/attic/text_formats/rend-spec-v3.txt
 [OPTIMISATION]: ./OPTIMISATION.txt
 [#27]: https://github.com/cathugger/mkp224o/issues/27
 [keccak.c]: https://github.com/XKCP/XKCP/blob/master/Standalone/CompactFIPS202/C/Keccak-more-compact.c
@@ -141,3 +139,5 @@ along with this software. If not, see [CC0][].
 [ed25519-donna]: https://github.com/floodyberry/ed25519-donna
 [horse25519]: https://github.com/Yawning/horse25519
 [foobar2019]: https://github.com/foobar2019
+[^1]: https://spec.torproject.org/rend-spec/index.html
+[^2]: https://gitlab.torproject.org/tpo/core/torspec/-/raw/main/attic/text_formats/rend-spec-v3.txt
