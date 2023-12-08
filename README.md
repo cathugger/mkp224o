@@ -1,6 +1,6 @@
 ## mkp224o - vanity address generator for ed25519 onion services
 
-This tool generates vanity ed25519 ([hidden service version 3][v3],
+This tool generates vanity ed25519 (hidden service version 3[^1][^2],
 formely known as proposal 224) onion addresses.
 
 ### Requirements for building
@@ -131,7 +131,8 @@ along with this software. If not, see [CC0][].
 * Passphrase-based generation code and idea used in `worker_batch()`
   contributed by [foobar2019][]
 
-[v3]: https://spec.torproject.org/rend-spec/index.html
+[^1]: https://spec.torproject.org/rend-spec/index.html
+[^2]: https://gitlab.torproject.org/tpo/core/torspec/-/raw/main/attic/text_formats/rend-spec-v3.txt
 [OPTIMISATION]: ./OPTIMISATION.txt
 [#27]: https://github.com/cathugger/mkp224o/issues/27
 [keccak.c]: https://github.com/XKCP/XKCP/blob/master/Standalone/CompactFIPS202/C/Keccak-more-compact.c
