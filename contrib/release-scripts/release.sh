@@ -72,8 +72,8 @@ export PATH=$OPATH
 cd "$D/out"
 
 tar --portability --no-acls --no-selinux --no-xattrs --owner root:0 --group=root:0 --sort=name -c -f $SV-src.tar $SV
-zopfli   -c $SV-src.tar  > $SV-src.tar.gz
-zstd -19 -f $SV-src.tar -o $SV-src.tar.zst
+zopfli -i100 -c $SV-src.tar  > $SV-src.tar.gz
+zstd   -19   -f $SV-src.tar -o $SV-src.tar.zst
 rm $SV-src.tar
 
 zip -9 -X -r $SV-w32.zip $SV-w32

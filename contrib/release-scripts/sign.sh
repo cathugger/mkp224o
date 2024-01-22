@@ -10,6 +10,8 @@ D=$(realpath "$0")
 D=$(dirname "$D")
 cd "$D"
 
+export TZ=UTC
+
 cd out
 
 gpg --detach-sign -u "$1" mkp224o-*-src.tar.gz
