@@ -268,115 +268,115 @@ ed25519/amd64-51-30k/sign.c.o: ed25519/amd64-51-30k/ge25519.h
 ed25519/amd64-51-30k/sign.c.o: ed25519/amd64-51-30k/fe25519.h
 ed25519/amd64-51-30k/sign.c.o: ed25519/amd64-51-30k/compat.h
 ed25519/amd64-51-30k/sign.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/fe25519_batchinvert.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/fe25519_batchinvert.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/fe25519_getparity.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/fe25519_getparity.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/fe25519_invert.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/fe25519_invert.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/fe25519_iseq.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/fe25519_iseq.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/fe25519_iszero.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/fe25519_iszero.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/fe25519_neg.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/fe25519_neg.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/fe25519_pack.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/fe25519_pack.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/fe25519_pow2523.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/fe25519_pow2523.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/fe25519_setint.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/fe25519_setint.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/fe25519_unpack.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/fe25519_unpack.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/ge25519_add.c.o: ed25519/amd64-51-30k/ge25519.h
-ed25519/amd64-64-24k/ge25519_add.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/ge25519_add.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/ge25519_add.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/ge25519_base.c.o: ed25519/amd64-51-30k/ge25519.h
-ed25519/amd64-64-24k/ge25519_base.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/ge25519_base.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/ge25519_base.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/ge25519_batchpack.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/ge25519_batchpack.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/ge25519_batchpack.c.o: ed25519/amd64-51-30k/ge25519.h
-ed25519/amd64-64-24k/ge25519_batchpack.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/ge25519_double.c.o: ed25519/amd64-51-30k/ge25519.h
-ed25519/amd64-64-24k/ge25519_double.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/ge25519_double.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/ge25519_double.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/ge25519_double_scalarmult.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/ge25519_double_scalarmult.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/ge25519_double_scalarmult.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/ge25519_double_scalarmult.c.o: ed25519/amd64-51-30k/ge25519.h
-ed25519/amd64-64-24k/ge25519_double_scalarmult.c.o: ed25519/amd64-51-30k/ge25519_base_slide_multiples.data
-ed25519/amd64-64-24k/ge25519_isneutral.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/ge25519_isneutral.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/ge25519_isneutral.c.o: ed25519/amd64-51-30k/ge25519.h
-ed25519/amd64-64-24k/ge25519_isneutral.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/ge25519_multi_scalarmult.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/ge25519_multi_scalarmult.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/ge25519_multi_scalarmult.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/ge25519_multi_scalarmult.c.o: ed25519/amd64-51-30k/ge25519.h
-ed25519/amd64-64-24k/ge25519_multi_scalarmult.c.o: ed25519/amd64-51-30k/index_heap.h
-ed25519/amd64-64-24k/ge25519_pack.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/ge25519_pack.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/ge25519_pack.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/ge25519_pack.c.o: ed25519/amd64-51-30k/ge25519.h
-ed25519/amd64-64-24k/ge25519_scalarmult_base.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/ge25519_scalarmult_base.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/ge25519_scalarmult_base.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/ge25519_scalarmult_base.c.o: ed25519/amd64-51-30k/ge25519.h
+ed25519/amd64-64-24k/fe25519_batchinvert.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/fe25519_batchinvert.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/fe25519_getparity.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/fe25519_getparity.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/fe25519_invert.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/fe25519_invert.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/fe25519_iseq.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/fe25519_iseq.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/fe25519_iszero.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/fe25519_iszero.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/fe25519_neg.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/fe25519_neg.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/fe25519_pack.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/fe25519_pack.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/fe25519_pow2523.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/fe25519_pow2523.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/fe25519_setint.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/fe25519_setint.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/fe25519_unpack.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/fe25519_unpack.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/ge25519_add.c.o: ed25519/amd64-64-24k/ge25519.h
+ed25519/amd64-64-24k/ge25519_add.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/ge25519_add.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/ge25519_add.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/ge25519_base.c.o: ed25519/amd64-64-24k/ge25519.h
+ed25519/amd64-64-24k/ge25519_base.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/ge25519_base.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/ge25519_base.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/ge25519_batchpack.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/ge25519_batchpack.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/ge25519_batchpack.c.o: ed25519/amd64-64-24k/ge25519.h
+ed25519/amd64-64-24k/ge25519_batchpack.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/ge25519_double.c.o: ed25519/amd64-64-24k/ge25519.h
+ed25519/amd64-64-24k/ge25519_double.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/ge25519_double.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/ge25519_double.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/ge25519_double_scalarmult.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/ge25519_double_scalarmult.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/ge25519_double_scalarmult.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/ge25519_double_scalarmult.c.o: ed25519/amd64-64-24k/ge25519.h
+ed25519/amd64-64-24k/ge25519_double_scalarmult.c.o: ed25519/amd64-64-24k/ge25519_base_slide_multiples.data
+ed25519/amd64-64-24k/ge25519_isneutral.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/ge25519_isneutral.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/ge25519_isneutral.c.o: ed25519/amd64-64-24k/ge25519.h
+ed25519/amd64-64-24k/ge25519_isneutral.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/ge25519_multi_scalarmult.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/ge25519_multi_scalarmult.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/ge25519_multi_scalarmult.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/ge25519_multi_scalarmult.c.o: ed25519/amd64-64-24k/ge25519.h
+ed25519/amd64-64-24k/ge25519_multi_scalarmult.c.o: ed25519/amd64-64-24k/index_heap.h
+ed25519/amd64-64-24k/ge25519_pack.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/ge25519_pack.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/ge25519_pack.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/ge25519_pack.c.o: ed25519/amd64-64-24k/ge25519.h
+ed25519/amd64-64-24k/ge25519_scalarmult_base.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/ge25519_scalarmult_base.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/ge25519_scalarmult_base.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/ge25519_scalarmult_base.c.o: ed25519/amd64-64-24k/ge25519.h
 ed25519/amd64-64-24k/ge25519_scalarmult_base.c.o: ed25519/amd64-64-24k/ge25519_base_niels.data
-ed25519/amd64-64-24k/ge25519_unpackneg.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/ge25519_unpackneg.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/ge25519_unpackneg.c.o: ed25519/amd64-51-30k/ge25519.h
-ed25519/amd64-64-24k/ge25519_unpackneg.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/hram.c.o: ed25519/amd64-51-30k/crypto_hash_sha512.h
-ed25519/amd64-64-24k/hram.c.o: ed25519/amd64-51-30k/hram.h
-ed25519/amd64-64-24k/index_heap.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/index_heap.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/index_heap.c.o: ed25519/amd64-51-30k/index_heap.h
-ed25519/amd64-64-24k/keypair.c.o: ed25519/amd64-51-30k/crypto_sign.h
-ed25519/amd64-64-24k/keypair.c.o: ed25519/amd64-51-30k/ed25519.h
-ed25519/amd64-64-24k/keypair.c.o: ed25519/amd64-51-30k/crypto_hash_sha512.h
-ed25519/amd64-64-24k/keypair.c.o: ed25519/amd64-51-30k/randombytes.h
-ed25519/amd64-64-24k/keypair.c.o: ed25519/amd64-51-30k/ge25519.h
-ed25519/amd64-64-24k/keypair.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/keypair.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/keypair.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/open.c.o: ed25519/amd64-51-30k/crypto_sign.h
-ed25519/amd64-64-24k/open.c.o: ed25519/amd64-51-30k/ed25519.h
-ed25519/amd64-64-24k/open.c.o: ed25519/amd64-51-30k/crypto_verify_32.h
-ed25519/amd64-64-24k/open.c.o: ed25519/amd64-51-30k/crypto_hash_sha512.h
-ed25519/amd64-64-24k/open.c.o: ed25519/amd64-51-30k/ge25519.h
-ed25519/amd64-64-24k/open.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/open.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/open.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/sc25519_from32bytes.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/sc25519_from32bytes.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/sc25519_from64bytes.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/sc25519_from64bytes.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/sc25519_from_shortsc.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/sc25519_from_shortsc.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/sc25519_iszero.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/sc25519_iszero.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/sc25519_mul.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/sc25519_mul.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/sc25519_mul_shortsc.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/sc25519_mul_shortsc.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/sc25519_slide.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/sc25519_slide.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/sc25519_to32bytes.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/sc25519_to32bytes.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/sc25519_window4.c.o: ed25519/amd64-51-30k/sc25519.h
-ed25519/amd64-64-24k/sc25519_window4.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/sign.c.o: ed25519/amd64-51-30k/crypto_sign.h
-ed25519/amd64-64-24k/sign.c.o: ed25519/amd64-51-30k/ed25519.h
-ed25519/amd64-64-24k/sign.c.o: ed25519/amd64-51-30k/crypto_hash_sha512.h
-ed25519/amd64-64-24k/sign.c.o: ed25519/amd64-51-30k/ge25519.h
-ed25519/amd64-64-24k/sign.c.o: ed25519/amd64-51-30k/fe25519.h
-ed25519/amd64-64-24k/sign.c.o: ed25519/amd64-51-30k/compat.h
-ed25519/amd64-64-24k/sign.c.o: ed25519/amd64-51-30k/sc25519.h
+ed25519/amd64-64-24k/ge25519_unpackneg.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/ge25519_unpackneg.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/ge25519_unpackneg.c.o: ed25519/amd64-64-24k/ge25519.h
+ed25519/amd64-64-24k/ge25519_unpackneg.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/hram.c.o: ed25519/amd64-64-24k/crypto_hash_sha512.h
+ed25519/amd64-64-24k/hram.c.o: ed25519/amd64-64-24k/hram.h
+ed25519/amd64-64-24k/index_heap.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/index_heap.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/index_heap.c.o: ed25519/amd64-64-24k/index_heap.h
+ed25519/amd64-64-24k/keypair.c.o: ed25519/amd64-64-24k/crypto_sign.h
+ed25519/amd64-64-24k/keypair.c.o: ed25519/amd64-64-24k/ed25519.h
+ed25519/amd64-64-24k/keypair.c.o: ed25519/amd64-64-24k/crypto_hash_sha512.h
+ed25519/amd64-64-24k/keypair.c.o: ed25519/amd64-64-24k/randombytes.h
+ed25519/amd64-64-24k/keypair.c.o: ed25519/amd64-64-24k/ge25519.h
+ed25519/amd64-64-24k/keypair.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/keypair.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/keypair.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/open.c.o: ed25519/amd64-64-24k/crypto_sign.h
+ed25519/amd64-64-24k/open.c.o: ed25519/amd64-64-24k/ed25519.h
+ed25519/amd64-64-24k/open.c.o: ed25519/amd64-64-24k/crypto_verify_32.h
+ed25519/amd64-64-24k/open.c.o: ed25519/amd64-64-24k/crypto_hash_sha512.h
+ed25519/amd64-64-24k/open.c.o: ed25519/amd64-64-24k/ge25519.h
+ed25519/amd64-64-24k/open.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/open.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/open.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/sc25519_from32bytes.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/sc25519_from32bytes.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/sc25519_from64bytes.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/sc25519_from64bytes.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/sc25519_from_shortsc.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/sc25519_from_shortsc.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/sc25519_iszero.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/sc25519_iszero.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/sc25519_mul.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/sc25519_mul.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/sc25519_mul_shortsc.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/sc25519_mul_shortsc.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/sc25519_slide.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/sc25519_slide.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/sc25519_to32bytes.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/sc25519_to32bytes.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/sc25519_window4.c.o: ed25519/amd64-64-24k/sc25519.h
+ed25519/amd64-64-24k/sc25519_window4.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/sign.c.o: ed25519/amd64-64-24k/crypto_sign.h
+ed25519/amd64-64-24k/sign.c.o: ed25519/amd64-64-24k/ed25519.h
+ed25519/amd64-64-24k/sign.c.o: ed25519/amd64-64-24k/crypto_hash_sha512.h
+ed25519/amd64-64-24k/sign.c.o: ed25519/amd64-64-24k/ge25519.h
+ed25519/amd64-64-24k/sign.c.o: ed25519/amd64-64-24k/fe25519.h
+ed25519/amd64-64-24k/sign.c.o: ed25519/amd64-64-24k/compat.h
+ed25519/amd64-64-24k/sign.c.o: ed25519/amd64-64-24k/sc25519.h
 ed25519/ref10/fe_0.c.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_1.c.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_add.c.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
@@ -394,7 +394,7 @@ ed25519/ref10/fe_isnegative.c.o: ed25519/ref10/fe.h
 ed25519/ref10/fe_isnegative.c.o: ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_isnonzero.c.o: ed25519/ref10/fe.h
 ed25519/ref10/fe_isnonzero.c.o: ed25519/ref10/crypto_int32.h
-ed25519/ref10/fe_isnonzero.c.o: ed25519/amd64-51-30k/crypto_verify_32.h
+ed25519/ref10/fe_isnonzero.c.o: ed25519/ref10/crypto_verify_32.h
 ed25519/ref10/fe_mul.c.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 ed25519/ref10/fe_mul.c.o: ed25519/ref10/crypto_int64.h
 ed25519/ref10/fe_neg.c.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
@@ -453,29 +453,27 @@ ed25519/ref10/ge_sub.c.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_sub.c.o: ed25519/ref10/crypto_int32.h ed25519/ref10/ge_sub.h
 ed25519/ref10/ge_tobytes.c.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/ge_tobytes.c.o: ed25519/ref10/crypto_int32.h
-ed25519/ref10/keypair.c.o: ed25519/amd64-51-30k/randombytes.h
-ed25519/ref10/keypair.c.o: ed25519/amd64-51-30k/crypto_sign.h
-ed25519/ref10/keypair.c.o: ed25519/amd64-51-30k/ed25519.h
-ed25519/ref10/keypair.c.o: ed25519/amd64-51-30k/crypto_hash_sha512.h
+ed25519/ref10/keypair.c.o: ed25519/ref10/randombytes.h
+ed25519/ref10/keypair.c.o: ed25519/ref10/crypto_sign.h
+ed25519/ref10/keypair.c.o: ed25519/ref10/ed25519.h
+ed25519/ref10/keypair.c.o: ed25519/ref10/crypto_hash_sha512.h
 ed25519/ref10/keypair.c.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
 ed25519/ref10/keypair.c.o: ed25519/ref10/crypto_int32.h
-ed25519/ref10/open.c.o: ed25519/amd64-51-30k/crypto_sign.h
-ed25519/ref10/open.c.o: ed25519/amd64-51-30k/ed25519.h
-ed25519/ref10/open.c.o: ed25519/amd64-51-30k/crypto_hash_sha512.h
-ed25519/ref10/open.c.o: ed25519/amd64-51-30k/crypto_verify_32.h
-ed25519/ref10/open.c.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
-ed25519/ref10/open.c.o: ed25519/ref10/crypto_int32.h ed25519/ref10/sc.h
+ed25519/ref10/open.c.o: ed25519/ref10/crypto_sign.h ed25519/ref10/ed25519.h
+ed25519/ref10/open.c.o: ed25519/ref10/crypto_hash_sha512.h
+ed25519/ref10/open.c.o: ed25519/ref10/crypto_verify_32.h ed25519/ref10/ge.h
+ed25519/ref10/open.c.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
+ed25519/ref10/open.c.o: ed25519/ref10/sc.h
 ed25519/ref10/sc_muladd.c.o: ed25519/ref10/sc.h ed25519/ref10/crypto_int64.h
 ed25519/ref10/sc_muladd.c.o: ed25519/ref10/crypto_uint32.h
 ed25519/ref10/sc_muladd.c.o: ed25519/ref10/crypto_uint64.h
 ed25519/ref10/sc_reduce.c.o: ed25519/ref10/sc.h ed25519/ref10/crypto_int64.h
 ed25519/ref10/sc_reduce.c.o: ed25519/ref10/crypto_uint32.h
 ed25519/ref10/sc_reduce.c.o: ed25519/ref10/crypto_uint64.h
-ed25519/ref10/sign.c.o: ed25519/amd64-51-30k/crypto_sign.h
-ed25519/ref10/sign.c.o: ed25519/amd64-51-30k/ed25519.h
-ed25519/ref10/sign.c.o: ed25519/amd64-51-30k/crypto_hash_sha512.h
-ed25519/ref10/sign.c.o: ed25519/ref10/ge.h ed25519/ref10/fe.h
-ed25519/ref10/sign.c.o: ed25519/ref10/crypto_int32.h ed25519/ref10/sc.h
+ed25519/ref10/sign.c.o: ed25519/ref10/crypto_sign.h ed25519/ref10/ed25519.h
+ed25519/ref10/sign.c.o: ed25519/ref10/crypto_hash_sha512.h ed25519/ref10/ge.h
+ed25519/ref10/sign.c.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
+ed25519/ref10/sign.c.o: ed25519/ref10/sc.h
 ioutil.c.o: types.h ioutil.h vec.h
 keccak.c.o: types.h keccak.h
 main.c.o: types.h vec.h base32.h cpucount.h keccak.h ioutil.h common.h yaml.h
@@ -486,14 +484,16 @@ test_base32.c.o: types.h base32.h
 test_base64.c.o: types.h base64.h
 test_ed25519.c.o: types.h base16.h ed25519/ed25519.h
 test_ed25519.c.o: ed25519/ed25519_impl_pre.h ed25519/ref10/crypto_sign.h
-test_ed25519.c.o: ed25519/amd64-51-30k/ed25519.h ed25519/ref10/ge.h
+test_ed25519.c.o: ed25519/ref10/ed25519.h ed25519/ref10/ge.h
 test_ed25519.c.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
 test_ed25519.c.o: ed25519/amd64-51-30k/crypto_sign.h
+test_ed25519.c.o: ed25519/amd64-51-30k/ed25519.h
 test_ed25519.c.o: ed25519/amd64-51-30k/ge25519.h
 test_ed25519.c.o: ed25519/amd64-51-30k/fe25519.h
 test_ed25519.c.o: ed25519/amd64-51-30k/compat.h
 test_ed25519.c.o: ed25519/amd64-51-30k/sc25519.h
 test_ed25519.c.o: ed25519/amd64-64-24k/crypto_sign.h
+test_ed25519.c.o: ed25519/amd64-64-24k/ed25519.h
 test_ed25519.c.o: ed25519/amd64-64-24k/ge25519.h
 test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna.h
 test_ed25519.c.o: ed25519/ed25519-donna/ed25519-donna-portable.h
@@ -519,12 +519,12 @@ worker.c.o: types.h likely.h vec.h base32.h keccak.h ioutil.h common.h yaml.h
 worker.c.o: worker.h filters.h filters_inc.inc.h filters_worker.inc.h
 worker.c.o: filters_common.inc.h ed25519/ed25519.h worker_impl.inc.h
 worker.c.o: ed25519/ed25519_impl_pre.h ed25519/ref10/crypto_sign.h
-worker.c.o: ed25519/amd64-51-30k/ed25519.h ed25519/ref10/ge.h
-worker.c.o: ed25519/ref10/fe.h ed25519/ref10/crypto_int32.h
-worker.c.o: ed25519/amd64-51-30k/crypto_sign.h ed25519/amd64-51-30k/ge25519.h
+worker.c.o: ed25519/ref10/ed25519.h ed25519/ref10/ge.h ed25519/ref10/fe.h
+worker.c.o: ed25519/ref10/crypto_int32.h ed25519/amd64-51-30k/crypto_sign.h
+worker.c.o: ed25519/amd64-51-30k/ed25519.h ed25519/amd64-51-30k/ge25519.h
 worker.c.o: ed25519/amd64-51-30k/fe25519.h ed25519/amd64-51-30k/compat.h
 worker.c.o: ed25519/amd64-51-30k/sc25519.h ed25519/amd64-64-24k/crypto_sign.h
-worker.c.o: ed25519/amd64-64-24k/ge25519.h
+worker.c.o: ed25519/amd64-64-24k/ed25519.h ed25519/amd64-64-24k/ge25519.h
 worker.c.o: ed25519/ed25519-donna/ed25519-donna.h
 worker.c.o: ed25519/ed25519-donna/ed25519-donna-portable.h
 worker.c.o: ed25519/ed25519-donna/ed25519-donna-portable-identify.h
